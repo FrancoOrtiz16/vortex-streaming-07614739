@@ -8,10 +8,10 @@ const Footer = () => (
           <Tv className="w-3 h-3 text-primary-foreground" />
         </div>
         <span className="font-display font-semibold text-sm">
-          <span className="neon-text">Stream</span><span className="gold-text">Hub</span>
+          <span className="neon-text">Vortex</span> <span className="gold-text">Streaming</span>
         </span>
       </div>
-      <p>© 2026 StreamHub. Todos los derechos reservados.</p>
+      <p>© 2026 Vortex Streaming. Todos los derechos reservados.</p>
     </div>
   </footer>
 );

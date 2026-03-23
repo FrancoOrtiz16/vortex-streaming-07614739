@@ -23,8 +23,8 @@ const Header = () => {
             <Tv className="w-4 h-4 text-primary-foreground" />
           </div>
           <span className="font-display font-bold text-lg tracking-tight">
-            <span className="neon-text">Stream</span>
-            <span className="gold-text">Hub</span>
+            <span className="neon-text">Vortex</span>
+            <span className="gold-text"> Streaming</span>
           </span>
         </Link>
 

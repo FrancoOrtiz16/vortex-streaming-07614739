@@ -1,4 +1,4 @@
-import { Users, BarChart3, Package, CreditCard, LogOut, Shield } from 'lucide-react';
+import { Users, BarChart3, Package, CreditCard, LogOut, Shield, CalendarClock } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -15,6 +15,7 @@ import {
 
 const navItems = [
   { title: 'Usuarios', url: '/admin-access/users', icon: Users },
+  { title: 'Suscripciones', url: '/admin-access/subscriptions', icon: CalendarClock },
   { title: 'Ventas', url: '/admin-access/sales', icon: BarChart3 },
   { title: 'Productos', url: '/admin-access/products', icon: Package },
   { title: 'Pagos', url: '/admin-access/payments', icon: CreditCard },
@@ -34,7 +35,7 @@ export function AdminSidebar({ onSignOut }: AdminSidebarProps) {
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-primary" />
-            {!collapsed && <span className="font-display font-bold neon-text">Admin Panel</span>}
+            {!collapsed && <span className="font-display font-bold neon-text">Vortex Admin</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

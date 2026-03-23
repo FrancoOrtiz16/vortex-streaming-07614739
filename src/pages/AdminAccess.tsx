@@ -9,6 +9,7 @@ import { UsersSection } from '@/components/admin/UsersSection';
 import { SalesSection } from '@/components/admin/SalesSection';
 import { ProductsSection } from '@/components/admin/ProductsSection';
 import { PaymentsSection } from '@/components/admin/PaymentsSection';
+import { SubscriptionsSection } from '@/components/admin/SubscriptionsSection';
 
 export default function AdminAccess() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -47,12 +48,13 @@ export default function AdminAccess() {
           <header className="h-14 flex items-center border-b border-border px-4 glass">
             <SidebarTrigger className="mr-3" />
             <Shield className="w-4 h-4 text-primary mr-2" />
-            <span className="font-display font-bold text-sm neon-text">Vortex Admin</span>
+            <span className="font-display font-bold text-sm neon-text">Vortex Streaming</span>
           </header>
           <main className="flex-1 p-6 overflow-y-auto">
             <Routes>
               <Route index element={<Navigate to="users" replace />} />
               <Route path="users" element={<UsersSection />} />
+              <Route path="subscriptions" element={<SubscriptionsSection />} />
               <Route path="sales" element={<SalesSection />} />
               <Route path="products" element={<ProductsSection />} />
               <Route path="payments" element={<PaymentsSection />} />
