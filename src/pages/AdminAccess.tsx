@@ -48,7 +48,7 @@ export default function AdminAccess() {
           <header className="h-14 flex items-center border-b border-border px-4 glass">
             <SidebarTrigger className="mr-3" />
             <Shield className="w-4 h-4 text-primary mr-2" />
-            <span className="font-display font-bold text-sm neon-text">Vortex Admin</span>
+            <span className="font-display font-bold text-sm neon-text">Vortex Streaming</span>
           </header>
           <main className="flex-1 p-6 overflow-y-auto">
             <Routes>
