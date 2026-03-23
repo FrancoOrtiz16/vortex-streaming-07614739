@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Tv, Gamepad2, Menu, X } from 'lucide-react';
+import { ShoppingCart, Tv, Gamepad2, Menu, X } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import UserMenu from '@/components/UserMenu';
 
 const Header = () => {
   const { count } = useCart();
