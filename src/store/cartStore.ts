@@ -1,23 +1,10 @@
-import { create } from 'zustand';
 import { Product } from '@/data/products';
 
-// Simple in-memory store, no external dependency needed
 interface CartItem {
   product: Product;
   quantity: number;
 }
 
-interface CartState {
-  items: CartItem[];
-  addItem: (product: Product) => void;
-  removeItem: (productId: string) => void;
-  clearCart: () => void;
-  totalItems: () => number;
-  totalPrice: () => number;
-}
-
-// Using a simple React context alternative with useState would also work,
-// but let's use a minimal global store pattern
 let listeners: (() => void)[] = [];
 let cartItems: CartItem[] = [];
 
