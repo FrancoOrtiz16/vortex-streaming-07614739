@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Tv, Gamepad2, Menu, X } from 'lucide-react';
+import { ShoppingCart, Tv, Gamepad2, Menu, X } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import UserMenu from '@/components/UserMenu';
 
 const Header = () => {
   const { count } = useCart();
@@ -57,12 +58,7 @@ const Header = () => {
               </motion.span>
             )}
           </Link>
-          <Link
-            to="/auth"
-            className="p-2 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <User className="w-5 h-5" />
-          </Link>
+          <UserMenu />
           <button
             className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}

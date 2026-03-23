@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import CheckoutDialog from '@/components/CheckoutDialog';
 import { toast } from 'sonner';
 
 const CartPage = () => {
   const { items, total, removeItem, clear } = useCart();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -72,7 +75,7 @@ const CartPage = () => {
                   Vaciar
                 </button>
                 <button
-                  onClick={() => toast.info('Conecta Lovable Cloud para procesar pagos.')}
+                  onClick={() => setCheckoutOpen(true)}
                   className="flex-1 py-2.5 rounded-xl gradient-neon text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
                 >
                   Proceder al Pago
@@ -83,6 +86,7 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
+      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
     </div>
   );
 };
