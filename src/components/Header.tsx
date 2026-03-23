@@ -58,12 +58,7 @@ const Header = () => {
               </motion.span>
             )}
           </Link>
-          <Link
-            to="/auth"
-            className="p-2 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <User className="w-5 h-5" />
-          </Link>
+          <UserMenu />
           <button
             className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}

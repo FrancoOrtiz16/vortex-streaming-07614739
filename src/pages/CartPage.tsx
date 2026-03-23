@@ -75,7 +75,7 @@ const CartPage = () => {
                   Vaciar
                 </button>
                 <button
-                  onClick={() => toast.info('Conecta Lovable Cloud para procesar pagos.')}
+                  onClick={() => setCheckoutOpen(true)}
                   className="flex-1 py-2.5 rounded-xl gradient-neon text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
                 >
                   Proceder al Pago
@@ -86,6 +86,7 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
+      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
     </div>
   );
 };
