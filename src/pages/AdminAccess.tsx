@@ -54,6 +54,7 @@ export default function AdminAccess() {
             <Routes>
               <Route index element={<Navigate to="users" replace />} />
               <Route path="users" element={<UsersSection />} />
+              <Route path="subscriptions" element={<SubscriptionsSection />} />
               <Route path="sales" element={<SalesSection />} />
               <Route path="products" element={<ProductsSection />} />
               <Route path="payments" element={<PaymentsSection />} />
