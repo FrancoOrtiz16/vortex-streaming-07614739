@@ -9,6 +9,7 @@ import { UsersSection } from '@/components/admin/UsersSection';
 import { SalesSection } from '@/components/admin/SalesSection';
 import { ProductsSection } from '@/components/admin/ProductsSection';
 import { PaymentsSection } from '@/components/admin/PaymentsSection';
+import { SubscriptionsSection } from '@/components/admin/SubscriptionsSection';
 
 export default function AdminAccess() {
   const { user, loading, isAdmin, signOut } = useAuth();
