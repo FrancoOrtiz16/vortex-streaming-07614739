@@ -23,7 +23,7 @@ const App = () => (
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/dashboard" element={<ClientDashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin-access/*" element={<AdminAccess />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
