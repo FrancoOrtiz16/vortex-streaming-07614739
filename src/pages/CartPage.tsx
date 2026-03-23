@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 const CartPage = () => {
   const { items, total, removeItem, clear } = useCart();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col">
