@@ -45,6 +45,7 @@ const Header = () => {
         <div className="flex items-center gap-3">
           <Link
             to="/cart"
+            aria-label="Carrito de compras"
             className="relative p-2 rounded-lg hover:bg-secondary transition-colors"
           >
             <ShoppingCart className="w-5 h-5" />
