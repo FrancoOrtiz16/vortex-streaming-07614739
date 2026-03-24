@@ -61,6 +61,7 @@ const Header = () => {
           </Link>
           <UserMenu />
           <button
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
             className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
           >
