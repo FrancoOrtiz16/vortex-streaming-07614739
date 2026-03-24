@@ -17,7 +17,7 @@ export const products: Product[] = [
     description: 'Pantalla completa 4K + HDR. Hasta 4 dispositivos simultáneos.',
     price: 15.99,
     category: 'streaming',
-    image: 'https://images.unsplash.com/photo-1574375927938-d5a98e8d7e28?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=400&h=300&fit=crop',
     badge: 'Popular',
   },
   {
