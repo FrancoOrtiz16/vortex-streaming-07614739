@@ -24,6 +24,7 @@ const ProductGrid = () => {
   return (
     <section id="catalogo" className="py-12">
       <div className="container mx-auto px-4">
+        <h2 className="sr-only">Catálogo de productos</h2>
         <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2">
           {filters.map(f => {
             const Icon = f.icon;
