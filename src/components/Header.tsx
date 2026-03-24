@@ -45,6 +45,7 @@ const Header = () => {
         <div className="flex items-center gap-3">
           <Link
             to="/cart"
+            aria-label="Carrito de compras"
             className="relative p-2 rounded-lg hover:bg-secondary transition-colors"
           >
             <ShoppingCart className="w-5 h-5" />
@@ -60,6 +61,7 @@ const Header = () => {
           </Link>
           <UserMenu />
           <button
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
             className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
           >

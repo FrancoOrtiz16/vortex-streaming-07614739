@@ -22,6 +22,7 @@ const UserMenu = () => {
     return (
       <Link
         to="/auth"
+        aria-label="Iniciar sesión"
         className="p-2 rounded-lg hover:bg-secondary transition-colors"
       >
         <User className="w-5 h-5" />
