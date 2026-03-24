@@ -26,7 +26,7 @@ export const products: Product[] = [
     description: 'Acceso a todo el catálogo de Disney, Marvel, Star Wars y más.',
     price: 89.99,
     category: 'streaming',
-    image: 'https://images.unsplash.com/photo-1640499900704-b00dd3de30cd?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1616530940355-351fabd9524b?w=400&h=300&fit=crop',
     badge: 'Oferta',
   },
   {
