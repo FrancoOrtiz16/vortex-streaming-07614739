@@ -1,48 +1,45 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Tv, Gamepad2, Menu, X } from 'lucide-react';
+import { ShoppingCart, Menu, X, Search } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UserMenu from '@/components/UserMenu';
+import { useAuth } from '@/hooks/useAuth';
 
 const Header = () => {
   const { count } = useCart();
-  const location = useLocation();
+  const { isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const navLinks = [
-    { to: '/', label: 'Inicio', icon: Tv },
-    { to: '/?cat=streaming', label: 'Streaming', icon: Tv },
-    { to: '/?cat=gaming', label: 'Gaming', icon: Gamepad2 },
-  ];
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border" style={{ background: 'hsla(220, 20%, 6%, 0.85)', backdropFilter: 'blur(20px)' }}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg gradient-neon flex items-center justify-center">
-            <Tv className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-display font-bold text-lg tracking-tight">
-            <span className="neon-text">Vortex</span>
-            <span className="gold-text"> Streaming</span>
+          <span className="font-display font-bold text-lg tracking-tight italic">
+            <span className="text-foreground">VORTEX</span>
+            <span className="neon-text"> STREAMING</span>
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          {navLinks.map(link => (
+        {/* Desktop actions */}
+        <div className="hidden md:flex items-center gap-3">
+          <Link
+            to="/#catalogo"
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-border hover:border-primary/50 transition-colors"
+          >
+            Ver Tienda
+          </Link>
+          {isAdmin && (
             <Link
-              key={link.label}
-              to={link.to}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              to="/admin-access"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {link.label}
+              Admin Principal
             </Link>
-          ))}
-        </nav>
+          )}
+        </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link
             to="/cart"
             aria-label="Carrito de compras"
@@ -77,19 +74,18 @@ const Header = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden glass border-t border-border overflow-hidden"
+            className="md:hidden border-t border-border overflow-hidden"
+            style={{ background: 'hsla(220, 20%, 6%, 0.95)' }}
           >
             <nav className="flex flex-col p-4 gap-2">
-              {navLinks.map(link => (
-                <Link
-                  key={link.label}
-                  to={link.to}
-                  onClick={() => setMenuOpen(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                >
-                  {link.label}
+              <Link to="/#catalogo" onClick={() => setMenuOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                Ver Tienda
+              </Link>
+              {isAdmin && (
+                <Link to="/admin-access" onClick={() => setMenuOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  Admin Principal
                 </Link>
-              ))}
+              )}
             </nav>
           </motion.div>
         )}
