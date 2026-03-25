@@ -1,4 +1,4 @@
-import { Users, BarChart3, Package, CreditCard, LogOut, Shield, CalendarClock } from 'lucide-react';
+import { Users, BarChart3, Package, CreditCard, LogOut, Shield, CalendarClock, ClipboardList, Boxes } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -15,9 +15,10 @@ import {
 
 const navItems = [
   { title: 'Usuarios', url: '/admin-access/users', icon: Users },
+  { title: 'Inventario', url: '/admin-access/inventory', icon: Boxes },
+  { title: 'Pedidos', url: '/admin-access/orders', icon: ClipboardList },
   { title: 'Suscripciones', url: '/admin-access/subscriptions', icon: CalendarClock },
   { title: 'Ventas', url: '/admin-access/sales', icon: BarChart3 },
-  { title: 'Productos', url: '/admin-access/products', icon: Package },
   { title: 'Pagos', url: '/admin-access/payments', icon: CreditCard },
 ];
 
