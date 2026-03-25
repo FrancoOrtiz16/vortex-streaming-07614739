@@ -1,14 +1,14 @@
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
-import ProductGrid from '@/components/ProductGrid';
+import ServiceGrid from '@/components/ServiceGrid';
 import Footer from '@/components/Footer';
 
 const Index = () => (
-  <div className="min-h-screen flex flex-col">
+  <div className="min-h-screen flex flex-col" style={{ background: 'hsl(222, 47%, 3%)' }}>
     <Header />
     <main className="flex-1">
       <HeroSection />
-      <ProductGrid />
+      <ServiceGrid />
     </main>
     <Footer />
   </div>
