@@ -7,6 +7,7 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -15,17 +16,18 @@ export function useAuth() {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Check admin role - use setTimeout to avoid deadlock with auth state change
           setTimeout(async () => {
-            const { data } = await supabase.rpc('has_role', {
-              _user_id: session.user.id,
-              _role: 'admin',
-            });
-            setIsAdmin(!!data);
+            const [roleRes, profileRes] = await Promise.all([
+              supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' }),
+              supabase.from('profiles').select('is_active').eq('user_id', session.user.id).maybeSingle(),
+            ]);
+            setIsAdmin(!!roleRes.data);
+            setIsBanned(profileRes.data?.is_active === false);
             setLoading(false);
           }, 0);
         } else {
           setIsAdmin(false);
+          setIsBanned(false);
           setLoading(false);
         }
       }
@@ -44,5 +46,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, isAdmin, signOut };
+  return { user, session, loading, isAdmin, isBanned, signOut };
 }

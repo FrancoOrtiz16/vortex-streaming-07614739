@@ -7,34 +7,62 @@ import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
 
+interface OrderInfo {
+  user_id: string;
+  expiry_date: string | null;
+  status: string;
+}
+
+function getServiceStatus(orders: OrderInfo[], userId: string): { label: string; className: string } {
+  const userOrders = orders.filter(o => o.user_id === userId && o.status === 'completed' && o.expiry_date);
+  if (userOrders.length === 0) return { label: 'Sin servicio', className: 'bg-muted text-muted-foreground' };
+  
+  const latestExpiry = userOrders
+    .map(o => new Date(o.expiry_date!).getTime())
+    .sort((a, b) => b - a)[0];
+  
+  const now = Date.now();
+  const diff = latestExpiry - now;
+  const threeDays = 3 * 24 * 60 * 60 * 1000;
+
+  if (diff < 0) return { label: 'Vencido', className: 'bg-red-500/20 text-red-400' };
+  if (diff <= threeDays) return { label: 'Por vencer', className: 'bg-amber-500/20 text-amber-400' };
+  return { label: 'Activo', className: 'bg-emerald-500/20 text-emerald-400' };
+}
+
 export function UsersSection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [orders, setOrders] = useState<OrderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
 
-  const fetchProfiles = async () => {
-    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    if (error) { toast.error('Error cargando usuarios'); return; }
-    setProfiles(data || []);
+  const fetchData = async () => {
+    const [profilesRes, ordersRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('orders').select('user_id, expiry_date, status'),
+    ]);
+    if (profilesRes.error) { toast.error('Error cargando usuarios'); return; }
+    setProfiles(profilesRes.data || []);
+    setOrders((ordersRes.data as OrderInfo[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchProfiles(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const toggleVerified = async (profile: Profile) => {
     const { error } = await supabase.from('profiles').update({ is_verified: !profile.is_verified }).eq('id', profile.id);
     if (error) { toast.error('Error actualizando'); return; }
     toast.success(profile.is_verified ? 'Verificación removida' : 'Usuario verificado');
-    fetchProfiles();
+    fetchData();
   };
 
   const toggleActive = async (profile: Profile) => {
     const { error } = await supabase.from('profiles').update({ is_active: !profile.is_active }).eq('id', profile.id);
     if (error) { toast.error('Error actualizando'); return; }
-    toast.success(profile.is_active ? 'Usuario desactivado' : 'Usuario activado');
-    fetchProfiles();
+    toast.success(profile.is_active ? 'Usuario desactivado (baneado)' : 'Usuario activado');
+    fetchData();
   };
 
   const handleResetPassword = async () => {
@@ -62,8 +90,8 @@ export function UsersSection() {
       toast.success(`Contraseña de ${resetTarget.display_name || resetTarget.email} actualizada`);
       setResetTarget(null);
       setNewPassword('');
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setResetting(false);
     }
@@ -78,7 +106,6 @@ export function UsersSection() {
         <h2 className="font-display font-bold text-xl">User Control Center</h2>
       </div>
 
-      {/* Reset password modal */}
       {resetTarget && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -88,7 +115,7 @@ export function UsersSection() {
           <div className="glass rounded-2xl p-6 w-full max-w-sm mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display font-semibold text-sm">Resetear Contraseña</h3>
-              <button onClick={() => { setResetTarget(null); setNewPassword(''); }} className="p-1 rounded-lg hover:bg-secondary"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setResetTarget(null); setNewPassword(''); }} className="p-1 rounded-lg hover:bg-secondary" aria-label="Cerrar"><X className="w-4 h-4" /></button>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
               Usuario: <strong>{resetTarget.display_name || resetTarget.email}</strong>
@@ -98,12 +125,12 @@ export function UsersSection() {
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
               placeholder="Nueva contraseña (min 6 chars)"
-              className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-neon focus:outline-none focus:ring-1 focus:ring-neon transition-colors mb-4"
+              className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors mb-4"
             />
             <button
               onClick={handleResetPassword}
               disabled={resetting}
-              className="w-full py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold disabled:opacity-50"
+              className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
             >
               {resetting ? 'Actualizando...' : 'Confirmar Reset'}
             </button>
@@ -119,55 +146,65 @@ export function UsersSection() {
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Usuario</th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Registro</th>
+                <th className="text-center px-4 py-3 text-muted-foreground font-medium">Servicio</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Estado</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Verificado</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {profiles.map((p, i) => (
-                <motion.tr
-                  key={p.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium">{p.display_name || '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.email || '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleActive(p)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        p.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
-                      }`}
-                    >
-                      {p.is_active ? 'Activo' : 'Inactivo'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button onClick={() => toggleVerified(p)}>
-                      {p.is_verified ? (
-                        <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-muted-foreground mx-auto hover:text-primary transition-colors" />
-                      )}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => setResetTarget(p)}
-                      className="p-1.5 rounded-lg hover:bg-primary/20 text-primary transition-colors mx-auto"
-                      title="Resetear contraseña"
-                    >
-                      <KeyRound className="w-4 h-4" />
-                    </button>
-                  </td>
-                </motion.tr>
-              ))}
+              {profiles.map((p, i) => {
+                const svcStatus = getServiceStatus(orders, p.user_id);
+                return (
+                  <motion.tr
+                    key={p.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium">{p.display_name || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.email || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${svcStatus.className}`}>
+                        {svcStatus.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => toggleActive(p)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          p.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
+                        }`}
+                      >
+                        {p.is_active ? 'Activo' : 'Baneado'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button onClick={() => toggleVerified(p)} aria-label={p.is_verified ? 'Quitar verificación' : 'Verificar usuario'}>
+                        {p.is_verified ? (
+                          <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-muted-foreground mx-auto hover:text-primary transition-colors" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => setResetTarget(p)}
+                        className="p-1.5 rounded-lg hover:bg-primary/20 text-primary transition-colors mx-auto"
+                        title="Resetear contraseña"
+                        aria-label="Resetear contraseña"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </motion.tr>
+                );
+              })}
               {profiles.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No hay usuarios registrados</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No hay usuarios registrados</td></tr>
               )}
             </tbody>
           </table>

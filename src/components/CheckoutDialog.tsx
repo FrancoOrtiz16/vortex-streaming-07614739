@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Loader2, Copy, CheckCircle, ArrowLeft, CreditCard } from 'lucide-react';
+import { MessageCircle, Loader2, Copy, CheckCircle, ArrowLeft, CreditCard, Upload, ImageIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -38,10 +38,17 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setSelectedMethod(null);
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setReceiptUrl(null);
       supabase
         .from('payment_methods')
         .select('*')
@@ -58,6 +65,40 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Solo se permiten imágenes');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no debe superar 5MB');
+      return;
+    }
+
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
+
+    // Upload to storage
+    if (!user) return;
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('receipts').upload(path, file);
+    if (error) {
+      toast.error('Error subiendo comprobante');
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
+    setReceiptUrl(urlData.publicUrl);
+    setUploading(false);
+    toast.success('Comprobante cargado');
   };
 
   const handleConfirm = async () => {
@@ -82,21 +123,23 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
       const selectedMethodObj = methods.find(m => m.id === selectedMethod);
       const methodText = selectedMethodObj ? ` usando ${selectedMethodObj.method_name}` : '';
-      const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}. Adjunto el comprobante de pago.`;
+      const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
+      const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
       const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
       clear();
       onOpenChange(false);
       toast.success('Pedido registrado. Envía tu comprobante por WhatsApp.');
       window.open(waLink, '_blank');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al registrar el pedido');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al registrar el pedido');
     } finally {
       setSubmitting(false);
     }
   };
 
   const selected = methods.find(m => m.id === selectedMethod);
+  const canSubmit = !!selectedMethod && !!receiptUrl && !submitting && !uploading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,7 +150,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             Confirmar Pago
           </DialogTitle>
           <DialogDescription className="text-xs">
-            {selectedMethod ? 'Datos de pago para tu método seleccionado' : 'Selecciona tu método de pago preferido'}
+            {selectedMethod ? 'Datos de pago y comprobante' : 'Selecciona tu método de pago preferido'}
           </DialogDescription>
         </DialogHeader>
 
@@ -120,7 +163,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             No hay métodos de pago configurados aún.
           </p>
         ) : !selectedMethod ? (
-          /* Step 1: Choose method */
           <div className="space-y-2">
             {methods.map((m, i) => (
               <motion.button
@@ -131,7 +173,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                 onClick={() => setSelectedMethod(m.id)}
                 className="w-full rounded-xl bg-secondary/60 border border-border p-4 text-left hover:border-primary/50 transition-all flex items-center gap-3"
               >
-                <div className="w-10 h-10 rounded-lg gradient-neon flex items-center justify-center text-primary-foreground font-bold text-sm">
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
                   {m.method_name.charAt(0)}
                 </div>
                 <div>
@@ -142,17 +184,17 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             ))}
           </div>
         ) : (
-          /* Step 2: Show selected method details */
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedMethod}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
             >
               <button
-                onClick={() => setSelectedMethod(null)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors"
+                onClick={() => { setSelectedMethod(null); setReceiptFile(null); setReceiptPreview(null); setReceiptUrl(null); }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="w-3 h-3" />
                 Cambiar método
@@ -166,8 +208,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                       {selected.method_type}
                     </span>
                   </div>
-
-                  {/* Parse account_info for structured display */}
                   <div className="space-y-2">
                     {selected.account_info.split('\n').filter(Boolean).map((line, idx) => (
                       <div key={idx} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/30 last:border-0">
@@ -186,7 +226,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                       </div>
                     ))}
                   </div>
-
                   {selected.instructions && (
                     <p className="text-[11px] text-muted-foreground mt-3 p-2 rounded-lg bg-background/50">
                       {selected.instructions}
@@ -194,26 +233,59 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                   )}
                 </div>
               )}
+
+              {/* Receipt upload */}
+              <div className="rounded-xl border border-dashed border-border p-4">
+                <p className="text-xs font-medium mb-2 flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-primary" />
+                  Subir Comprobante de Pago
+                </p>
+                {receiptPreview ? (
+                  <div className="relative">
+                    <img src={receiptPreview} alt="Comprobante" className="w-full h-32 object-cover rounded-lg" />
+                    {uploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      </div>
+                    )}
+                    {receiptUrl && (
+                      <div className="absolute top-2 right-2 bg-emerald-500 rounded-full p-1">
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-24 rounded-lg bg-secondary/40 hover:bg-secondary/60 cursor-pointer transition-colors">
+                    <ImageIcon className="w-6 h-6 text-muted-foreground mb-1" />
+                    <span className="text-[11px] text-muted-foreground">Toca para subir captura</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                  </label>
+                )}
+              </div>
             </motion.div>
           </AnimatePresence>
         )}
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-sm font-medium">Total:</span>
-          <span className="font-display font-bold text-lg gold-text">${total.toFixed(2)}</span>
+          <span className="font-display font-bold text-lg text-primary">${total.toFixed(2)}</span>
         </div>
 
         <button
           onClick={handleConfirm}
-          disabled={submitting || methods.length === 0 || !selectedMethod}
-          className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          disabled={!canSubmit}
+          className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
+            canSubmit
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
+          }`}
         >
           {submitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <MessageCircle className="w-4 h-4" />
           )}
-          Confirmar y enviar comprobante por WhatsApp
+          {receiptUrl ? 'Confirmar y enviar por WhatsApp' : 'Sube el comprobante para continuar'}
         </button>
       </DialogContent>
     </Dialog>
