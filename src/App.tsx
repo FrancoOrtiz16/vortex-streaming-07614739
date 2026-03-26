@@ -9,6 +9,7 @@ import CartPage from "./pages/CartPage";
 import ClientDashboard from "./pages/ClientDashboard";
 import AdminAccess from "./pages/AdminAccess";
 import NotFound from "./pages/NotFound";
+import BannedGuard from "./components/BannedGuard";
 
 const queryClient = new QueryClient();
 
@@ -18,14 +19,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/dashboard" element={<ClientDashboard />} />
-          <Route path="/admin-access/*" element={<AdminAccess />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <BannedGuard>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/dashboard" element={<ClientDashboard />} />
+            <Route path="/admin-access/*" element={<AdminAccess />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BannedGuard>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
