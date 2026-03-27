@@ -56,7 +56,7 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
 
       {/* Info */}
       <div className="px-5 pb-5 flex flex-col flex-1 text-center">
-        <h3 className="font-display font-bold text-base mb-0.5">{service.name}</h3>
+        <h3 className="font-display font-bold text-base mb-0.5" itemProp="name">{service.name}</h3>
         <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-4">
           {service.plan_type}
         </p>

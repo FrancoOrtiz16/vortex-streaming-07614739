@@ -26,7 +26,7 @@ const HeroSection = () => {
           <h1 className="font-display font-bold text-4xl md:text-5xl lg:text-6xl leading-tight mb-4">
             Tu centro de
             <br />
-            <span className="neon-text">entretenimiento digital</span>
+            <span className="neon-text">streaming</span> digital
           </h1>
 
           <p className="text-muted-foreground max-w-md text-sm md:text-base mb-8">
