@@ -182,8 +182,9 @@ export function SubscriptionsSection() {
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Servicio</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Estado</th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Última Renovación</th>
-                <th className="text-left px-4 py-3 text-muted-foreground font-medium">Próxima Renovación</th>
-                <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acción</th>
+                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Próxima Renovación</th>
+                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Semáforo</th>
+                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acción</th>
               </tr>
             </thead>
             <tbody>
