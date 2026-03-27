@@ -63,6 +63,7 @@ export default function AdminAccess() {
               <Route path="sales" element={<SalesSection />} />
               <Route path="products" element={<ProductsSection />} />
               <Route path="payments" element={<PaymentsSection />} />
+              <Route path="settings" element={<SettingsSection />} />
             </Routes>
           </main>
         </div>
