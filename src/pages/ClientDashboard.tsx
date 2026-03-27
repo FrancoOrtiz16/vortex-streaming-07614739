@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Clock, CheckCircle, Key, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { products } from '@/data/products';
 import { toast } from 'sonner';
+import { ExpiryBadge } from '@/components/ExpiryBadge';
 
 interface Order {
   id: string;
@@ -24,30 +25,14 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
+  credential_email?: string | null;
+  credential_password?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
   pending: { label: 'Pendiente', icon: Clock, className: 'text-amber-400' },
   completed: { label: 'Completado', icon: CheckCircle, className: 'text-emerald-400' },
   paid: { label: 'Pagado', icon: CheckCircle, className: 'text-primary' },
-};
-
-const subStatusColor = (status: string) => {
-  switch (status) {
-    case 'active': return 'bg-emerald-500/20 text-emerald-400';
-    case 'expired': return 'bg-destructive/20 text-destructive';
-    case 'pending': return 'bg-amber-500/20 text-amber-400';
-    default: return 'bg-muted text-muted-foreground';
-  }
-};
-
-const subStatusLabel = (status: string) => {
-  switch (status) {
-    case 'active': return 'Activo';
-    case 'expired': return 'Vencido';
-    case 'pending': return 'Pendiente';
-    default: return status;
-  }
 };
 
 const ClientDashboard = () => {
@@ -57,6 +42,7 @@ const ClientDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -88,7 +74,7 @@ const ClientDashboard = () => {
 
   const isExpiredOrSoon = (nextRenewal: string) => {
     const diff = new Date(nextRenewal).getTime() - Date.now();
-    return diff <= 3 * 24 * 60 * 60 * 1000; // 3 days or less
+    return diff <= 3 * 24 * 60 * 60 * 1000;
   };
 
   if (authLoading || loading) {
@@ -142,14 +128,48 @@ const ClientDashboard = () => {
                         Vence: {new Date(sub.next_renewal).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${subStatusColor(sub.status)}`}>
-                      {subStatusLabel(sub.status)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <ExpiryBadge nextRenewal={sub.next_renewal} />
+                    </div>
                   </div>
+
+                  {/* Mis Accesos */}
+                  <div className="mt-3 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-muted-foreground">
+                      <Key className="w-3.5 h-3.5" />
+                      Mis Accesos
+                    </div>
+                    {sub.status === 'active' && sub.credential_email ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-14">Email:</span>
+                          <code className="text-xs bg-secondary px-2 py-1 rounded">{sub.credential_email}</code>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-14">Clave:</span>
+                          <code className="text-xs bg-secondary px-2 py-1 rounded">
+                            {showPassword[sub.id] ? sub.credential_password : '••••••••'}
+                          </code>
+                          <button
+                            onClick={() => setShowPassword(prev => ({ ...prev, [sub.id]: !prev[sub.id] }))}
+                            className="p-1 rounded hover:bg-secondary transition-colors"
+                            aria-label={showPassword[sub.id] ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          >
+                            {showPassword[sub.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        Tus credenciales aparecerán aquí al aprobarse el pago.
+                      </p>
+                    )}
+                  </div>
+
                   {(sub.status === 'expired' || isExpiredOrSoon(sub.next_renewal)) && (
                     <button
                       onClick={() => handleRenew(sub.service_name)}
-                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg gradient-neon text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
+                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg gradient-neon text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
                     >
                       <RefreshCw className="w-3 h-3" />
                       Renovar

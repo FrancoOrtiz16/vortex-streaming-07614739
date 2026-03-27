@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { RefreshCw, Plus, X, CalendarClock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ExpiryBadge } from '@/components/ExpiryBadge';
 
 interface Subscription {
   id: string;
@@ -13,6 +14,8 @@ interface Subscription {
   next_renewal: string;
   created_at: string;
   updated_at: string;
+  credential_email?: string | null;
+  credential_password?: string | null;
 }
 
 interface Profile {
@@ -179,8 +182,9 @@ export function SubscriptionsSection() {
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Servicio</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Estado</th>
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Última Renovación</th>
-                <th className="text-left px-4 py-3 text-muted-foreground font-medium">Próxima Renovación</th>
-                <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acción</th>
+                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Próxima Renovación</th>
+                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Semáforo</th>
+                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -200,21 +204,24 @@ export function SubscriptionsSection() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(s.last_renewal).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{new Date(s.next_renewal).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => markAsRenewed(s)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
-                      title="Marcar como Renovado (+30 días)"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      Renovar
-                    </button>
-                  </td>
+                   <td className="px-4 py-3 text-muted-foreground">{new Date(s.next_renewal).toLocaleDateString()}</td>
+                   <td className="px-4 py-3 text-center">
+                     <ExpiryBadge nextRenewal={s.next_renewal} />
+                   </td>
+                   <td className="px-4 py-3 text-center">
+                     <button
+                       onClick={() => markAsRenewed(s)}
+                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                       title="Marcar como Renovado (+30 días)"
+                     >
+                       <RefreshCw className="w-3 h-3" />
+                       Renovar
+                     </button>
+                   </td>
                 </motion.tr>
               ))}
-              {subs.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No hay suscripciones registradas</td></tr>
+               {subs.length === 0 && (
+                 <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No hay suscripciones registradas</td></tr>
               )}
             </tbody>
           </table>
