@@ -204,17 +204,20 @@ export function SubscriptionsSection() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{new Date(s.last_renewal).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{new Date(s.next_renewal).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => markAsRenewed(s)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
-                      title="Marcar como Renovado (+30 días)"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      Renovar
-                    </button>
-                  </td>
+                   <td className="px-4 py-3 text-muted-foreground">{new Date(s.next_renewal).toLocaleDateString()}</td>
+                   <td className="px-4 py-3 text-center">
+                     <ExpiryBadge nextRenewal={s.next_renewal} />
+                   </td>
+                   <td className="px-4 py-3 text-center">
+                     <button
+                       onClick={() => markAsRenewed(s)}
+                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                       title="Marcar como Renovado (+30 días)"
+                     >
+                       <RefreshCw className="w-3 h-3" />
+                       Renovar
+                     </button>
+                   </td>
                 </motion.tr>
               ))}
               {subs.length === 0 && (
