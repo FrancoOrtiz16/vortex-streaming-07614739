@@ -35,7 +35,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { items, total, clear } = useCart();
   const { rate, convertToVES } = useExchangeRate();
   const navigate = useNavigate();
-  const navigate = useNavigate();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
