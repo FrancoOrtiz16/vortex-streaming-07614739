@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
@@ -167,6 +188,8 @@ export type Database = {
       subscriptions: {
         Row: {
           created_at: string
+          credential_email: string | null
+          credential_password: string | null
           id: string
           last_renewal: string
           next_renewal: string
@@ -177,6 +200,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          credential_email?: string | null
+          credential_password?: string | null
           id?: string
           last_renewal?: string
           next_renewal?: string
@@ -187,6 +212,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          credential_email?: string | null
+          credential_password?: string | null
           id?: string
           last_renewal?: string
           next_renewal?: string
