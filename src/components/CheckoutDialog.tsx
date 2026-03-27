@@ -269,9 +269,17 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           </AnimatePresence>
         )}
 
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <span className="text-sm font-medium">Total:</span>
-          <span className="font-display font-bold text-lg text-primary">${total.toFixed(2)}</span>
+        <div className="pt-2 border-t border-border space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Total:</span>
+            <span className="font-display font-bold text-lg text-primary">${total.toFixed(2)}</span>
+          </div>
+          {selected && rate > 0 && ['pago_movil', 'transferencia', 'pago movil', 'transferencia bancaria'].some(t => selected.method_type.toLowerCase().includes(t) || selected.method_name.toLowerCase().includes(t)) && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Monto en Bolívares:</span>
+              <span className="font-semibold text-foreground">{convertToVES(total).toFixed(2)} Bs. <span className="text-muted-foreground">(Tasa: {rate})</span></span>
+            </div>
+          )}
         </div>
 
         <button
