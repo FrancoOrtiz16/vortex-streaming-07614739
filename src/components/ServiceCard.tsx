@@ -48,7 +48,7 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent group-hover:from-primary/5 transition-all duration-500" />
         <img
           src={service.image_url}
-          alt={service.name}
+          alt={`Logo de ${service.name} - ${service.plan_type} disponible en Vortex Streaming`}
           className="max-h-24 max-w-[80%] object-contain drop-shadow-lg transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
         />
