@@ -188,17 +188,30 @@ export function InventorySection() {
                 placeholder="Popular, Nuevo, Oferta..."
               />
             </div>
-          </div>
+           </div>
 
-          <div className="mb-4">
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción</label>
-            <textarea
-              value={editing.description}
-              onChange={e => setEditing(prev => prev ? { ...prev, description: e.target.value } : null)}
-              rows={2}
-              className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors resize-none"
-            />
-          </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+             <div>
+               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción</label>
+               <textarea
+                 value={editing.description}
+                 onChange={e => setEditing(prev => prev ? { ...prev, description: e.target.value } : null)}
+                 rows={2}
+                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors resize-none"
+               />
+             </div>
+             <div>
+               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Orden de Prioridad</label>
+               <input
+                 type="number"
+                 value={editing.sort_order}
+                 onChange={e => setEditing(prev => prev ? { ...prev, sort_order: parseInt(e.target.value) || 0 } : null)}
+                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                 placeholder="1 = primero"
+               />
+               <p className="text-[10px] text-muted-foreground mt-1">Menor número = aparece primero en el catálogo</p>
+             </div>
+           </div>
 
           <div className="flex items-center gap-4 mb-4">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
