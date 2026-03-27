@@ -27,11 +27,7 @@ interface CheckoutDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-<<<<<<< HEAD
-const WHATSAPP_NUMBER = '584241772003'; // Cambia al número real
-=======
 const WHATSAPP_NUMBER = '584241772003';
->>>>>>> 5dd062ee822d5f0b80312fa7ab0d724a451996cb
 
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
