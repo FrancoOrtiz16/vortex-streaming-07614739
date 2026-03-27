@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 
 interface PaymentMethod {
   id: string;
