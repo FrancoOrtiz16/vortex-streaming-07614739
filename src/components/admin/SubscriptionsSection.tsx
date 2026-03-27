@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { RefreshCw, Plus, X, CalendarClock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ExpiryBadge } from '@/components/ExpiryBadge';
 
 interface Subscription {
   id: string;
@@ -13,6 +14,8 @@ interface Subscription {
   next_renewal: string;
   created_at: string;
   updated_at: string;
+  credential_email?: string | null;
+  credential_password?: string | null;
 }
 
 interface Profile {
