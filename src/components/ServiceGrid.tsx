@@ -25,7 +25,7 @@ const ServiceGrid = () => {
       <div className="container mx-auto px-4">
         <div className="mb-10">
           <h2 className="font-display font-bold text-3xl md:text-4xl mb-2">
-            Servicios <span className="neon-text">Streaming</span>
+            Catálogo de <span className="neon-text">Streaming</span> y Gaming
           </h2>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Cuentas 100% personales con garantía
