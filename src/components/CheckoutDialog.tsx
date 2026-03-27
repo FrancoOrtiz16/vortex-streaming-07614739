@@ -33,6 +33,8 @@ const WHATSAPP_NUMBER = '584241772003';
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
   const { items, total, clear } = useCart();
+  const { rate, convertToVES } = useExchangeRate();
+  const navigate = useNavigate();
   const navigate = useNavigate();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
