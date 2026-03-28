@@ -33,8 +33,32 @@ export function OrdersSection() {
     const creds = credentials[order.id];
     setConfirming(order.id);
     try {
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 30);
+      const now = new Date();
+
+      // Check if there's an existing subscription for this user+service (renewal case)
+      let existingSub: any = null;
+      if (order.user_id) {
+        const { data } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', order.user_id)
+          .eq('service_name', order.product_name)
+          .limit(1)
+          .maybeSingle();
+        existingSub = data;
+      }
+
+      let expiryDate: Date;
+      if (existingSub) {
+        // Renewal: add 30 days to current expiry (or now if already expired)
+        const currentExpiry = new Date(existingSub.next_renewal);
+        const base = currentExpiry > now ? currentExpiry : now;
+        expiryDate = new Date(base);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+      } else {
+        expiryDate = new Date(now);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+      }
 
       const { error } = await supabase
         .from('orders')
@@ -46,22 +70,38 @@ export function OrdersSection() {
 
       if (error) throw error;
 
-      // Create or update subscription with credentials
       if (order.user_id) {
-        const subData: any = {
-          user_id: order.user_id,
-          service_name: order.product_name,
-          status: 'active',
-          last_renewal: new Date().toISOString(),
-          next_renewal: expiryDate.toISOString(),
-        };
-        if (creds?.email) subData.credential_email = creds.email;
-        if (creds?.password) subData.credential_password = creds.password;
+        if (existingSub) {
+          // Update existing subscription (renewal): reactivate + extend
+          const updateData: any = {
+            status: 'active',
+            last_renewal: now.toISOString(),
+            next_renewal: expiryDate.toISOString(),
+          };
+          if (creds?.email) updateData.credential_email = creds.email;
+          if (creds?.password) updateData.credential_password = creds.password;
 
-        await (supabase.from('subscriptions') as any).insert(subData);
+          await supabase
+            .from('subscriptions')
+            .update(updateData)
+            .eq('id', existingSub.id);
+        } else {
+          // New subscription
+          const subData: any = {
+            user_id: order.user_id,
+            service_name: order.product_name,
+            status: 'active',
+            last_renewal: now.toISOString(),
+            next_renewal: expiryDate.toISOString(),
+          };
+          if (creds?.email) subData.credential_email = creds.email;
+          if (creds?.password) subData.credential_password = creds.password;
+
+          await supabase.from('subscriptions').insert(subData);
+        }
       }
 
-      toast.success('Pedido aprobado — suscripción activada');
+      toast.success(existingSub ? 'Renovación aprobada — +30 días añadidos' : 'Pedido aprobado — suscripción activada');
       fetchOrders();
     } catch (err: any) {
       toast.error(err.message || 'Error al confirmar');
