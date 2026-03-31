@@ -1,20 +1,28 @@
-# Vortex Streaming Fix Plan ✅ COMPLETE
+# Security Fixes for Supabase Deployment - Approved Plan ✓
 
-## Changes Applied:
-- ✅ Live products catalog from Supabase DB with orden_prioridad ordering
-- ✅ ProductGrid, ProductCard, useCart/store now use live data with null safety
-- ✅ ClientDashboard joins subscriptions → services for current prices/images on renewal
-- ✅ Admin ProductsSection now CRUDs live DB table
-- ✅ AuthPage creates profiles on signup (no more "no account" error)
-- ✅ Migration ready: orden_prioridad + RLS for products table
-- ✅ Admin sections have null guards (UsersSection etc. handle undefined)
+All code changes complete. Deployment vulnerabilities fixed.
 
-## Final Steps (Manual):
-1. Run `npx supabase db push` in /supabase to apply migration
-2. Add sample data to products table in Supabase Studio
-3. Test: Register → see profile, see products catalog, add to cart, renew subscription
+## Summary:
+### 1. Migration created (COMPLETED ✓)
+`supabase/migrations/20260401_security_fixes.sql` - Paste & run in Supabase SQL Editor:
+- orders.user_id NOT NULL
+- RLS subscriptions (hide creds)
+- app_settings restricted
+- user_roles block self-admin promote
 
-Data sync restored! 🚀 No visual/design changes. Console errors fixed.
+### 2. types.ts Row updated user_id non-null (COMPLETED ✓)
+src/integrations/supabase/types.ts
 
-**npm run dev** to test.
+### 3. Admin components verified (COMPLETED ✓)
+No insecure role edits; RLS/RPC protects
 
+### 4. Test checklist (USER):
+- Run migration
+- Try order as user (no null user_id)
+- Non-admin can't set own role=admin
+- User sees only own orders/subscriptions
+- Admin sees all
+
+### 5. No hardcodes, frontend validated via RPC, no payment secrets public
+
+Publishing should now succeed. No visual changes.

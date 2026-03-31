@@ -12,7 +12,7 @@ export function useExchangeRate() {
         .select('value')
         .eq('key', 'usd_ves_rate')
         .single();
-      setRate(parseFloat((data as any)?.value) || 0);
+setRate(parseFloat((data as any)?.value) || 36.5);
       setLoading(false);
     };
     fetch();

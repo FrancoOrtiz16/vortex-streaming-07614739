@@ -269,18 +269,21 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         )}
 
         {(() => {
-          const isVES = selected && rate > 0 && ['pago_movil', 'transferencia', 'pago movil', 'transferencia bancaria'].some(t => selected.method_type.toLowerCase().includes(t) || selected.method_name.toLowerCase().includes(t));
+const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil', 'transferencia bancaria'].some(name => 
+  name === selected.method_name || 
+  selected.method_type.toLowerCase().includes('pago móvil') || 
+  selected.method_type.toLowerCase().includes('transferencia')
+);
           return (
             <div className="pt-2 border-t border-border space-y-1">
               {isVES ? (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Monto a transferir:</span>
-                    <span className="font-display font-bold text-lg text-primary">{convertToVES(total).toFixed(2)} Bs.</span>
+                    <span className="text-sm font-medium">Monto a pagar:</span>
+                    <span className="font-display font-bold text-lg text-primary">{(total * rate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Referencia USD:</span>
-                    <span>${total.toFixed(2)} · Tasa: {rate.toFixed(2)}</span>
+                  <div className="text-xs text-muted-foreground text-right">
+                    <span>(Equivalente a $${total.toFixed(2)})</span>
                   </div>
                 </>
               ) : (
