@@ -33,10 +33,12 @@ export function SubscriptionsSection() {
   const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
 
   const fetchData = async () => {
-    const [subsRes, profilesRes] = await Promise.all([
-      supabase.from('subscriptions').select('*').order('created_at', { ascending: false }),
+    const [subsRes, profilesRes, servicesRes] = await Promise.all([
+      supabase.from('subscriptions').select('*, services(name, price)').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, user_id, display_name, email'),
+      supabase.from('services').select('*'),
     ]);
+    const servicesMap = (servicesRes.data || []).reduce((acc, s: any) => ({ ...acc, [s.name]: s }), {});
     const profilesList = profilesRes.data || [];
     setProfiles(profilesList);
     const subsWithProfiles = (subsRes.data || []).map((s: any) => ({
@@ -49,24 +51,34 @@ export function SubscriptionsSection() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const markAsRenewed = async (sub: Subscription) => {
-    const now = new Date();
-    const next = new Date(now);
-    next.setDate(next.getDate() + 30);
+const markAsRenewed = async (sub: Subscription) => {
+  const now = new Date();
+  const next = new Date(now);
+  next.setDate(next.getDate() + 30);
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({
-        status: 'active',
-        last_renewal: now.toISOString(),
-        next_renewal: next.toISOString(),
-      })
-      .eq('id', sub.id);
+  // If pending_approval, confirm payment_history
+  if (sub.status === 'pending_approval') {
+    const { error: historyErr } = await supabase
+      .from('payment_history')
+      .update({ status: 'confirmed' })
+      .eq('subscription_id', sub.id)
+      .gte('created_at', now.toISOString().split('T')[0]);
+    if (historyErr) console.error('History update error:', historyErr);
+  }
 
-    if (error) { toast.error('Error actualizando'); return; }
-    toast.success('Suscripción renovada +30 días');
-    fetchData();
-  };
+  const { error } = await supabase
+    .from('subscriptions')
+    .update({
+      status: 'active',
+      last_renewal: now.toISOString(),
+      next_renewal: next.toISOString(),
+    })
+    .eq('id', sub.id);
+
+  if (error) { toast.error('Error actualizando'); return; }
+  toast.success('Suscripción renovada +30 días');
+  fetchData();
+};
 
   const addManualRecord = async () => {
     if (!form.user_id || !form.service_name) {
@@ -96,7 +108,7 @@ export function SubscriptionsSection() {
     switch (status) {
       case 'active': return 'bg-emerald-500/20 text-emerald-400';
       case 'expired': return 'bg-destructive/20 text-destructive';
-      case 'pending': return 'bg-amber-500/20 text-amber-400';
+case 'pending_approval': return 'bg-amber-500/20 text-amber-400';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -105,7 +117,7 @@ export function SubscriptionsSection() {
     switch (status) {
       case 'active': return 'Activo';
       case 'expired': return 'Vencido';
-      case 'pending': return 'Pendiente';
+case 'pending_approval': return 'Renovación pendiente';
       default: return status;
     }
   };
@@ -212,7 +224,7 @@ export function SubscriptionsSection() {
                      <button
                        onClick={() => markAsRenewed(s)}
                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
-                       title="Marcar como Renovado (+30 días)"
+title="Confirmar Renovación (+30 días)"
                      >
                        <RefreshCw className="w-3 h-3" />
                        Renovar

@@ -122,6 +122,61 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       });
       if (error) throw error;
 
+      // Process each item for subscription logic
+      const selectedMethodObj = methods.find(m => m.id === selectedMethod);
+      for (const item of items) {
+        // Find service_id
+        const { data: service } = await supabase
+          .from('services')
+          .select('id')
+          .ilike('name', item.product.name)
+          .single();
+        if (!service) continue;
+
+        // Check existing sub
+        const { data: existingSub } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('service_id', service.id)
+          .single();
+
+        let subscriptionId: string;
+        if (existingSub) {
+          // Update existing
+          const { error: updateErr } = await supabase
+            .from('subscriptions')
+            .update({ status: 'pending_approval' })
+            .eq('id', existingSub.id);
+          if (updateErr) console.error('Update sub error:', updateErr);
+          subscriptionId = existingSub.id;
+        } else {
+          // Create new
+          const { data: newSub, error: insertErr } = await supabase
+            .from('subscriptions')
+            .insert({
+              user_id: user.id,
+              service_name: item.product.name,
+              service_id: service.id,
+              status: 'pending_approval'
+            }).select().single();
+          if (insertErr || !newSub) continue;
+          subscriptionId = newSub.id;
+        }
+
+        // Insert payment_history
+        await supabase
+          .from('payment_history')
+          .insert({
+            subscription_id: subscriptionId,
+            user_id: user.id,
+            amount: item.product.price * item.quantity,
+            status: 'pending_approval',
+            receipt_url: receiptUrl,
+            method: selectedMethodObj?.method_name || 'unknown'
+          });
+      }
+
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
       const selectedMethodObj = methods.find(m => m.id === selectedMethod);
       const methodText = selectedMethodObj ? ` usando ${selectedMethodObj.method_name}` : '';

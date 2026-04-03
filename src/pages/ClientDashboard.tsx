@@ -93,10 +93,20 @@ const ClientDashboard = () => {
       });
       if (orderErr) throw orderErr;
 
-      // Set subscription to pending but KEEP credentials
+      // Set subscription to pending_approval and create payment history
+      const { data: historyData, error: historyErr } = await supabase
+        .from('payment_history')
+        .insert({
+          subscription_id: sub.id,
+          user_id: user.id,
+          amount: price,
+          status: 'pending_approval'
+        }).select().single();
+      if (historyErr) throw historyErr;
+
       const { error: subErr } = await supabase
         .from('subscriptions')
-        .update({ status: 'pending' })
+        .update({ status: 'pending_approval' })
         .eq('id', sub.id);
       if (subErr) throw subErr;
 
@@ -224,7 +234,7 @@ const ClientDashboard = () => {
                         ) : (
                           <p className="text-[11px] text-muted-foreground italic">
                             {sub.status === 'pending' 
-                              ? 'Pago pendiente — tus credenciales se conservan mientras se procesa.'
+                            ? 'Renovación en proceso — tus credenciales se conservan.'
                               : 'Tus credenciales aparecerán aquí al aprobarse el pago.'}
                           </p>
                         )}
