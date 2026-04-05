@@ -125,21 +125,13 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       // Process each item for subscription logic
       const selectedMethodObj = methods.find(m => m.id === selectedMethod);
       for (const item of items) {
-        // Find service_id
-        const { data: service } = await supabase
-          .from('services')
-          .select('id')
-          .ilike('name', item.product.name)
-          .single();
-        if (!service) continue;
-
         // Check existing sub
         const { data: existingSub } = await supabase
           .from('subscriptions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('service_id', service.id)
-          .single();
+          .eq('service_name', item.product.name)
+          .maybeSingle();
 
         let subscriptionId: string;
         if (existingSub) {
@@ -157,7 +149,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             .insert({
               user_id: user.id,
               service_name: item.product.name,
-              service_id: service.id,
               status: 'pending_approval'
             }).select().single();
           if (insertErr || !newSub) continue;
@@ -178,8 +169,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       }
 
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
-      const selectedMethodObj = methods.find(m => m.id === selectedMethod);
-      const methodText = selectedMethodObj ? ` usando ${selectedMethodObj.method_name}` : '';
+      const confirmedMethod = methods.find(m => m.id === selectedMethod);
+      const methodText = confirmedMethod ? ` usando ${confirmedMethod.method_name}` : '';
       const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
       const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
       const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
