@@ -12,9 +12,11 @@ function notify() {
   listeners.forEach(l => l());
 }
 
-export function getCartItems() { return cartItems; }
+export function getCartItems() { return cartItems ?? []; }
 
 export function addToCart(product: Product) {
+  if (!product?.id) return;
+
   const existing = cartItems.find(i => i.product.id === product.id);
   if (existing) {
     cartItems = cartItems.map(i =>
@@ -37,11 +39,11 @@ export function clearCart() {
 }
 
 export function getCartTotal() {
-  return cartItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+  return (cartItems ?? []).reduce((sum, i) => sum + (i?.product?.price ?? 0) * (i?.quantity ?? 0), 0);
 }
 
 export function getCartCount() {
-  return cartItems.reduce((sum, i) => sum + i.quantity, 0);
+  return (cartItems ?? []).reduce((sum, i) => sum + (i?.quantity ?? 0), 0);
 }
 
 export function subscribeCart(listener: () => void) {

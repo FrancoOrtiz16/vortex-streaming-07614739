@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
-import ServiceGrid from '@/components/ServiceGrid';
+import ProductGrid from '@/components/ProductGrid';
 import Footer from '@/components/Footer';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 
@@ -9,7 +9,7 @@ const Index = () => (
     <Header />
     <main className="flex-1">
       <HeroSection />
-      <ServiceGrid />
+      <ProductGrid />
     </main>
     <Footer />
     <WhatsAppFloat />
