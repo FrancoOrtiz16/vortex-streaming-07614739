@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,8 +23,13 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
-  credential_email?: string | null;
-  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
+}
+
+interface DecryptedCreds {
+  credential_email: string | null;
+  credential_password: string | null;
 }
 
 interface Service {
@@ -51,6 +56,8 @@ const ClientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [renewing, setRenewing] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
+  const [loadingCreds, setLoadingCreds] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -64,9 +71,27 @@ const ClientDashboard = () => {
         supabase.from('services').select('*').eq('is_available', true),
       ]).then(([ordersRes, subsRes, servicesRes]) => {
         setOrders((ordersRes.data as Order[]) || []);
-        setSubs((subsRes.data as Subscription[]) || []);
+        const subsData = (subsRes.data as Subscription[]) || [];
+        setSubs(subsData);
         setServices((servicesRes.data as Service[]) || []);
         setLoading(false);
+
+        // Fetch decrypted credentials for active subs
+        setLoadingCreds(true);
+        Promise.all(
+          subsData
+            .filter(s => s.status === 'active')
+            .map(async (s) => {
+              const { data } = await supabase.rpc('get_subscription_credentials', { _subscription_id: s.id });
+              const cred = data?.[0];
+              return { id: s.id, cred: { credential_email: cred?.credential_email || null, credential_password: cred?.credential_password || null } };
+            })
+        ).then((results) => {
+          const credsMap: Record<string, DecryptedCreds> = {};
+          results.forEach(r => { credsMap[r.id] = r.cred; });
+          setCredentials(credsMap);
+          setLoadingCreds(false);
+        });
       });
     }
   }, [user, authLoading, navigate]);
@@ -200,16 +225,16 @@ const ClientDashboard = () => {
                           <Key className="w-3.5 h-3.5" />
                           Mis Accesos
                         </div>
-                        {sub.status === 'active' && sub.credential_email ? (
+                        {sub.status === 'active' && credentials[sub.id]?.credential_email ? (
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
                               <span className="text-[11px] text-muted-foreground w-12">Email:</span>
-                              <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{sub.credential_email}</code>
+                              <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{credentials[sub.id]?.credential_email}</code>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-[11px] text-muted-foreground w-12">Clave:</span>
                               <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1">
-                                {showPassword[sub.id] ? sub.credential_password : '••••••••'}
+                                {showPassword[sub.id] ? (credentials[sub.id]?.credential_password || '—') : '••••••••'}
                               </code>
                               <button
                                 onClick={() => setShowPassword(prev => ({ ...prev, [sub.id]: !prev[sub.id] }))}
@@ -219,12 +244,27 @@ const ClientDashboard = () => {
                                 {showPassword[sub.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                               </button>
                             </div>
+                            {sub.profile_name && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-muted-foreground w-12">Perfil:</span>
+                                <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{sub.profile_name}</code>
+                              </div>
+                            )}
+                            {sub.profile_pin && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-muted-foreground w-12">PIN:</span>
+                                <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{sub.profile_pin}</code>
+                              </div>
+                            )}
+                          </div>
+                        ) : sub.status === 'pending_approval' ? (
+                          <div className="flex items-center gap-1.5 text-[11px] text-amber-400">
+                            <AlertCircle className="w-3 h-3" />
+                            Renovación en proceso — tus credenciales se conservan.
                           </div>
                         ) : (
                           <p className="text-[11px] text-muted-foreground italic">
-                            {sub.status === 'pending' 
-                            ? 'Renovación en proceso — tus credenciales se conservan.'
-                              : 'Tus credenciales aparecerán aquí al aprobarse el pago.'}
+                            Esperando asignación de credenciales.
                           </p>
                         )}
                       </div>
