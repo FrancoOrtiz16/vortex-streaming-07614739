@@ -93,17 +93,6 @@ const ClientDashboard = () => {
       });
       if (orderErr) throw orderErr;
 
-      // Set subscription to pending_approval and create payment history
-      const { data: historyData, error: historyErr } = await supabase
-        .from('payment_history')
-        .insert({
-          subscription_id: sub.id,
-          user_id: user.id,
-          amount: price,
-          status: 'pending_approval'
-        }).select().single();
-      if (historyErr) throw historyErr;
-
       const { error: subErr } = await supabase
         .from('subscriptions')
         .update({ status: 'pending_approval' })

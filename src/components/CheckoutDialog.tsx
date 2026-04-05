@@ -155,17 +155,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           subscriptionId = newSub.id;
         }
 
-        // Insert payment_history
-        await supabase
-          .from('payment_history')
-          .insert({
-            subscription_id: subscriptionId,
-            user_id: user.id,
-            amount: item.product.price * item.quantity,
-            status: 'pending_approval',
-            receipt_url: receiptUrl,
-            method: selectedMethodObj?.method_name || 'unknown'
-          });
+        void subscriptionId;
+        void selectedMethodObj;
       }
 
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';

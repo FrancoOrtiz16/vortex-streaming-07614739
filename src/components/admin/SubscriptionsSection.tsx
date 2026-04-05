@@ -56,16 +56,6 @@ const markAsRenewed = async (sub: Subscription) => {
   const next = new Date(now);
   next.setDate(next.getDate() + 30);
 
-  // If pending_approval, confirm payment_history
-  if (sub.status === 'pending_approval') {
-    const { error: historyErr } = await supabase
-      .from('payment_history')
-      .update({ status: 'confirmed' })
-      .eq('subscription_id', sub.id)
-      .gte('created_at', now.toISOString().split('T')[0]);
-    if (historyErr) console.error('History update error:', historyErr);
-  }
-
   const { error } = await supabase
     .from('subscriptions')
     .update({
