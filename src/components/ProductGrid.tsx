@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductCategory } from '@/data/products';
-import { useProducts } from '@/hooks/useProducts';
+import { useProducts, Product } from '@/hooks/useProducts';
 import ProductCard from './ProductCard';
 import { Tv, Gamepad2, LayoutGrid, Loader2 } from 'lucide-react';
 
@@ -10,6 +10,12 @@ const filters: { label: string; value: ProductCategory | 'all'; icon: React.Elem
   { label: 'Streaming', value: 'streaming', icon: Tv },
   { label: 'Gaming', value: 'gaming', icon: Gamepad2 },
 ];
+
+interface GroupedItem {
+  key: string;
+  representative: Product;
+  variants: Product[];
+}
 
 const ProductGrid = () => {
   const [searchParams] = useSearchParams();
@@ -22,6 +28,45 @@ const ProductGrid = () => {
   const filtered = category === 'all'
     ? products
     : products.filter(p => p.category === category);
+
+  // Group products by group_name
+  const grouped = useMemo<GroupedItem[]>(() => {
+    const map = new Map<string, Product[]>();
+    const singles: Product[] = [];
+
+    filtered.forEach(p => {
+      if (p.group_name) {
+        const existing = map.get(p.group_name) || [];
+        existing.push(p);
+        map.set(p.group_name, existing);
+      } else {
+        singles.push(p);
+      }
+    });
+
+    const result: GroupedItem[] = [];
+
+    map.forEach((variants, groupName) => {
+      result.push({
+        key: groupName,
+        representative: variants[0],
+        variants,
+      });
+    });
+
+    singles.forEach(p => {
+      result.push({
+        key: p.id,
+        representative: p,
+        variants: [p],
+      });
+    });
+
+    // Sort by first item's sort_order
+    result.sort((a, b) => (a.representative.orden_prioridad ?? 999) - (b.representative.orden_prioridad ?? 999));
+
+    return result;
+  }, [filtered]);
 
   return (
     <section id="catalogo" className="py-16">
@@ -62,8 +107,13 @@ const ProductGrid = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
+            {grouped.map((item, i) => (
+              <ProductCard
+                key={item.key}
+                product={item.representative}
+                variants={item.variants}
+                index={i}
+              />
             ))}
           </div>
         )}

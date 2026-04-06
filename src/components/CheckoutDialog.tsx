@@ -122,41 +122,29 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       });
       if (error) throw error;
 
-      // Process each item for subscription logic
-      const selectedMethodObj = methods.find(m => m.id === selectedMethod);
+      // Process each item — upsert subscription (no duplicates)
       for (const item of items) {
-        // Check existing sub
         const { data: existingSub } = await supabase
           .from('subscriptions')
-          .select('*')
+          .select('id')
           .eq('user_id', user.id)
           .eq('service_name', item.product.name)
           .maybeSingle();
 
-        let subscriptionId: string;
         if (existingSub) {
-          // Update existing
-          const { error: updateErr } = await supabase
+          await supabase
             .from('subscriptions')
-            .update({ status: 'pending_approval' })
+            .update({ status: 'pending_approval', updated_at: new Date().toISOString() })
             .eq('id', existingSub.id);
-          if (updateErr) console.error('Update sub error:', updateErr);
-          subscriptionId = existingSub.id;
         } else {
-          // Create new
-          const { data: newSub, error: insertErr } = await supabase
+          await supabase
             .from('subscriptions')
             .insert({
               user_id: user.id,
               service_name: item.product.name,
-              status: 'pending_approval'
-            }).select().single();
-          if (insertErr || !newSub) continue;
-          subscriptionId = newSub.id;
+              status: 'pending_approval',
+            });
         }
-
-        void subscriptionId;
-        void selectedMethodObj;
       }
 
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
