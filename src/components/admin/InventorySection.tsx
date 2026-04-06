@@ -194,11 +194,32 @@ export function InventorySection() {
                 placeholder="Popular, Nuevo, Oferta..."
               />
             </div>
+             <div>
+               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Grupo (variantes)</label>
+               <input
+                 value={editing.group_name || ''}
+                 onChange={e => setEditing(prev => prev ? { ...prev, group_name: e.target.value || null } : null)}
+                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                 placeholder="Ej: Netflix (deja vacío si no agrupa)"
+               />
+               <p className="text-[10px] text-muted-foreground mt-1">Productos con el mismo grupo se muestran como variantes</p>
+             </div>
+             <div>
+               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Escala de Imagen (%)</label>
+               <input
+                 type="number"
+                 min={50}
+                 max={150}
+                 value={editing.image_scale ?? 100}
+                 onChange={e => setEditing(prev => prev ? { ...prev, image_scale: parseInt(e.target.value) || 100 } : null)}
+                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+               />
+               <p className="text-[10px] text-muted-foreground mt-1">50% a 150% del tamaño original</p>
+             </div>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-             <div>
-               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción</label>
+              <div>
                <textarea
                  value={editing.description}
                  onChange={e => setEditing(prev => prev ? { ...prev, description: e.target.value } : null)}
