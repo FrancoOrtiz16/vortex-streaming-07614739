@@ -15,6 +15,8 @@ const emptyService: Omit<Service, 'id'> & { id?: string } = {
   plan_type: 'Premium Mensual',
   is_available: true,
   sort_order: 0,
+  group_name: null,
+  image_scale: 100,
 };
 
 export function InventorySection() {

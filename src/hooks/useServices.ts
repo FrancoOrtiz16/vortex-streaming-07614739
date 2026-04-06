@@ -12,6 +12,8 @@ export interface Service {
   plan_type: string;
   is_available: boolean;
   sort_order: number;
+  group_name: string | null;
+  image_scale: number;
 }
 
 export function useServices() {
@@ -31,7 +33,6 @@ export function useServices() {
 
     fetchServices();
 
-    // Realtime subscription
     const channel = supabase
       .channel('services-realtime')
       .on(
