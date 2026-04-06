@@ -277,7 +277,7 @@ export function InventorySection() {
             )}
             <div className="flex-1 min-w-0">
               <h3 className="font-display font-semibold text-sm truncate">{s.name}</h3>
-             <p className="text-xs text-muted-foreground">{s.category} · {s.plan_type} · Orden: {s.sort_order}</p>
+             <p className="text-xs text-muted-foreground">{s.category} · {s.plan_type}{s.group_name ? ` · Grupo: ${s.group_name}` : ''} · Orden: {s.sort_order}</p>
             </div>
             <span className="font-display font-bold text-sm gold-text">${s.price.toFixed(2)}</span>
             <div className="flex gap-1">
