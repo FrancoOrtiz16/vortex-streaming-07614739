@@ -2,23 +2,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useExchangeRate() {
-  const [rate, setRate] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  const [rate, setRate] = useState<number>(700);
+  const [loading, setLoading] = useState(false);
 
+  // Fixed rate of 700 Bs/USD
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from('app_settings' as any)
-        .select('value')
-        .eq('key', 'usd_ves_rate')
-        .single();
-setRate(parseFloat((data as any)?.value) || 36.5);
-      setLoading(false);
-    };
-    fetch();
+    setRate(700);
+    setLoading(false);
   }, []);
 
-  const convertToVES = (usd: number) => rate > 0 ? usd * rate : 0;
+  const convertToVES = (usd: number) => usd * rate;
 
   return { rate, loading, convertToVES };
 }

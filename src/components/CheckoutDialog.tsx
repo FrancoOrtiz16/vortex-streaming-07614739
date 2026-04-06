@@ -32,7 +32,7 @@ const WHATSAPP_NUMBER = '584241772003';
 
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
-  const { items, total, clear } = useCart();
+  const { items, total, subtotal, discount, clear } = useCart();
   const { rate, convertToVES } = useExchangeRate();
   const navigate = useNavigate();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
@@ -304,6 +304,16 @@ const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil
               {isVES ? (
                 <>
                   <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Subtotal:</span>
+                    <span className="text-sm">${subtotal.toFixed(2)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-green-600">Descuento (10%):</span>
+                      <span className="text-sm text-green-600">-${discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Monto a pagar:</span>
                     <span className="font-display font-bold text-lg text-primary">{(total * rate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</span>
                   </div>
@@ -312,10 +322,22 @@ const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Total:</span>
-                  <span className="font-display font-bold text-lg text-primary">${total.toFixed(2)}</span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Subtotal:</span>
+                    <span className="text-sm">${subtotal.toFixed(2)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-green-600">Descuento (10%):</span>
+                      <span className="text-sm text-green-600">-${discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Total:</span>
+                    <span className="font-display font-bold text-lg text-primary">${total.toFixed(2)}</span>
+                  </div>
+                </>
               )}
             </div>
           );

@@ -90,15 +90,18 @@ const ProductCard = ({ product, variants, index }: ProductCardProps) => {
           {selected.description}
         </p>
         <div className="mt-auto flex items-center justify-between gap-3">
-          <span className="font-display text-lg font-bold text-primary">
+          <span
+            className="font-display text-lg font-bold text-primary"
+            style={{ textShadow: '0 0 10px #3b82f6' }}
+          >
             ${selected.price.toFixed(2)}
           </span>
           <button
             onClick={handleAdd}
-            className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-[0_0_24px_hsl(var(--primary)/0.35)]"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:shadow-[0_0_24px_hsl(var(--primary)/0.35)]"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
-            Añadir
+            Añadir al Carrito
           </button>
         </div>
       </div>

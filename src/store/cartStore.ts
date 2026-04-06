@@ -39,7 +39,18 @@ export function clearCart() {
 }
 
 export function getCartTotal() {
+  const subtotal = (cartItems ?? []).reduce((sum, i) => sum + (i?.product?.price ?? 0) * (i?.quantity ?? 0), 0);
+  const discount = cartItems.length >= 2 ? subtotal * 0.1 : 0;
+  return subtotal - discount;
+}
+
+export function getCartSubtotal() {
   return (cartItems ?? []).reduce((sum, i) => sum + (i?.product?.price ?? 0) * (i?.quantity ?? 0), 0);
+}
+
+export function getCartDiscount() {
+  const subtotal = getCartSubtotal();
+  return cartItems.length >= 2 ? subtotal * 0.1 : 0;
 }
 
 export function getCartCount() {
