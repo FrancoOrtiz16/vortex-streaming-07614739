@@ -13,6 +13,8 @@ export interface Product {
   plan_type: string | null;
   orden_prioridad: number | null;
   is_available: boolean;
+  group_name: string | null;
+  image_scale: number;
 }
 
 interface ServiceRow {
@@ -26,6 +28,8 @@ interface ServiceRow {
   plan_type: string | null;
   sort_order: number | null;
   is_available: boolean;
+  group_name: string | null;
+  image_scale: number;
 }
 
 export function useProducts() {
@@ -36,7 +40,7 @@ export function useProducts() {
     const fetchProducts = async () => {
       const { data, error } = await supabase
         .from('services')
-        .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available')
+        .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available, group_name, image_scale')
         .eq('is_available', true)
         .order('sort_order', { ascending: true });
 
@@ -55,6 +59,8 @@ export function useProducts() {
           plan_type: item.plan_type,
           orden_prioridad: item.sort_order,
           is_available: item.is_available,
+          group_name: item.group_name,
+          image_scale: item.image_scale ?? 100,
         }));
 
         setProducts(normalized);
@@ -64,7 +70,6 @@ export function useProducts() {
 
     fetchProducts();
 
-    // Realtime subscription
     const channel = supabase
       .channel('services-products-realtime')
       .on(
@@ -81,4 +86,3 @@ export function useProducts() {
 
   return { products, loading };
 }
-
