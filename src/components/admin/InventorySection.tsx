@@ -53,6 +53,8 @@ export function InventorySection() {
             plan_type: editing.plan_type,
             is_available: editing.is_available,
             sort_order: editing.sort_order,
+            group_name: editing.group_name || null,
+            image_scale: editing.image_scale ?? 100,
           })
           .eq('id', editing.id);
         if (error) throw error;
@@ -67,6 +69,8 @@ export function InventorySection() {
           plan_type: editing.plan_type,
           is_available: editing.is_available,
           sort_order: editing.sort_order,
+          group_name: editing.group_name || null,
+          image_scale: editing.image_scale ?? 100,
         });
         if (error) throw error;
       }
