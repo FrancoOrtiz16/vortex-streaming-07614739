@@ -41,7 +41,9 @@ export function clearCart() {
 export function getCartTotal() {
   const subtotal = (cartItems ?? []).reduce((sum, i) => sum + (i?.product?.price ?? 0) * (i?.quantity ?? 0), 0);
   const discount = cartItems.length >= 2 ? subtotal * 0.1 : 0;
-  return subtotal - discount;
+  const total = cartItems.length >= 2 ? subtotal * 0.9 : subtotal;
+  console.log('Descuento aplicado:', discount);
+  return total;
 }
 
 export function getCartSubtotal() {

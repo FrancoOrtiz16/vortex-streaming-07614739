@@ -98,7 +98,7 @@ const ProductCard = ({ product, variants, index }: ProductCardProps) => {
           </span>
           <button
             onClick={handleAdd}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-all hover:shadow-[0_0_24px_hsl(var(--primary)/0.35)]"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-700 px-3 py-2 text-xs font-semibold text-white transition-all hover:shadow-[0_0_24px_hsl(var(--primary)/0.35)]"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             Añadir al Carrito
