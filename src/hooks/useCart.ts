@@ -9,8 +9,8 @@ import {
   addToCart,
   removeFromCart,
   clearCart,
+  CartProduct,
 } from '@/store/cartStore';
-import { Product } from '@/data/products';
 
 export function useCart() {
   const items = useSyncExternalStore(subscribeCart, getCartItems);
@@ -25,7 +25,7 @@ export function useCart() {
     total,
     subtotal,
     discount,
-    addItem: (product: Product) => addToCart(product),
+    addItem: (product: CartProduct) => addToCart(product),
     removeItem: (id: string) => removeFromCart(id),
     clear: () => clearCart(),
   };

@@ -1,7 +1,15 @@
-import { Product } from '@/data/products';
+export interface CartProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image: string;
+  badge?: string;
+}
 
-interface CartItem {
-  product: Product;
+export interface CartItem {
+  product: CartProduct;
   quantity: number;
 }
 
@@ -12,11 +20,10 @@ function notify() {
   listeners.forEach(l => l());
 }
 
-export function getCartItems() { return cartItems ?? []; }
+export function getCartItems() { return cartItems; }
 
-export function addToCart(product: Product) {
+export function addToCart(product: CartProduct) {
   if (!product?.id) return;
-
   const existing = cartItems.find(i => i.product.id === product.id);
   if (existing) {
     cartItems = cartItems.map(i =>
@@ -38,16 +45,8 @@ export function clearCart() {
   notify();
 }
 
-export function getCartTotal() {
-  const subtotal = (cartItems ?? []).reduce((sum, i) => sum + (i?.product?.price ?? 0) * (i?.quantity ?? 0), 0);
-  const discount = cartItems.length >= 2 ? subtotal * 0.1 : 0;
-  const total = cartItems.length >= 2 ? subtotal * 0.9 : subtotal;
-  console.log('Descuento aplicado:', discount);
-  return total;
-}
-
 export function getCartSubtotal() {
-  return (cartItems ?? []).reduce((sum, i) => sum + (i?.product?.price ?? 0) * (i?.quantity ?? 0), 0);
+  return cartItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
 }
 
 export function getCartDiscount() {
@@ -55,8 +54,12 @@ export function getCartDiscount() {
   return cartItems.length >= 2 ? subtotal * 0.1 : 0;
 }
 
+export function getCartTotal() {
+  return getCartSubtotal() - getCartDiscount();
+}
+
 export function getCartCount() {
-  return (cartItems ?? []).reduce((sum, i) => sum + (i?.quantity ?? 0), 0);
+  return cartItems.reduce((sum, i) => sum + i.quantity, 0);
 }
 
 export function subscribeCart(listener: () => void) {
