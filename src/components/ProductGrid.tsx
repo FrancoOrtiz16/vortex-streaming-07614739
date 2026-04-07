@@ -106,7 +106,7 @@ const ProductGrid = () => {
             <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 xl:grid-cols-5 xl:gap-3">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5 md:gap-3">
             {grouped.map((item, i) => (
               <ProductCard
                 key={item.key}

@@ -51,7 +51,8 @@ export function getCartSubtotal() {
 
 export function getCartDiscount() {
   const subtotal = getCartSubtotal();
-  return cartItems.length >= 2 ? subtotal * 0.1 : 0;
+  const totalItems = getCartCount();
+  return totalItems >= 2 ? subtotal * 0.1 : 0;
 }
 
 export function getCartTotal() {
