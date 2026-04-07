@@ -62,7 +62,14 @@
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply text-foreground font-body antialiased;
+    background-color: #050505;
+    background-image:
+      radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 22%),
+      radial-gradient(circle at center, rgba(255, 255, 255, 0.03), transparent 10%),
+      radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.5), transparent 40%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
   }
 }
 

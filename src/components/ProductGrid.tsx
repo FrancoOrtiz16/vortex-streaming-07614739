@@ -69,9 +69,9 @@ const ProductGrid = () => {
   }, [filtered]);
 
   return (
-    <section id="catalogo" className="py-16 bg-[#0a0a0a]">
+    <section id="catalogo" className="py-16 bg-transparent">
       <div className="mx-auto max-w-[1480px] px-4">
-        <div className="mb-10 rounded-[2rem] border border-white/10 bg-[#090909]/80 px-8 py-8 shadow-[0_32px_80px_rgba(0,0,0,0.5)]">
+        <div className="mb-10 rounded-3xl bg-[#111111] px-8 py-8">
           <h2 className="font-display text-4xl font-bold text-white md:text-5xl">
             Catálogo de <span className="text-blue-500">Streaming</span> y Gaming
           </h2>
@@ -90,11 +90,11 @@ const ProductGrid = () => {
                 onClick={() => setCategory(f.value)}
                 className={`flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
                   active
-                    ? 'bg-blue-600 text-white shadow-[0_0_24px_rgba(59,130,246,0.25)]'
-                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.22)]'
+                    : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-300'}`} />
                 {f.label}
               </button>
             );
