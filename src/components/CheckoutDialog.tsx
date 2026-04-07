@@ -103,6 +103,15 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     toast.success('Comprobante cargado');
   };
 
+  const normalizeServiceCode = (name: string) => {
+    const cleaned = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    return cleaned.length >= 4 ? cleaned.slice(0, 4) : cleaned.padEnd(4, 'X');
+  };
+
+  const makeSubscriptionCode = (serviceName: string, index: number) => {
+    return `VORTEX-${normalizeServiceCode(serviceName)}-${String(index).padStart(3, '0')}`;
+  };
+
   const handleConfirm = async () => {
     if (!user) {
       toast.error('Debes iniciar sesión para confirmar tu compra');
@@ -122,29 +131,34 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       });
       if (error) throw error;
 
-      // Process each item — upsert subscription (no duplicates)
-      for (const item of items) {
-        const { data: existingSub } = await supabase
-          .from('subscriptions')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('service_name', item.product.name)
-          .maybeSingle();
+      const serviceCounts: Record<string, number> = {};
+      const inserts: Array<Record<string, unknown>> = [];
 
-        if (existingSub) {
-          await supabase
+      for (const item of items) {
+        const serviceName = item.product.name;
+        if (serviceCounts[serviceName] === undefined) {
+          const { data: existingSubs } = await supabase
             .from('subscriptions')
-            .update({ status: 'pending_approval', updated_at: new Date().toISOString() })
-            .eq('id', existingSub.id);
-        } else {
-          await supabase
-            .from('subscriptions')
-            .insert({
-              user_id: user.id,
-              service_name: item.product.name,
-              status: 'pending_approval',
-            });
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('service_name', serviceName);
+          serviceCounts[serviceName] = (existingSubs as any[] | null)?.length || 0;
         }
+
+        for (let i = 1; i <= item.quantity; i += 1) {
+          const sequence = serviceCounts[serviceName] + i;
+          inserts.push({
+            user_id: user.id,
+            service_name: serviceName,
+            status: 'pending_approval',
+            subscription_code: makeSubscriptionCode(serviceName, sequence),
+          });
+        }
+      }
+
+      if (inserts.length > 0) {
+        const { error: subError } = await supabase.from('subscriptions').insert(inserts);
+        if (subError) throw subError;
       }
 
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';

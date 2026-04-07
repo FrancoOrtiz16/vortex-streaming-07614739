@@ -23,6 +23,7 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
+  subscription_code?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
 }
@@ -101,6 +102,54 @@ const ClientDashboard = () => {
       || services.find(s => serviceName.toLowerCase().includes(s.name.toLowerCase()));
   };
 
+  const normalizeServicePrefix = (name: string) => {
+    const cleaned = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    return cleaned.length >= 4 ? cleaned.slice(0, 4) : cleaned.padEnd(4, 'X');
+  };
+
+  const makeSubscriptionCode = (serviceName: string, sequence: number) => {
+    return `VORTEX-${normalizeServicePrefix(serviceName)}-${String(sequence).padStart(3, '0')}`;
+  };
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-emerald-500/20 text-emerald-400';
+      case 'expired':
+        return 'bg-destructive/20 text-destructive';
+      case 'pending_approval':
+        return 'bg-amber-500/20 text-amber-400';
+      case 'pending':
+        return 'bg-slate-700/40 text-slate-200';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Activo';
+      case 'expired':
+        return 'Vencido';
+      case 'pending_approval':
+        return 'Pendiente';
+      case 'pending':
+        return 'En espera';
+      default:
+        return status;
+    }
+  };
+
+  const subscriptionCodes = subs
+    .slice()
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .reduce((acc, sub) => {
+      acc.counts[sub.service_name] = (acc.counts[sub.service_name] || 0) + 1;
+      acc.map[sub.id] = makeSubscriptionCode(sub.service_name, acc.counts[sub.service_name]);
+      return acc;
+    }, { counts: {} as Record<string, number>, map: {} as Record<string, string> }).map;
+
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
     const service = findService(sub.service_name);
@@ -163,131 +212,62 @@ const ClientDashboard = () => {
           <h1 className="font-display font-bold text-2xl mb-1">Mi Panel</h1>
           <p className="text-sm text-muted-foreground mb-8">Servicios activos y pedidos.</p>
 
-          {/* Mis Servicios */}
+          {/* Historial de Suscripciones */}
           <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <RefreshCw className="w-4 h-4 text-primary" />
-            Mis Servicios
+            Historial de Suscripciones
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-            {subs.length === 0 ? (
-              <div className="sm:col-span-2 glass rounded-xl p-8 text-center text-muted-foreground text-sm">
-                No tienes servicios activos aún.
-              </div>
-            ) : (
-              subs.map((sub, i) => {
-                const service = findService(sub.service_name);
-                return (
-                  <motion.div
-                    key={sub.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="glass rounded-2xl overflow-hidden flex flex-col"
-                  >
-                    {/* Service image */}
-                    <div className="relative h-32 bg-secondary/50">
-                      {service?.image_url ? (
-                        <img src={service.image_url} alt={sub.service_name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="w-10 h-10 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="absolute top-2 right-2">
-                        <ExpiryBadge nextRenewal={sub.next_renewal} />
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          sub.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 backdrop-blur-sm'
-                          : sub.status === 'pending' ? 'bg-amber-500/20 text-amber-400 backdrop-blur-sm'
-                          : 'bg-destructive/20 text-destructive backdrop-blur-sm'
-                        }`}>
-                          {sub.status === 'active' ? 'Activo' : sub.status === 'pending' ? 'Pendiente' : 'Vencido'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-4 flex-1 flex flex-col">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-display font-semibold text-sm">{sub.service_name}</h3>
-                        {service && (
-                          <span className="font-display font-bold text-sm text-primary">${service.price.toFixed(2)}</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mb-3">
-                        Vence: {new Date(sub.next_renewal).toLocaleDateString()}
-                        {service?.plan_type && ` · ${service.plan_type}`}
-                      </p>
-
-                      {/* Credenciales */}
-                      <div className="mt-auto pt-3 border-t border-border/30">
-                        <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-muted-foreground">
-                          <Key className="w-3.5 h-3.5" />
-                          Mis Accesos
-                        </div>
-                        {sub.status === 'active' && credentials[sub.id]?.credential_email ? (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-muted-foreground w-12">Email:</span>
-                              <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{credentials[sub.id]?.credential_email}</code>
+          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-x-auto mb-10">
+            <table className="min-w-full text-left">
+              <thead className="border-b border-white/10">
+                <tr>
+                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Servicio</th>
+                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">ID</th>
+                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Vencimiento</th>
+                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Estado</th>
+                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">No tienes servicios activos aún.</td>
+                  </tr>
+                ) : (
+                  subs.map((sub) => {
+                    const service = findService(sub.service_name);
+                    const code = subscriptionCodes[sub.id] || `VORTEX-${sub.id.slice(0, 4).toUpperCase()}-001`;
+                    return (
+                      <tr key={sub.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#111] overflow-hidden flex items-center justify-center">
+                              {service?.image_url ? (
+                                <img src={service.image_url} alt={service.name} className="h-full w-full object-contain" />
+                              ) : (
+                                <Package className="w-5 h-5 text-slate-400" />
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-muted-foreground w-12">Clave:</span>
-                              <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1">
-                                {showPassword[sub.id] ? (credentials[sub.id]?.credential_password || '—') : '••••••••'}
-                              </code>
-                              <button
-                                onClick={() => setShowPassword(prev => ({ ...prev, [sub.id]: !prev[sub.id] }))}
-                                className="p-1 rounded hover:bg-secondary transition-colors"
-                                aria-label={showPassword[sub.id] ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                              >
-                                {showPassword[sub.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                              </button>
+                            <div>
+                              <div className="font-semibold text-white">{sub.service_name}</div>
+                              <div className="text-[11px] text-slate-500">{service?.plan_type || 'Premium Mensual'}</div>
                             </div>
-                            {sub.profile_name && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[11px] text-muted-foreground w-12">Perfil:</span>
-                                <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{sub.profile_name}</code>
-                              </div>
-                            )}
-                            {sub.profile_pin && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[11px] text-muted-foreground w-12">PIN:</span>
-                                <code className="text-[11px] bg-secondary px-2 py-1 rounded flex-1 truncate">{sub.profile_pin}</code>
-                              </div>
-                            )}
                           </div>
-                        ) : sub.status === 'pending_approval' ? (
-                          <div className="flex items-center gap-1.5 text-[11px] text-amber-400">
-                            <AlertCircle className="w-3 h-3" />
-                            Renovación en proceso — tus credenciales se conservan.
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-muted-foreground italic">
-                            Esperando asignación de credenciales.
-                          </p>
-                        )}
-                      </div>
-
-                      {(sub.status === 'expired' || isExpiredOrSoon(sub.next_renewal)) && sub.status !== 'pending' && (
-                        <button
-                          onClick={() => handleRenew(sub)}
-                          disabled={renewing === sub.id}
-                          className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-                        >
-                          {renewing === sub.id ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-3 h-3" />
-                          )}
-                          Renovar Servicio
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-slate-300">{code}</td>
+                        <td className="px-4 py-4 text-sm text-slate-300">{new Date(sub.next_renewal).toLocaleDateString()}</td>
+                        <td className="px-4 py-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.18em] ${statusColor(sub.status)}`}>
+                            {statusLabel(sub.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-slate-300">${service?.price?.toFixed(2) ?? '0.00'}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
 
           {/* Historial de Pedidos */}

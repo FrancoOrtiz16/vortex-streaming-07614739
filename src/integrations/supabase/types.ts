@@ -203,6 +203,7 @@ export type Database = {
           profile_pin: string | null
           service_name: string
           status: string
+          subscription_code: string | null
           updated_at: string
           user_id: string
         }
@@ -217,6 +218,7 @@ export type Database = {
           profile_pin?: string | null
           service_name: string
           status?: string
+          subscription_code?: string | null
           updated_at?: string
           user_id: string
         }
@@ -231,6 +233,7 @@ export type Database = {
           profile_pin?: string | null
           service_name?: string
           status?: string
+          subscription_code?: string | null
           updated_at?: string
           user_id?: string
         }
