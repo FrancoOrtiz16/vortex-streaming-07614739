@@ -5,6 +5,7 @@ import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Lo
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
+import { getSubscriptionsByUserId, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -65,35 +66,68 @@ const ClientDashboard = () => {
       navigate('/auth', { replace: true });
       return;
     }
-    if (user) {
+
+    if (user && user.id) {
+      setLoading(true);
+      console.debug('[ClientDashboard] Loading data for user:', user.id);
+
       Promise.all([
         supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('subscriptions').select('*').eq('user_id', user.id).order('next_renewal', { ascending: true }),
+        getSubscriptionsByUserId(user.id),
         supabase.from('services').select('*').eq('is_available', true),
-      ]).then(([ordersRes, subsRes, servicesRes]) => {
-        setOrders((ordersRes.data as Order[]) || []);
-        const subsData = (subsRes.data as Subscription[]) || [];
-        setSubs(subsData);
-        setServices((servicesRes.data as Service[]) || []);
-        setLoading(false);
+      ])
+        .then(([ordersRes, { data: subsData, error: subsError }, servicesRes]) => {
+          // Handle orders
+          setOrders((ordersRes.data as Order[]) || []);
 
-        // Fetch decrypted credentials for active subs
-        setLoadingCreds(true);
-        Promise.all(
-          subsData
-            .filter(s => s.status === 'active')
-            .map(async (s) => {
-              const { data } = await supabase.rpc('get_subscription_credentials', { _subscription_id: s.id });
-              const cred = data?.[0];
-              return { id: s.id, cred: { credential_email: cred?.credential_email || null, credential_password: cred?.credential_password || null } };
-            })
-        ).then((results) => {
-          const credsMap: Record<string, DecryptedCreds> = {};
-          results.forEach(r => { credsMap[r.id] = r.cred; });
-          setCredentials(credsMap);
-          setLoadingCreds(false);
+          // Handle subscriptions with new wrapper
+          if (subsError) {
+            console.error('[ClientDashboard] Subscriptions query error:', subsError);
+            toast.error('Error cargando suscripciones');
+            setSubs([]);
+          } else {
+            setSubs((subsData as Subscription[]) || []);
+          }
+
+          // Handle services
+          setServices((servicesRes.data as Service[]) || []);
+          setLoading(false);
+
+          // Fetch decrypted credentials for active subs
+          const activeSubs = (subsData as Subscription[] || []).filter(s => s.status === 'active');
+          if (activeSubs.length > 0) {
+            setLoadingCreds(true);
+            Promise.all(
+              activeSubs.map(async (s) => {
+                const { data: credData, error: credError } = await getSubscriptionCredentials(s.id);
+                if (credError) {
+                  console.error('[ClientDashboard] Credentials RPC error:', credError);
+                  return { id: s.id, cred: { credential_email: null, credential_password: null } };
+                }
+                const cred = credData?.[0];
+                return {
+                  id: s.id,
+                  cred: {
+                    credential_email: cred?.credential_email || null,
+                    credential_password: cred?.credential_password || null,
+                  },
+                };
+              })
+            ).then((results) => {
+              const credsMap: Record<string, DecryptedCreds> = {};
+              results.forEach(r => {
+                credsMap[r.id] = r.cred;
+              });
+              setCredentials(credsMap);
+              setLoadingCreds(false);
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('[ClientDashboard] Data loading error:', err);
+          toast.error('Error cargando datos');
+          setLoading(false);
         });
-      });
     }
   }, [user, authLoading, navigate]);
 

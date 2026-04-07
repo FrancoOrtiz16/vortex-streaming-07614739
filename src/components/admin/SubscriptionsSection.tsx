@@ -2,6 +2,15 @@ import { useState, useEffect, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  getAllSubscriptions,
+  deleteSubscription,
+  createSubscription,
+  updateSubscription,
+  setSubscriptionCredentials,
+  getSubscriptionCredentials,
+  type CreateSubscriptionPayload,
+} from '@/integrations/supabase/subscriptions-helpers';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
 
@@ -45,33 +54,70 @@ export function SubscriptionsSection() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [subsRes, profilesRes] = await Promise.all([
-      supabase.from('subscriptions').select('*').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, user_id, display_name, email'),
-    ]);
-    const profilesList = profilesRes.data || [];
-    setProfiles(profilesList);
-    const subsWithProfiles = (subsRes.data || []).map((s: any) => ({
-      ...s,
-      profile: profilesList.find((p: Profile) => p.user_id === s.user_id),
-    }));
-    setSubs(subsWithProfiles);
-    setLoading(false);
+    try {
+      console.debug('[Admin] Fetching all subscriptions');
+      const [{ data: subsData, error: subsError }, profilesRes] = await Promise.all([
+        getAllSubscriptions(),
+        supabase.from('profiles').select('id, user_id, display_name, email'),
+      ]);
+
+      if (subsError) {
+        console.error('[Admin] Subscriptions fetch error:', subsError);
+        toast.error('Error cargando suscripciones');
+        setSubs([]);
+        return;
+      }
+
+      const profilesList = profilesRes.data || [];
+      setProfiles(profilesList);
+
+      const subsWithProfiles = (subsData || []).map((s: any) => ({
+        ...s,
+        profile: profilesList.find((p: Profile) => p.user_id === s.user_id),
+      }));
+
+      setSubs(subsWithProfiles);
+      setLoading(false);
+      console.debug('[Admin] Subscriptions loaded:', subsWithProfiles.length);
+    } catch (err) {
+      console.error('[Admin] fetchData error:', err);
+      toast.error('Error cargando datos');
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const startEdit = async (sub: Subscription) => {
     setEditingId(sub.id);
-    // Fetch decrypted credentials via RPC
-    const { data } = await supabase.rpc('get_subscription_credentials', { _subscription_id: sub.id });
-    const cred = data?.[0];
-    setCredForm({
-      email: cred?.credential_email || '',
-      password: '',
-      profile_name: sub.profile_name || '',
-      profile_pin: sub.profile_pin || '',
-    });
+    try {
+      // Fetch decrypted credentials via safe wrapper
+      const { data: credData, error: credError } = await getSubscriptionCredentials(sub.id);
+
+      if (credError) {
+        console.error('[Admin] Credentials fetch error:', credError);
+        toast.error('Error cargando credenciales');
+        setCredForm({
+          email: '',
+          password: '',
+          profile_name: sub.profile_name || '',
+          profile_pin: sub.profile_pin || '',
+        });
+        return;
+      }
+
+      const cred = credData?.[0];
+      setCredForm({
+        email: cred?.credential_email || '',
+        password: '',
+        profile_name: sub.profile_name || '',
+        profile_pin: sub.profile_pin || '',
+      });
+    } catch (err) {
+      console.error('[Admin] startEdit error:', err);
+      toast.error('Error al cargar edición');
+      setEditingId(null);
+    }
   };
 
   const normalizeServiceCode = (name: string) => {
@@ -90,101 +136,117 @@ export function SubscriptionsSection() {
   const saveCredentials = async (subId: string) => {
     setSaving(true);
     try {
-      // Save encrypted credentials via RPC
+      console.debug('[Admin] Saving credentials for subscription:', subId);
+
+      // Save encrypted credentials via safe wrapper
       if (credForm.email || credForm.password) {
-        const { error: rpcErr } = await supabase.rpc('set_subscription_credentials', {
-          _subscription_id: subId,
-          _credential_email: credForm.email,
-          _credential_password: credForm.password,
-        });
+        const { error: rpcErr } = await setSubscriptionCredentials(subId, credForm.email, credForm.password);
         if (rpcErr) throw rpcErr;
       }
-      // Save profile name/pin directly
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({
-          profile_name: credForm.profile_name || null,
-          profile_pin: credForm.profile_pin || null,
-        })
-        .eq('id', subId);
-      if (error) throw error;
 
-      toast.success('Credenciales guardadas');
+      // Save profile name/pin directly via safe wrapper
+      const { error: updateErr } = await updateSubscription(subId, {
+        profile_name: credForm.profile_name || null,
+        profile_pin: credForm.profile_pin || null,
+      });
+
+      if (updateErr) throw updateErr;
+
+      toast.success('✅ Credenciales guardadas');
       setEditingId(null);
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || 'Error guardando credenciales');
+      console.error('[Admin] saveCredentials error:', err);
+      toast.error(`❌ ${err.message || 'Error guardando credenciales'}`);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteSubscription = async (subId: string) => {
-    const confirmed = window.confirm('¿Estás seguro de que deseas eliminar esta suscripción?');
+    const confirmed = window.confirm('¿Estás seguro de que deseas eliminar esta suscripción? Esta acción no se puede deshacer.');
     if (!confirmed) return;
+
     setDeletingId(subId);
-    const { error } = await supabase.from('subscriptions').delete().eq('id', subId);
-    if (error) {
-      toast.error('Error eliminando la suscripción');
-    } else {
-      toast.success('Suscripción eliminada');
+    try {
+      console.debug('[Admin] Deleting subscription:', subId);
+      const { error } = await deleteSubscription(subId);
+
+      if (error) throw error;
+
+      toast.success('✅ Suscripción eliminada correctamente');
       fetchData();
+    } catch (err: any) {
+      console.error('[Admin] deleteSubscription error:', err);
+      toast.error(`❌ ${err.message || 'Error eliminando la suscripción'}`);
+    } finally {
+      setDeletingId(null);
     }
-    setDeletingId(null);
   };
 
   const confirmRenewal = async (sub: Subscription) => {
     setConfirming(sub.id);
-    const now = new Date();
-    // Add 30 days from current next_renewal (or from now if expired)
-    const base = new Date(sub.next_renewal) > now ? new Date(sub.next_renewal) : now;
-    const next = new Date(base);
-    next.setDate(next.getDate() + 30);
+    try {
+      const now = new Date();
+      // Add 30 days from current next_renewal (or from now if expired)
+      const base = new Date(sub.next_renewal) > now ? new Date(sub.next_renewal) : now;
+      const next = new Date(base);
+      next.setDate(next.getDate() + 30);
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({
+      console.debug('[Admin] Confirming renewal for subscription:', sub.id);
+
+      const { error } = await updateSubscription(sub.id, {
         status: 'active',
         last_renewal: now.toISOString(),
         next_renewal: next.toISOString(),
-      })
-      .eq('id', sub.id);
+      });
 
-    if (error) {
-      toast.error('Error al confirmar renovación');
-    } else {
-      toast.success(`Renovación confirmada — vence ${next.toLocaleDateString()}`);
+      if (error) throw error;
+
+      toast.success(`✅ Renovación confirmada — vence ${next.toLocaleDateString()}`);
+      fetchData();
+    } catch (err: any) {
+      console.error('[Admin] confirmRenewal error:', err);
+      toast.error(`❌ ${err.message || 'Error al confirmar renovación'}`);
+    } finally {
+      setConfirming(null);
     }
-    setConfirming(null);
-    fetchData();
   };
 
   const addManualRecord = async () => {
     if (!form.user_id || !form.service_name) {
-      toast.error('Completa todos los campos');
+      toast.error('Completa todos los campos requeridos');
       return;
     }
+
     const now = new Date();
     const next = new Date(now);
     next.setDate(next.getDate() + form.days);
 
-    const { error } = await supabase.from('subscriptions').insert({
-      user_id: form.user_id,
-      service_name: form.service_name,
-      status: 'active',
-      last_renewal: now.toISOString(),
-      next_renewal: next.toISOString(),
-      subscription_code: generateUniqueSubscriptionId(),
-    });
+    try {
+      console.debug('[Admin] Creating manual subscription record');
 
-    if (error) {
-      toast.error('Error al crear registro');
-      return;
+      const payload: CreateSubscriptionPayload = {
+        user_id: form.user_id,
+        service_name: form.service_name,
+        status: 'active',
+        last_renewal: now.toISOString(),
+        next_renewal: next.toISOString(),
+        subscription_code: generateUniqueSubscriptionId(),
+      };
+
+      const { data, error } = await createSubscription(payload);
+
+      if (error) throw error;
+
+      toast.success('✅ Registro añadido correctamente');
+      setShowAdd(false);
+      setForm({ user_id: '', service_name: '', days: 30 });
+      fetchData();
+    } catch (err: any) {
+      console.error('[Admin] addManualRecord error:', err);
+      toast.error(`❌ ${err.message || 'Error al crear registro'}`);
     }
-    toast.success('Registro añadido');
-    setShowAdd(false);
-    setForm({ user_id: '', service_name: '', days: 30 });
-    fetchData();
   };
 
   const statusColor = (status: string) => {
