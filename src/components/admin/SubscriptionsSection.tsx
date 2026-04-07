@@ -83,6 +83,10 @@ export function SubscriptionsSection() {
     return `VORTEX-${normalizeServiceCode(serviceName)}-${String(sequence).padStart(3, '0')}`;
   };
 
+  const generateUniqueSubscriptionId = () => {
+    return 'VORTEX-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+  };
+
   const saveCredentials = async (subId: string) => {
     setSaving(true);
     try {
@@ -164,14 +168,13 @@ export function SubscriptionsSection() {
     const next = new Date(now);
     next.setDate(next.getDate() + form.days);
 
-    const existingCount = subs.filter(s => s.user_id === form.user_id && s.service_name === form.service_name).length;
     const { error } = await supabase.from('subscriptions').insert({
       user_id: form.user_id,
       service_name: form.service_name,
       status: 'active',
       last_renewal: now.toISOString(),
       next_renewal: next.toISOString(),
-      subscription_code: makeSubscriptionCode(form.service_name, existingCount + 1),
+      subscription_code: generateUniqueSubscriptionId(),
     });
 
     if (error) {

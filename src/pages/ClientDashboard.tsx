@@ -107,22 +107,18 @@ const ClientDashboard = () => {
     return cleaned.length >= 4 ? cleaned.slice(0, 4) : cleaned.padEnd(4, 'X');
   };
 
-  const makeSubscriptionCode = (serviceName: string, sequence: number) => {
-    return `VORTEX-${normalizeServicePrefix(serviceName)}-${String(sequence).padStart(3, '0')}`;
-  };
-
   const statusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-emerald-500/20 text-emerald-400';
+        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       case 'expired':
-        return 'bg-destructive/20 text-destructive';
+        return 'bg-destructive/20 text-destructive border-destructive/30';
       case 'pending_approval':
-        return 'bg-amber-500/20 text-amber-400';
+        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
       case 'pending':
-        return 'bg-slate-700/40 text-slate-200';
+        return 'bg-slate-700/40 text-slate-200 border-slate-700/30';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'bg-muted/20 text-muted-foreground border-muted/30';
     }
   };
 
@@ -140,15 +136,6 @@ const ClientDashboard = () => {
         return status;
     }
   };
-
-  const subscriptionCodes = subs
-    .slice()
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    .reduce((acc, sub) => {
-      acc.counts[sub.service_name] = (acc.counts[sub.service_name] || 0) + 1;
-      acc.map[sub.id] = makeSubscriptionCode(sub.service_name, acc.counts[sub.service_name]);
-      return acc;
-    }, { counts: {} as Record<string, number>, map: {} as Record<string, string> }).map;
 
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
@@ -217,57 +204,53 @@ const ClientDashboard = () => {
             <RefreshCw className="w-4 h-4 text-primary" />
             Historial de Suscripciones
           </h2>
-          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-x-auto mb-10">
-            <table className="min-w-full text-left">
-              <thead className="border-b border-white/10">
-                <tr>
-                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Servicio</th>
-                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">ID</th>
-                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Vencimiento</th>
-                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Estado</th>
-                  <th className="px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-400">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">No tienes servicios activos aún.</td>
-                  </tr>
-                ) : (
-                  subs.map((sub) => {
-                    const service = findService(sub.service_name);
-                    const code = subscriptionCodes[sub.id] || `VORTEX-${sub.id.slice(0, 4).toUpperCase()}-001`;
-                    return (
-                      <tr key={sub.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-[#111] overflow-hidden flex items-center justify-center">
-                              {service?.image_url ? (
-                                <img src={service.image_url} alt={service.name} className="h-full w-full object-contain" />
-                              ) : (
-                                <Package className="w-5 h-5 text-slate-400" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-white">{sub.service_name}</div>
-                              <div className="text-[11px] text-slate-500">{service?.plan_type || 'Premium Mensual'}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-slate-300">{code}</td>
-                        <td className="px-4 py-4 text-sm text-slate-300">{new Date(sub.next_renewal).toLocaleDateString()}</td>
-                        <td className="px-4 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.18em] ${statusColor(sub.status)}`}>
-                            {statusLabel(sub.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-slate-300">${service?.price?.toFixed(2) ?? '0.00'}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden">
+            {subs.length === 0 ? (
+              <div className="px-4 py-8 text-center text-slate-400 text-sm">
+                No tienes servicios activos aún.
+              </div>
+            ) : (
+              <div className="divide-y divide-white/10">
+                {subs.map((sub) => {
+                  const service = findService(sub.service_name);
+                  const code = sub.subscription_code || `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
+                  return (
+                    <motion.div
+                      key={sub.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="px-4 py-4 flex items-center justify-between gap-4 hover:bg-white/5 transition-colors"
+                    >
+                      {/* Service Logo + Name */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {service?.image_url ? (
+                            <img src={service.image_url} alt={service.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <Package className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white text-sm">{sub.service_name}</div>
+                          <div className="text-xs text-slate-400 truncate">{code}</div>
+                        </div>
+                      </div>
+
+                      {/* Date + Status */}
+                      <div className="flex items-center gap-3 flex-wrap justify-end">
+                        <div className="text-right">
+                          <div className="text-xs text-slate-400">Vencimiento</div>
+                          <div className="text-sm font-medium text-white">{new Date(sub.next_renewal).toLocaleDateString()}</div>
+                        </div>
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColor(sub.status)}`}>
+                          {statusLabel(sub.status)}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Historial de Pedidos */}
