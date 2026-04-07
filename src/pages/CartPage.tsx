@@ -9,7 +9,7 @@ import CheckoutDialog from '@/components/CheckoutDialog';
 import { toast } from 'sonner';
 
 const CartPage = () => {
-  const { items, total, removeItem, clear } = useCart();
+  const { items, total, subtotal, discount, removeItem, clear } = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   return (
