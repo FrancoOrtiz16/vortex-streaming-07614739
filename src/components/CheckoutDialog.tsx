@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { createBulkSubscriptions, type CreateSubscriptionPayload } from '@/integrations/supabase/subscriptions-helpers';
+import { createSimpleBulkSubscriptions } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
@@ -104,21 +104,11 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     toast.success('Comprobante cargado');
   };
 
-  const generateUniqueSubscriptionId = () => {
-    return 'VRTX-' + Math.random().toString(36).substr(2, 5).toUpperCase();
-  };
-
   const handleConfirm = async () => {
-    // ============ VALIDATION LAYER ============
-    if (!user) {
+    // Quick validation
+    if (!user || !user.id) {
       toast.error('Debes iniciar sesión para confirmar tu compra');
       navigate('/auth');
-      return;
-    }
-
-    if (!user.id || typeof user.id !== 'string') {
-      console.error('[Checkout] Invalid user.id:', user.id);
-      toast.error('Error: Información de usuario inválida');
       return;
     }
 
@@ -134,10 +124,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
     setSubmitting(true);
     try {
-      // ============ STEP 1: Create Order ============
-      console.debug('[Checkout] Creating order for user:', user.id);
+      console.debug('[Checkout] Starting order creation');
+      
+      // Step 1: Create order
       const productNames = items.map(i => `${i.product.name} x${i.quantity}`).join(', ');
-
       const { error: orderErr } = await supabase.from('orders').insert({
         user_id: user.id,
         customer_email: user.email || '',
@@ -147,47 +137,35 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       });
 
       if (orderErr) {
-        console.error('[Checkout] Order creation error:', orderErr);
-        throw new Error(`Error creating order: ${orderErr.message}`);
+        throw new Error(`Order error: ${orderErr.message}`);
       }
+      console.debug('[Checkout] Order created');
 
-      console.debug('[Checkout] Order created successfully');
-
-      // ============ STEP 2: Create Individual Subscriptions ============
-      const subscriptionPayloads: CreateSubscriptionPayload[] = [];
-      const now = new Date().toISOString();
-      const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-
+      // Step 2: Create subscriptions (SIMPLE - no custom fields)
+      const subscriptions = [];
       for (const item of items) {
-        const serviceName = item.product.name;
-
-        // Create separate payload for each unit in the quantity
-        for (let i = 0; i < item.quantity; i += 1) {
-          subscriptionPayloads.push({
+        for (let i = 0; i < item.quantity; i++) {
+          subscriptions.push({
             user_id: user.id,
-            service_name: serviceName,
-            status: 'pending_approval',
-            subscription_code: generateUniqueSubscriptionId(),
-            last_renewal: now,
-            next_renewal: nextRenewal,
+            service_name: item.product.name,
+            status: 'pending_approval'
+            // That's it! No subscription_code, no last_renewal, no next_renewal
+            // Supabase will auto-generate: id, created_at, updated_at
           });
         }
       }
 
-      console.debug('[Checkout] Creating subscriptions:', subscriptionPayloads.length, 'items');
-
-      if (subscriptionPayloads.length > 0) {
-        const { data: subData, error: subError } = await createBulkSubscriptions(subscriptionPayloads);
-
+      if (subscriptions.length > 0) {
+        console.debug('[Checkout] Creating', subscriptions.length, 'subscriptions');
+        const { error: subError } = await createSimpleBulkSubscriptions(subscriptions);
+        
         if (subError) {
-          console.error('[Checkout] Subscription creation error:', subError);
-          throw new Error(`Error creating subscriptions: ${typeof subError === 'object' && subError !== null && 'message' in subError ? (subError as any).message : String(subError)}`);
+          throw new Error(`Subscriptions error: ${typeof subError === 'object' ? JSON.stringify(subError) : String(subError)}`);
         }
-
-        console.debug('[Checkout] Subscriptions created:', subData?.length, 'records');
+        console.debug('[Checkout] Subscriptions created');
       }
 
-      // ============ STEP 3: Send WhatsApp Notification ============
+      // Step 3: Send WhatsApp & clear
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
       const confirmedMethod = methods.find(m => m.id === selectedMethod);
       const methodText = confirmedMethod ? ` usando ${confirmedMethod.method_name}` : '';
@@ -200,8 +178,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
       window.open(waLink, '_blank');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al registrar el pedido';
-      console.error('[Checkout] handleConfirm error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('[Checkout] Error:', err);
       toast.error(`❌ ${errorMessage}`);
     } finally {
       setSubmitting(false);

@@ -5,7 +5,7 @@ import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Lo
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
-import { getSubscriptionsByUserId, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
+import { getUserSubscriptions, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -73,7 +73,7 @@ const ClientDashboard = () => {
 
       Promise.all([
         supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        getSubscriptionsByUserId(user.id),
+        getUserSubscriptions(user.id),
         supabase.from('services').select('*').eq('is_available', true),
       ])
         .then(([ordersRes, { data: subsData, error: subsError }, servicesRes]) => {

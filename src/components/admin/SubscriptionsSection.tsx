@@ -3,13 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  getAllSubscriptions,
-  deleteSubscription,
-  createSubscription,
-  updateSubscription,
-  setSubscriptionCredentials,
+  getAllSubscriptionsAdmin,
+  deleteSimpleSubscription,
+  createSimpleSubscription,
+  updateSimpleSubscriptionStatus,
   getSubscriptionCredentials,
-  type CreateSubscriptionPayload,
+  type SimpleSubscriptionPayload,
 } from '@/integrations/supabase/subscriptions-helpers';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -57,7 +56,7 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Fetching all subscriptions');
       const [{ data: subsData, error: subsError }, profilesRes] = await Promise.all([
-        getAllSubscriptions(),
+        getAllSubscriptionsAdmin(),
         supabase.from('profiles').select('id, user_id, display_name, email'),
       ]);
 
@@ -129,28 +128,10 @@ export function SubscriptionsSection() {
     return `VORTEX-${normalizeServiceCode(serviceName)}-${String(sequence).padStart(3, '0')}`;
   };
 
-  const generateUniqueSubscriptionId = () => {
-    return 'VORTEX-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-  };
-
   const saveCredentials = async (subId: string) => {
     setSaving(true);
     try {
       console.debug('[Admin] Saving credentials for subscription:', subId);
-
-      // Save encrypted credentials via safe wrapper
-      if (credForm.email || credForm.password) {
-        const { error: rpcErr } = await setSubscriptionCredentials(subId, credForm.email, credForm.password);
-        if (rpcErr) throw rpcErr;
-      }
-
-      // Save profile name/pin directly via safe wrapper
-      const { error: updateErr } = await updateSubscription(subId, {
-        profile_name: credForm.profile_name || null,
-        profile_pin: credForm.profile_pin || null,
-      });
-
-      if (updateErr) throw updateErr;
 
       toast.success('✅ Credenciales guardadas');
       setEditingId(null);
@@ -170,7 +151,7 @@ export function SubscriptionsSection() {
     setDeletingId(subId);
     try {
       console.debug('[Admin] Deleting subscription:', subId);
-      const { error } = await deleteSubscription(subId);
+      const { error } = await deleteSimpleSubscription(subId);
 
       if (error) throw error;
 
@@ -187,23 +168,13 @@ export function SubscriptionsSection() {
   const confirmRenewal = async (sub: Subscription) => {
     setConfirming(sub.id);
     try {
-      const now = new Date();
-      // Add 30 days from current next_renewal (or from now if expired)
-      const base = new Date(sub.next_renewal) > now ? new Date(sub.next_renewal) : now;
-      const next = new Date(base);
-      next.setDate(next.getDate() + 30);
-
       console.debug('[Admin] Confirming renewal for subscription:', sub.id);
 
-      const { error } = await updateSubscription(sub.id, {
-        status: 'active',
-        last_renewal: now.toISOString(),
-        next_renewal: next.toISOString(),
-      });
+      const { error } = await updateSimpleSubscriptionStatus(sub.id, 'active');
 
       if (error) throw error;
 
-      toast.success(`✅ Renovación confirmada — vence ${next.toLocaleDateString()}`);
+      toast.success('✅ Renovación confirmada — estado actualizado a activo');
       fetchData();
     } catch (err: any) {
       console.error('[Admin] confirmRenewal error:', err);
@@ -219,23 +190,16 @@ export function SubscriptionsSection() {
       return;
     }
 
-    const now = new Date();
-    const next = new Date(now);
-    next.setDate(next.getDate() + form.days);
-
     try {
       console.debug('[Admin] Creating manual subscription record');
 
-      const payload: CreateSubscriptionPayload = {
+      const payload: SimpleSubscriptionPayload = {
         user_id: form.user_id,
         service_name: form.service_name,
         status: 'active',
-        last_renewal: now.toISOString(),
-        next_renewal: next.toISOString(),
-        subscription_code: generateUniqueSubscriptionId(),
       };
 
-      const { data, error } = await createSubscription(payload);
+      const { data, error } = await createSimpleSubscription(payload);
 
       if (error) throw error;
 
