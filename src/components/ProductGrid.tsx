@@ -29,7 +29,6 @@ const ProductGrid = () => {
     ? products
     : products.filter(p => p.category === category);
 
-  // Group products by group_name
   const grouped = useMemo<GroupedItem[]>(() => {
     const map = new Map<string, Product[]>();
     const singles: Product[] = [];
@@ -62,7 +61,6 @@ const ProductGrid = () => {
       });
     });
 
-    // Sort by first item's sort_order
     result.sort((a, b) => (a.representative.orden_prioridad ?? 999) - (b.representative.orden_prioridad ?? 999));
 
     return result;
@@ -106,7 +104,7 @@ const ProductGrid = () => {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {grouped.map((item, i) => (
               <ProductCard
                 key={item.key}
