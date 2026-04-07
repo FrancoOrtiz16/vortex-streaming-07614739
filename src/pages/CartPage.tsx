@@ -62,9 +62,21 @@ const CartPage = () => {
                 ))}
               </div>
 
-              <div className="glass rounded-xl p-4 flex items-center justify-between mb-4">
-                <span className="text-sm font-medium">Total</span>
-                <span className="font-display font-bold text-xl gold-text">${total.toFixed(2)}</span>
+              <div className="glass rounded-xl p-4 space-y-2 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Subtotal</span>
+                  <span className="font-display font-semibold text-sm">${subtotal.toFixed(2)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-green-400">
+                    <span className="text-sm">Descuento 10% (2+ productos)</span>
+                    <span className="font-display font-semibold text-sm">-${discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="border-t border-border pt-2 flex items-center justify-between">
+                  <span className="text-sm font-medium">Total</span>
+                  <span className="font-display font-bold text-xl gold-text">${total.toFixed(2)}</span>
+                </div>
               </div>
 
               <div className="flex gap-3">
