@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { ElementType, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductCategory } from '@/data/products';
 import { useProducts, Product } from '@/hooks/useProducts';
 import ProductCard from './ProductCard';
 import { Tv, Gamepad2, LayoutGrid, Loader2 } from 'lucide-react';
 
-const filters: { label: string; value: ProductCategory | 'all'; icon: React.ElementType }[] = [
+const filters: { label: string; value: ProductCategory | 'all'; icon: ElementType }[] = [
   { label: 'Todo', value: 'all', icon: LayoutGrid },
   { label: 'Streaming', value: 'streaming', icon: Tv },
   { label: 'Gaming', value: 'gaming', icon: Gamepad2 },
@@ -21,9 +21,7 @@ const ProductGrid = () => {
   const [searchParams] = useSearchParams();
   const catParam = searchParams.get('cat');
   const { products, loading } = useProducts();
-  const [category, setCategory] = useState<ProductCategory | 'all'>(
-    (catParam as ProductCategory) || 'all'
-  );
+  const [category, setCategory] = useState<ProductCategory | 'all'>((catParam as ProductCategory) || 'all');
 
   const filtered = category === 'all'
     ? products
@@ -61,24 +59,28 @@ const ProductGrid = () => {
       });
     });
 
-    result.sort((a, b) => (a.representative.orden_prioridad ?? 999) - (b.representative.orden_prioridad ?? 999));
+    result.sort(
+      (a, b) =>
+        (a.representative.orden_prioridad ?? 999) -
+        (b.representative.orden_prioridad ?? 999)
+    );
 
     return result;
   }, [filtered]);
 
   return (
-    <section id="catalogo" className="py-16">
-      <div className="container mx-auto px-4">
-        <div className="mb-10">
-          <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl">
-            Catálogo de <span className="neon-text">Streaming</span> y Gaming
+    <section id="catalogo" className="py-16 bg-[#0a0a0a]">
+      <div className="mx-auto max-w-[1480px] px-4">
+        <div className="mb-10 rounded-[2rem] border border-white/10 bg-[#090909]/80 px-8 py-8 shadow-[0_32px_80px_rgba(0,0,0,0.5)]">
+          <h2 className="font-display text-4xl font-bold text-white md:text-5xl">
+            Catálogo de <span className="text-blue-500">Streaming</span> y Gaming
           </h2>
-          <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="mt-3 text-sm uppercase tracking-[0.32em] text-slate-400">
             Productos disponibles en tiempo real
           </p>
         </div>
 
-        <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2">
+        <div className="mb-8 flex flex-wrap items-center gap-3 pb-2">
           {filters.map(f => {
             const Icon = f.icon;
             const active = category === f.value;
@@ -86,13 +88,13 @@ const ProductGrid = () => {
               <button
                 key={f.value}
                 onClick={() => setCategory(f.value)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
                   active
-                    ? 'gradient-neon text-primary-foreground'
-                    : 'glass text-muted-foreground hover:text-foreground'
+                    ? 'bg-blue-600 text-white shadow-[0_0_24px_rgba(59,130,246,0.25)]'
+                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="h-4 w-4" />
                 {f.label}
               </button>
             );
@@ -101,10 +103,10 @@ const ProductGrid = () => {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {grouped.map((item, i) => (
               <ProductCard
                 key={item.key}

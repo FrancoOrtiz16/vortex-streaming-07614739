@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
@@ -11,11 +11,14 @@ interface ProductCardProps {
   index: number;
 }
 
+const formatPrice = (value: number) => {
+  return `$${value.toFixed(2).replace('.', ',')}`;
+};
+
 const ProductCard = ({ product, variants, index }: ProductCardProps) => {
   const { addItem } = useCart();
   const [selected, setSelected] = useState<Product>(product);
-
-  const hasVariants = variants && variants.length > 1;
+  const hasVariants = !!variants && variants.length > 1;
 
   const handleAdd = () => {
     addItem({
@@ -30,7 +33,7 @@ const ProductCard = ({ product, variants, index }: ProductCardProps) => {
     toast.success(`${selected.name} añadido al carrito`);
   };
 
-  const handleVariantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleVariantChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const found = variants?.find(v => v.id === e.target.value);
     if (found) setSelected(found);
   };
@@ -41,73 +44,71 @@ const ProductCard = ({ product, variants, index }: ProductCardProps) => {
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.08 }}
+      transition={{ duration: 0.4, delay: index * 0.06 }}
       whileHover={{ y: -4 }}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card/80 shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-[0_16px_40px_hsl(var(--primary)/0.12)]"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] transition-all duration-300 hover:-translate-y-1"
     >
-      {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-secondary/40 flex items-center justify-center">
+      <div className="relative mb-6 overflow-hidden rounded-[28px] border border-white/5 bg-[#111] shadow-inner">
         <img
           src={selected.image}
           alt={selected.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-[240px] w-full object-cover transition-transform duration-500 group-hover:scale-105"
           style={{ transform: `scale(${scale})` }}
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
         {selected.badge && (
-          <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider gradient-neon text-primary-foreground">
+          <span className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-white/80">
             {selected.badge}
           </span>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="mb-1 font-display text-xl font-bold text-foreground">
-          {hasVariants ? selected.group_name : selected.name}
-        </h3>
+      <div className="flex flex-1 flex-col">
+        <h3 className="mb-2 text-2xl font-bold text-white">{hasVariants ? selected.group_name : selected.name}</h3>
+        <p className="mb-4 text-sm font-semibold text-slate-400">Premium Mensual</p>
 
         {hasVariants ? (
-          <div className="relative mb-3">
+          <div className="relative mb-4">
             <select
               value={selected.id}
               onChange={handleVariantChange}
-              className="w-full appearance-none px-3 py-2 pr-8 rounded-xl bg-secondary text-sm border border-border text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              className="w-full appearance-none rounded-2xl border border-white/10 bg-[#0f172a] px-4 py-3 pr-10 text-sm font-medium text-white outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             >
               {variants!.map(v => (
-                <option key={v.id} value={v.id}>
-                  {v.plan_type || v.name} — ${v.price.toFixed(2)}
+                <option key={v.id} value={v.id} className="bg-[#0f172a] text-white">
+                  {v.plan_type || v.name} — {formatPrice(v.price)}
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
         ) : (
           selected.plan_type && (
-            <p className="mb-2 text-sm font-medium text-foreground/85">{selected.plan_type}</p>
+            <p className="mb-4 text-sm text-slate-400">{selected.plan_type}</p>
           )
         )}
 
-        <p className="mb-4 flex-1 text-sm text-muted-foreground line-clamp-3">
-          {selected.description}
-        </p>
+        <p className="mb-6 flex-1 text-sm leading-6 text-slate-300">{selected.description}</p>
 
         <div className="mt-auto">
           <span
-            className="font-display text-2xl font-extrabold"
+            className="font-display mb-4 block text-3xl font-extrabold"
             style={{
               color: '#3b82f6',
-              textShadow: '0 0 15px rgba(59, 130, 246, 0.9)',
+              fontWeight: 800,
+              fontSize: '1.75rem',
+              textShadow: '0 0 10px rgba(59, 130, 246, 0.9)',
             }}
           >
-            ${selected.price.toFixed(2)}
+            {formatPrice(selected.price)}
           </span>
+
           <button
             onClick={handleAdd}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-500 hover:shadow-[0_0_24px_rgba(59,130,246,0.4)]"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-500 hover:shadow-[0_0_24px_rgba(59,130,246,0.35)]"
           >
-            <ShoppingCart className="w-4 h-4" />
+            <ShoppingCart className="h-5 w-5" />
             Añadir al Carrito
           </button>
         </div>
