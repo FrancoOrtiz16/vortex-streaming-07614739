@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
   deleteSimpleSubscription,
-  createSimpleSubscription,
   updateSimpleSubscription,
   updateSimpleSubscriptionStatus,
   getSubscriptionCredentials,
@@ -21,6 +20,8 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
+  fecha_inicio?: string;
+  proxima_fecha?: string;
   created_at: string;
   updated_at: string;
   profile_name?: string | null;
@@ -209,21 +210,19 @@ export function SubscriptionsSection() {
       const lastRenewal = new Date(startDate).toISOString();
       const nextRenewal = new Date(startDate.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
 
-      const payload: SimpleSubscriptionPayload = {
+      const { error } = await supabase.from('subscriptions').insert({
         user_id: form.user_id,
         service_name: form.service_name,
         status: 'active',
-        last_renewal: lastRenewal,
-        next_renewal: nextRenewal,
-      };
-
-      const { data, error } = await createSimpleSubscription(payload);
+        fecha_inicio: lastRenewal,
+        proxima_fecha: nextRenewal,
+      });
 
       if (error) throw error;
 
       toast.success('✅ Registro añadido correctamente');
       setShowAdd(false);
-      setForm({ user_id: '', service_name: '', days: 30 });
+      setForm({ user_id: '', service_name: '', days: 30, startDate: new Date().toISOString().slice(0, 10) });
       fetchData();
     } catch (err: any) {
       console.error('[Admin] addManualRecord error:', err);
@@ -335,8 +334,8 @@ export function SubscriptionsSection() {
                         {statusLabel(s.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.last_renewal).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.next_renewal).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.last_renewal || s.fecha_inicio || '').toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.next_renewal || s.proxima_fecha || '').toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.next_renewal} /></td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">

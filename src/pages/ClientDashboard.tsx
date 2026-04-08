@@ -25,7 +25,8 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
-  subscription_code?: string | null;
+  fecha_inicio?: string;
+  proxima_fecha?: string;
   profile_name?: string | null;
   profile_pin?: string | null;
   credential_email?: string | null;
@@ -254,7 +255,9 @@ const ClientDashboard = () => {
               <div className="divide-y divide-white/10">
                 {subs.map((sub) => {
                   const service = findService(sub.service_name);
-                  const code = sub.subscription_code || `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
+                  const code = `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
+                  const nextRenewal = sub.next_renewal || sub.proxima_fecha || '';
+                  const lastRenewal = sub.last_renewal || sub.fecha_inicio || '';
                   return (
                     <motion.div
                       key={sub.id}
@@ -290,7 +293,7 @@ const ClientDashboard = () => {
                       <div className="flex items-center gap-3 flex-wrap justify-end">
                         <div className="text-right">
                           <div className="text-xs text-slate-400">Vencimiento</div>
-                          <div className="text-sm font-medium text-white">{new Date(sub.next_renewal).toLocaleDateString()}</div>
+                          <div className="text-sm font-medium text-white">{nextRenewal ? new Date(nextRenewal).toLocaleDateString() : 'N/A'}</div>
                         </div>
                         <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColor(sub.status)}`}>
                           {statusLabel(sub.status)}

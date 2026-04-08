@@ -11,9 +11,6 @@
  * - updated_at (TIMESTAMP, auto-set by Supabase)
  * 
  * REMOVED (were causing 400 errors):
- * - subscription_code (doesn't exist in schema)
- * - last_renewal (doesn't exist in schema)
- * - next_renewal (doesn't exist in schema)
  * - custom ID fields (use native UUID instead)
  */
 
@@ -26,22 +23,24 @@ export interface SimpleSubscriptionPayload {
   status?: string; // defaults to 'pending_approval' in trigger
   last_renewal?: string;
   next_renewal?: string;
+  fecha_inicio?: string;
+  proxima_fecha?: string;
   credential_email?: string | null;
   credential_password?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
-  subscription_code?: string | null;
 }
 
 export interface SimpleSubscriptionUpdatePayload {
   status?: string;
   last_renewal?: string;
   next_renewal?: string;
+  fecha_inicio?: string;
+  proxima_fecha?: string;
   credential_email?: string | null;
   credential_password?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
-  subscription_code?: string | null;
 }
 
 /**
@@ -65,11 +64,12 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
           status: payload.status || 'pending_approval',
           last_renewal: payload.last_renewal,
           next_renewal: payload.next_renewal,
+          fecha_inicio: payload.fecha_inicio,
+          proxima_fecha: payload.proxima_fecha,
           credential_email: payload.credential_email,
           credential_password: payload.credential_password,
           profile_name: payload.profile_name,
           profile_pin: payload.profile_pin,
-          subscription_code: payload.subscription_code,
         }
       ])
       .select();
@@ -110,7 +110,8 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       credential_password: p.credential_password,
       profile_name: p.profile_name,
       profile_pin: p.profile_pin,
-      subscription_code: p.subscription_code,
+      fecha_inicio: p.fecha_inicio,
+      proxima_fecha: p.proxima_fecha,
     }));
 
     const { data, error } = await supabase
