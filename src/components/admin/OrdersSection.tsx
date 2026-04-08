@@ -53,11 +53,10 @@ export function OrdersSection() {
           user_id: order.user_id,
           service_name: order.product_name,
           status: 'active',
-          last_renewal: now.toISOString(),
-          next_renewal: expiryDate.toISOString(),
+          proxima_fecha: expiryDate.toISOString(),
         };
-        if (creds?.email) subData.credential_email = creds.email;
-        if (creds?.password) subData.credential_password = creds.password;
+        if (creds?.email) subData.email_cuenta = creds.email;
+        if (creds?.password) subData.password_cuenta = creds.password;
 
         await supabase.from('subscriptions').insert(subData);
       }

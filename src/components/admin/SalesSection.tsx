@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, Clock, TrendingUp, Package, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +23,7 @@ export function SalesSection() {
   const [servicePrices, setServicePrices] = useState<ServicePrice>({});
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('synced');
+  const isMountedRef = useRef(true);
 
   // Fetch initial data
   const fetchSubscriptionsAndPrices = useCallback(async () => {
@@ -35,26 +36,34 @@ export function SalesSection() {
 
       if (subsError) throw subsError;
 
-      setSubscriptions((subsData as Subscription[]) || []);
+      if (isMountedRef.current) setSubscriptions((subsData as Subscription[]) || []);
 
       const prices: ServicePrice = {};
       (servicesData || []).forEach((s: any) => {
         prices[s.name.toLowerCase()] = s.price;
       });
-      setServicePrices(prices);
+      if (isMountedRef.current) setServicePrices(prices);
 
-      setSyncStatus('synced');
-      setLoading(false);
+      if (isMountedRef.current) {
+        setSyncStatus('synced');
+        setLoading(false);
+      }
     } catch (err) {
       console.error('[SalesSection] Fetch error:', err);
-      toast.error('Error cargando métricas');
-      setSyncStatus('error');
-      setLoading(false);
+      if (isMountedRef.current) {
+        toast.error('Error cargando métricas');
+        setSyncStatus('error');
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchSubscriptionsAndPrices();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [fetchSubscriptionsAndPrices]);
 
   // Supabase Realtime subscription
@@ -65,23 +74,27 @@ export function SalesSection() {
       .channel('subscriptions-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'subscriptions' },
-        (payload) => {
-          console.debug('[SalesSection] Realtime event:', payload.eventType, payload.new);
-          
-          setSubscriptions(prev => {
-            if (payload.eventType === 'INSERT') {
-              return [payload.new as Subscription, ...prev];
-            } else if (payload.eventType === 'UPDATE') {
-              return prev.map(sub => 
-                sub.id === (payload.new as Subscription).id 
-                  ? (payload.new as Subscription)
-                  : sub
-              );
-            } else if (payload.eventType === 'DELETE') {
-              return prev.filter(sub => sub.id !== (payload.old as Subscription).id);
-            }
-            return prev;
+        { if (isMountedRef.current) {
+            setSubscriptions(prev => {
+              if (payload.eventType === 'INSERT') {
+                return [payload.new as Subscription, ...prev];
+              } else if (payload.eventType === 'UPDATE') {
+                return prev.map(sub => 
+                  sub.id === (payload.new as Subscription).id 
+                    ? (payload.new as Subscription)
+                    : sub
+                );
+              } else if (payload.eventType === 'DELETE') {
+                return prev.filter(sub => sub.id !== (payload.old as Subscription).id);
+              }
+              return prev;
+            });
+
+            setSyncStatus('updated');
+            setTimeout(() => {
+              if (isMountedRef.current) setSyncStatus('synced');
+            }, 1000);
+          }
           });
 
           setSyncStatus('updated');

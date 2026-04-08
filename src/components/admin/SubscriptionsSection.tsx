@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo } from 'react';
+import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,12 +17,11 @@ interface Subscription {
   user_id: string;
   service_name: string;
   status: string;
-  last_renewal: string;
-  next_renewal: string;
+  proxima_fecha?: string;
   created_at: string;
   updated_at: string;
-  profile_name?: string | null;
-  profile_pin?: string | null;
+  email_cuenta?: string | null;
+  password_cuenta?: string | null;
 }
 
 interface Profile {
@@ -35,8 +34,6 @@ interface Profile {
 interface CredentialForm {
   email: string;
   password: string;
-  profile_name: string;
-  profile_pin: string;
 }
 
 export function SubscriptionsSection() {
@@ -47,10 +44,11 @@ export function SubscriptionsSection() {
   const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', profile_name: '', profile_pin: '' });
+  const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '' });
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchData = async () => {
     try {
@@ -63,29 +61,39 @@ export function SubscriptionsSection() {
       if (subsError) {
         console.error('[Admin] Subscriptions fetch error:', subsError);
         toast.error('Error cargando suscripciones');
-        setSubs([]);
+        if (isMountedRef.current) setSubs([]);
         return;
       }
 
       const profilesList = profilesRes.data || [];
-      setProfiles(profilesList);
+      if (isMountedRef.current) setProfiles(profilesList);
 
       const subsWithProfiles = (subsData || []).map((s: any) => ({
         ...s,
         profile: profilesList.find((p: Profile) => p.user_id === s.user_id),
       }));
 
-      setSubs(subsWithProfiles);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setSubs(subsWithProfiles);
+        setLoading(false);
+      }
       console.debug('[Admin] Subscriptions loaded:', subsWithProfiles.length);
     } catch (err) {
       console.error('[Admin] fetchData error:', err);
-      toast.error('Error cargando datos');
-      setLoading(false);
+      if (isMountedRef.current) {
+        toast.error('Error cargando datos');
+        setLoading(false);
+      }
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    isMountedRef.current = true;
+    fetchData();
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const startEdit = async (sub: Subscription) => {
     setEditingId(sub.id);
@@ -99,18 +107,14 @@ export function SubscriptionsSection() {
         setCredForm({
           email: '',
           password: '',
-          profile_name: sub.profile_name || '',
-          profile_pin: sub.profile_pin || '',
         });
         return;
       }
 
       const cred = credData?.[0];
       setCredForm({
-        email: cred?.credential_email || '',
+        email: cred?.email_cuenta || '',
         password: '',
-        profile_name: sub.profile_name || '',
-        profile_pin: sub.profile_pin || '',
       });
     } catch (err) {
       console.error('[Admin] startEdit error:', err);
@@ -133,13 +137,10 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Saving credentials for subscription:', subId);
 
-      const payload: any = {
-        profile_name: credForm.profile_name || null,
-        profile_pin: credForm.profile_pin || null,
-      };
+      const payload: any = {};
 
-      if (credForm.email) payload.credential_email = credForm.email;
-      if (credForm.password) payload.credential_password = credForm.password;
+      if (credForm.email) payload.email_cuenta = credForm.email;
+      if (credForm.password) payload.password_cuenta = credForm.password;
 
       const { data, error } = await updateSimpleSubscription(subId, payload);
       if (error) throw error;
@@ -212,8 +213,7 @@ export function SubscriptionsSection() {
         user_id: form.user_id,
         service_name: form.service_name,
         status: 'active',
-        last_renewal: lastRenewal,
-        next_renewal: nextRenewal,
+        proxima_fecha: nextRenewal,
       };
       const { error } = await supabase.from('subscriptions').insert(payload);
 
@@ -366,8 +366,8 @@ export function SubscriptionsSection() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.next_renewal).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.next_renewal} /></td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{s.proxima_fecha ? new Date(s.proxima_fecha).toLocaleDateString() : 'N/A'}</td>
+                    <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.proxima_fecha || s.created_at} /></td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
