@@ -171,12 +171,12 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const methodText = confirmedMethod ? ` usando ${confirmedMethod.method_name}` : '';
       const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
       const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
-      const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
       clear();
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
-      window.open(waLink, '_blank');
+      window.open(whatsappUrl, '_blank');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       console.error('[Checkout] Error:', err);

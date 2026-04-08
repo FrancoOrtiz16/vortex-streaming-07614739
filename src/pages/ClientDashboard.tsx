@@ -61,6 +61,66 @@ const ClientDashboard = () => {
   const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
   const [loadingCreds, setLoadingCreds] = useState(false);
 
+  const loadDashboardData = async () => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    console.debug('[ClientDashboard] Loading data for user:', user.id);
+
+    try {
+      const [ordersRes, { data: subsData, error: subsError }, servicesRes] = await Promise.all([
+        supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        getUserSubscriptions(user.id),
+        supabase.from('services').select('*').eq('is_available', true),
+      ]);
+
+      setOrders((ordersRes.data as Order[]) || []);
+
+      if (subsError) {
+        console.error('[ClientDashboard] Subscriptions query error:', subsError);
+        toast.error('Error cargando suscripciones');
+        setSubs([]);
+      } else {
+        setSubs((subsData as Subscription[]) || []);
+      }
+
+      setServices((servicesRes.data as Service[]) || []);
+
+      const activeSubs = (subsData as Subscription[] || []).filter(s => s.status === 'active');
+      if (activeSubs.length > 0) {
+        setLoadingCreds(true);
+        const results = await Promise.all(
+          activeSubs.map(async (s) => {
+            const { data: credData, error: credError } = await getSubscriptionCredentials(s.id);
+            if (credError) {
+              console.error('[ClientDashboard] Credentials RPC error:', credError);
+              return { id: s.id, cred: { credential_email: null, credential_password: null } };
+            }
+            const cred = credData?.[0];
+            return {
+              id: s.id,
+              cred: {
+                credential_email: cred?.credential_email || null,
+                credential_password: cred?.credential_password || null,
+              },
+            };
+          })
+        );
+        const credsMap: Record<string, DecryptedCreds> = {};
+        results.forEach(r => {
+          credsMap[r.id] = r.cred;
+        });
+        setCredentials(credsMap);
+        setLoadingCreds(false);
+      }
+    } catch (err) {
+      console.error('[ClientDashboard] Data loading error:', err);
+      toast.error('Error cargando datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth', { replace: true });
@@ -68,66 +128,9 @@ const ClientDashboard = () => {
     }
 
     if (user && user.id) {
-      setLoading(true);
-      console.debug('[ClientDashboard] Loading data for user:', user.id);
-
-      Promise.all([
-        supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        getUserSubscriptions(user.id),
-        supabase.from('services').select('*').eq('is_available', true),
-      ])
-        .then(([ordersRes, { data: subsData, error: subsError }, servicesRes]) => {
-          // Handle orders
-          setOrders((ordersRes.data as Order[]) || []);
-
-          // Handle subscriptions with new wrapper
-          if (subsError) {
-            console.error('[ClientDashboard] Subscriptions query error:', subsError);
-            toast.error('Error cargando suscripciones');
-            setSubs([]);
-          } else {
-            setSubs((subsData as Subscription[]) || []);
-          }
-
-          // Handle services
-          setServices((servicesRes.data as Service[]) || []);
-          setLoading(false);
-
-          // Fetch decrypted credentials for active subs
-          const activeSubs = (subsData as Subscription[] || []).filter(s => s.status === 'active');
-          if (activeSubs.length > 0) {
-            setLoadingCreds(true);
-            Promise.all(
-              activeSubs.map(async (s) => {
-                const { data: credData, error: credError } = await getSubscriptionCredentials(s.id);
-                if (credError) {
-                  console.error('[ClientDashboard] Credentials RPC error:', credError);
-                  return { id: s.id, cred: { credential_email: null, credential_password: null } };
-                }
-                const cred = credData?.[0];
-                return {
-                  id: s.id,
-                  cred: {
-                    credential_email: cred?.credential_email || null,
-                    credential_password: cred?.credential_password || null,
-                  },
-                };
-              })
-            ).then((results) => {
-              const credsMap: Record<string, DecryptedCreds> = {};
-              results.forEach(r => {
-                credsMap[r.id] = r.cred;
-              });
-              setCredentials(credsMap);
-              setLoadingCreds(false);
-            });
-          }
-        })
-        .catch((err) => {
-          console.error('[ClientDashboard] Data loading error:', err);
-          toast.error('Error cargando datos');
-          setLoading(false);
-        });
+      loadDashboardData();
+      window.addEventListener('focus', loadDashboardData);
+      return () => window.removeEventListener('focus', loadDashboardData);
     }
   }, [user, authLoading, navigate]);
 
