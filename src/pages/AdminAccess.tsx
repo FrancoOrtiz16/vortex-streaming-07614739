@@ -11,7 +11,6 @@ import { ProductsSection } from '@/components/admin/ProductsSection';
 import { PaymentsSection } from '@/components/admin/PaymentsSection';
 import { SubscriptionsSection } from '@/components/admin/SubscriptionsSection';
 import { InventorySection } from '@/components/admin/InventorySection';
-import { OrdersSection } from '@/components/admin/OrdersSection';
 import { SettingsSection } from '@/components/admin/SettingsSection';
 
 export default function AdminAccess() {
@@ -55,10 +54,9 @@ export default function AdminAccess() {
           </header>
           <main className="flex-1 p-6 overflow-y-auto">
             <Routes>
-              <Route index element={<Navigate to="users" replace />} />
+              <Route index element={<Navigate to="subscriptions" replace />} />
               <Route path="users" element={<UsersSection />} />
               <Route path="inventory" element={<InventorySection />} />
-              <Route path="orders" element={<OrdersSection />} />
               <Route path="subscriptions" element={<SubscriptionsSection />} />
               <Route path="sales" element={<SalesSection />} />
               <Route path="products" element={<ProductsSection />} />

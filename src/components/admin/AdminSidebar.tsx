@@ -16,7 +16,6 @@ import {
 const navItems = [
   { title: 'Usuarios', url: '/admin-access/users', icon: Users },
   { title: 'Inventario', url: '/admin-access/inventory', icon: Boxes },
-  { title: 'Pedidos', url: '/admin-access/orders', icon: ClipboardList },
   { title: 'Suscripciones', url: '/admin-access/subscriptions', icon: CalendarClock },
   { title: 'Ventas', url: '/admin-access/sales', icon: BarChart3 },
   { title: 'Pagos', url: '/admin-access/payments', icon: CreditCard },

@@ -1,6 +1,6 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2 } from 'lucide-react';
+import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
@@ -46,6 +46,7 @@ export function SubscriptionsSection() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', profile_name: '', profile_pin: '' });
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -252,10 +253,28 @@ export function SubscriptionsSection() {
     }
   };
 
+  // Intelligent search filter
+  const filteredSubs = useMemo(() => {
+    if (!searchQuery.trim()) return subs;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return subs.filter(sub => {
+      const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_id).toLowerCase();
+      const serviceName = sub.service_name.toLowerCase();
+      const uniqueId = `vortex-${sub.id.slice(0, 8)}`.toLowerCase();
+      
+      return (
+        clientName.includes(query) ||
+        serviceName.includes(query) ||
+        uniqueId.includes(query)
+      );
+    });
+  }, [subs, searchQuery]);
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
 
-  // Group subs by user
-  const groupedByUser = subs.reduce<Record<string, (Subscription & { profile?: Profile })[]>>((acc, s) => {
+  // Group filtered subs by user
+  const groupedByUser = filteredSubs.reduce<Record<string, (Subscription & { profile?: Profile })[]>>((acc, s) => {
     const key = s.profile?.display_name || s.profile?.email || s.user_id.slice(0, 8);
     if (!acc[key]) acc[key] = [];
     acc[key].push(s);
@@ -276,6 +295,18 @@ export function SubscriptionsSection() {
           <Plus className="w-3.5 h-3.5" />
           Añadir
         </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Buscar por cliente, servicio o ID (VORTEX-XXXX)..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary/60 border border-border text-sm placeholder-muted-foreground hover:border-primary/50 focus:outline-none focus:border-primary transition-colors"
+        />
       </div>
 
       {showAdd && (
@@ -418,6 +449,11 @@ export function SubscriptionsSection() {
         ))}
         {subs.length === 0 && (
           <div className="glass rounded-xl p-8 text-center text-muted-foreground text-sm">No hay suscripciones registradas</div>
+        )}
+        {subs.length > 0 && filteredSubs.length === 0 && (
+          <div className="glass rounded-xl p-8 text-center text-muted-foreground text-sm">
+            No se encontraron resultados para "{searchQuery}". Intenta buscar por cliente, servicio o ID.
+          </div>
         )}
       </div>
     </div>
