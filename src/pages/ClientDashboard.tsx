@@ -58,6 +58,11 @@ const ClientDashboard = () => {
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getRenewWhatsAppUrl = (serviceName: string, serviceId: string) => {
+    const message = `Hola Vortex Streaming, quiero renovar mi servicio de ${serviceName} con ID: ${serviceId}.`;
+    return `https://wa.me/584241772003?text=${encodeURIComponent(message)}`;
+  };
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [renewing, setRenewing] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
@@ -292,9 +297,18 @@ const ClientDashboard = () => {
                           <div className="text-xs text-slate-400">Vencimiento</div>
                           <div className="text-sm font-medium text-white">{nextRenewal ? new Date(nextRenewal).toLocaleDateString() : 'N/A'}</div>
                         </div>
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColor(sub.status)}`}>
-                          {statusLabel(sub.status)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => window.open(getRenewWhatsAppUrl(sub.service_name, code), '_blank')}
+                            className="inline-flex items-center justify-center rounded-full border border-primary bg-slate-950/90 px-3 py-2 text-xs font-semibold uppercase tracking-[0.03em] text-white shadow-[0_0_0_1px_rgba(59,130,246,0.45)] transition hover:bg-slate-900"
+                          >
+                            Renovar
+                          </button>
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColor(sub.status)}`}>
+                            {statusLabel(sub.status)}
+                          </span>
+                        </div>
                       </div>
                     </motion.div>
                   );
