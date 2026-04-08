@@ -24,6 +24,24 @@ export interface SimpleSubscriptionPayload {
   user_id: string;
   service_name: string;
   status?: string; // defaults to 'pending_approval' in trigger
+  last_renewal?: string;
+  next_renewal?: string;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
+  subscription_code?: string | null;
+}
+
+export interface SimpleSubscriptionUpdatePayload {
+  status?: string;
+  last_renewal?: string;
+  next_renewal?: string;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
+  subscription_code?: string | null;
 }
 
 /**
@@ -44,7 +62,14 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
         {
           user_id: payload.user_id,
           service_name: payload.service_name,
-          status: payload.status || 'pending_approval'
+          status: payload.status || 'pending_approval',
+          last_renewal: payload.last_renewal,
+          next_renewal: payload.next_renewal,
+          credential_email: payload.credential_email,
+          credential_password: payload.credential_password,
+          profile_name: payload.profile_name,
+          profile_pin: payload.profile_pin,
+          subscription_code: payload.subscription_code,
         }
       ])
       .select();
@@ -78,7 +103,14 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
     const cleanedPayloads = payloads.map(p => ({
       user_id: p.user_id,
       service_name: p.service_name,
-      status: p.status || 'pending_approval'
+      status: p.status || 'pending_approval',
+      last_renewal: p.last_renewal,
+      next_renewal: p.next_renewal,
+      credential_email: p.credential_email,
+      credential_password: p.credential_password,
+      profile_name: p.profile_name,
+      profile_pin: p.profile_pin,
+      subscription_code: p.subscription_code,
     }));
 
     const { data, error } = await supabase
@@ -238,6 +270,37 @@ export async function getSubscriptionCredentials(subscriptionId: string) {
     return { data, error: null };
   } catch (err) {
     console.error('[Subscriptions] getSubscriptionCredentials catch:', err);
+    return { data: null, error: err };
+  }
+}
+
+/**
+ * Update a subscription record with credentials, renewal or status changes.
+ */
+export async function updateSimpleSubscription(subscriptionId: string, payload: SimpleSubscriptionUpdatePayload) {
+  try {
+    if (!subscriptionId) {
+      console.warn('[Subscriptions] Empty subscription ID');
+      return { data: null, error: { message: 'No subscription ID' } };
+    }
+
+    console.debug('[Subscriptions] Updating subscription:', subscriptionId.slice(0, 8) + '...', payload);
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update(payload)
+      .eq('id', subscriptionId)
+      .select();
+
+    if (error) {
+      console.error('[Subscriptions] Update error:', error);
+      return { data: null, error };
+    }
+
+    console.debug('[Subscriptions] Updated successfully');
+    return { data, error: null };
+  } catch (err) {
+    console.error('[Subscriptions] updateSimpleSubscription catch:', err);
     return { data: null, error: err };
   }
 }

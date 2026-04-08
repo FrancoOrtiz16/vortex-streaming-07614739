@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserSubscriptions, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +28,8 @@ interface Subscription {
   subscription_code?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
+  credential_email?: string | null;
+  credential_password?: string | null;
 }
 
 interface DecryptedCreds {
@@ -60,6 +63,7 @@ const ClientDashboard = () => {
   const [renewing, setRenewing] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
   const [loadingCreds, setLoadingCreds] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   const loadDashboardData = async () => {
     if (!user?.id) return;
@@ -260,7 +264,7 @@ const ClientDashboard = () => {
                     >
                       {/* Service Logo + Name */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {service?.image_url ? (
                             <img src={service.image_url} alt={service.name} className="w-full h-full object-contain" />
                           ) : (
@@ -268,7 +272,16 @@ const ClientDashboard = () => {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-semibold text-white text-sm">{sub.service_name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-white text-sm">{sub.service_name}</span>
+                            <button
+                              onClick={() => setSelectedSubscription(sub)}
+                              className="inline-flex items-center justify-center rounded-full p-1.5 bg-secondary/70 text-primary hover:bg-secondary transition-colors"
+                              title="Ver credenciales"
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                          </div>
                           <div className="text-xs text-slate-400 truncate">{code}</div>
                         </div>
                       </div>
@@ -335,6 +348,32 @@ const ClientDashboard = () => {
         </div>
       </main>
       <Footer />
+      <Dialog open={!!selectedSubscription} onOpenChange={(open) => { if (!open) setSelectedSubscription(null); }}>
+        <DialogContent className="glass border-border sm:rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Credenciales de {selectedSubscription?.service_name || 'servicio'}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Aquí están los datos guardados para este servicio.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSubscription ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
+                <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{selectedSubscription.credential_email || 'No hay correo guardado'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
+                <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{selectedSubscription.credential_password || 'No hay contraseña guardada'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
+                <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{selectedSubscription.profile_name || 'No hay perfil asignado'}</p>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

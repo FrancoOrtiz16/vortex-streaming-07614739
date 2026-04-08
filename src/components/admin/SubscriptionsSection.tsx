@@ -6,6 +6,7 @@ import {
   getAllSubscriptionsAdmin,
   deleteSimpleSubscription,
   createSimpleSubscription,
+  updateSimpleSubscription,
   updateSimpleSubscriptionStatus,
   getSubscriptionCredentials,
   type SimpleSubscriptionPayload,
@@ -45,7 +46,7 @@ export function SubscriptionsSection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
+  const [form, setForm] = useState({ user_id: '', service_name: '', days: 30, startDate: new Date().toISOString().slice(0, 10) });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', profile_name: '', profile_pin: '' });
   const [saving, setSaving] = useState(false);
@@ -133,6 +134,17 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Saving credentials for subscription:', subId);
 
+      const payload: any = {
+        profile_name: credForm.profile_name || null,
+        profile_pin: credForm.profile_pin || null,
+      };
+
+      if (credForm.email) payload.credential_email = credForm.email;
+      if (credForm.password) payload.credential_password = credForm.password;
+
+      const { data, error } = await updateSimpleSubscription(subId, payload);
+      if (error) throw error;
+
       toast.success('✅ Credenciales guardadas');
       setEditingId(null);
       fetchData();
@@ -193,10 +205,16 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Creating manual subscription record');
 
+      const startDate = form.startDate ? new Date(form.startDate) : new Date();
+      const lastRenewal = new Date(startDate).toISOString();
+      const nextRenewal = new Date(startDate.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
+
       const payload: SimpleSubscriptionPayload = {
         user_id: form.user_id,
         service_name: form.service_name,
         status: 'active',
+        last_renewal: lastRenewal,
+        next_renewal: nextRenewal,
       };
 
       const { data, error } = await createSimpleSubscription(payload);
@@ -263,7 +281,7 @@ export function SubscriptionsSection() {
             <h3 className="font-display font-semibold text-sm">Nuevo Registro Manual</h3>
             <button onClick={() => setShowAdd(false)} className="p-1 rounded-lg hover:bg-secondary"><X className="w-4 h-4" /></button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Usuario</label>
               <select value={form.user_id} onChange={e => setForm(f => ({ ...f, user_id: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border">
@@ -276,8 +294,12 @@ export function SubscriptionsSection() {
               <input value={form.service_name} onChange={e => setForm(f => ({ ...f, service_name: e.target.value }))} placeholder="Ej: Netflix Premium" className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Días</label>
-              <input type="number" value={form.days} onChange={e => setForm(f => ({ ...f, days: parseInt(e.target.value) || 30 }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Inicio</label>
+              <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Duración (Días)</label>
+              <input type="number" min={1} value={form.days} onChange={e => setForm(f => ({ ...f, days: parseInt(e.target.value) || 30 }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
             </div>
           </div>
           <button onClick={addManualRecord} className="px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold">Guardar</button>

@@ -142,15 +142,17 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       console.debug('[Checkout] Order created');
 
       // Step 2: Create subscriptions (SIMPLE - no custom fields)
+      const now = new Date();
+      const nextRenewal = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const subscriptions = [];
       for (const item of items) {
         for (let i = 0; i < item.quantity; i++) {
           subscriptions.push({
             user_id: user.id,
             service_name: item.product.name,
-            status: 'pending_approval'
-            // That's it! No subscription_code, no last_renewal, no next_renewal
-            // Supabase will auto-generate: id, created_at, updated_at
+            status: 'pending_approval',
+            last_renewal: now.toISOString(),
+            next_renewal: nextRenewal,
           });
         }
       }
