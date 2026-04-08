@@ -53,7 +53,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       setReceiptUrl(null);
       supabase
         .from('payment_methods')
-        .select('*')
+        .select('id, method_name, method_type, account_info, instructions')
         .eq('is_active', true)
         .order('sort_order')
         .then(({ data }) => {
@@ -153,29 +153,16 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
       const newOrderItems = items.filter(i => !i.product.renewal);
 
-      // Generate combo ID for grouping multiple services in one purchase
-      const comboId = newOrderItems.length > 1 ? crypto.randomUUID() : null;
-
+      // No combo_id; create individual entries for each service
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
           subscriptions.push({
             user_id: user.id,
             service_name: item.product.name,
             status: 'pending_approval',
-            last_renewal: now.toISOString(),
-            next_renewal: nextRenewal,
-            combo_id: comboId,
+            proxima_fecha: nextRenewal,
           });
         }
-      }
-
-      if (subscriptions.length > 0) {
-        console.debug('[Checkout] Creating', subscriptions.length, 'subscriptions', comboId ? `with combo ID: ${comboId}` : '');
-        const { error: subError } = await createSimpleBulkSubscriptions(subscriptions);
-        if (subError) {
-          throw new Error(`Subscriptions error: ${typeof subError === 'object' ? JSON.stringify(subError) : String(subError)}`);
-        }
-        console.debug('[Checkout] Subscriptions created');
       }
 
       for (const item of renewalItems) {
@@ -186,8 +173,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           const renewedNext = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
           console.debug('[Checkout] Renewing subscription', subscriptionId, 'to', renewedNext);
           const { data: updateData, error: updateError } = await updateSimpleSubscription(subscriptionId, {
-            last_renewal: now.toISOString(),
-            next_renewal: renewedNext,
+            proxima_fecha: renewedNext,
             status: 'active',
           });
           if (updateError) {

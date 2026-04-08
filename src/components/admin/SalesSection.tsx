@@ -11,7 +11,7 @@ interface Subscription {
   service_name: string;
   status: string;
   created_at: string;
-  next_renewal: string;
+  proxima_fecha?: string;
 }
 
 interface ServicePrice {
@@ -29,7 +29,7 @@ export function SalesSection() {
     try {
       setSyncStatus('syncing');
       const [{ data: subsData, error: subsError }, { data: servicesData, error: servicesError }] = await Promise.all([
-        supabase.from('subscriptions').select('*').order('created_at', { ascending: false }),
+        supabase.from('subscriptions').select('id, user_id, service_name, status, created_at, proxima_fecha').order('created_at', { ascending: false }),
         supabase.from('services').select('name, price'),
       ]);
 

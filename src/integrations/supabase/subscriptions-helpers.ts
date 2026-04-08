@@ -6,18 +6,12 @@
  * - id (UUID, auto-generated) 
  * - user_id (UUID)
  * - service_name (STRING)
+ * - email_cuenta (TEXT, optional)
+ * - password_cuenta (TEXT, optional)
  * - status (STRING: pending_approval, active, expired)
+ * - proxima_fecha (TIMESTAMP, optional)
  * - created_at (TIMESTAMP, auto-set by Supabase)
  * - updated_at (TIMESTAMP, auto-set by Supabase)
- * - credential_email (TEXT, optional)
- * - credential_password (TEXT, optional)
- * - profile_name (TEXT, optional)
- * - profile_pin (TEXT, optional)
- * - combo_id (UUID, optional - for grouping services in combos)
- * 
- * REMOVED (were causing 400 errors):
- * - subscription_code is no longer used in this application
- * - fecha_inicio / proxima_fecha are not used; the system relies on last_renewal / next_renewal
  */
 
 import { supabase } from './client';
@@ -26,25 +20,17 @@ import { supabase } from './client';
 export interface SimpleSubscriptionPayload {
   user_id: string;
   service_name: string;
+  email_cuenta?: string | null;
+  password_cuenta?: string | null;
   status?: string;
-  last_renewal?: string;
-  next_renewal?: string;
-  credential_email?: string | null;
-  credential_password?: string | null;
-  profile_name?: string | null;
-  profile_pin?: string | null;
-  combo_id?: string | null;
+  proxima_fecha?: string;
 }
 
 export interface SimpleSubscriptionUpdatePayload {
   status?: string;
-  last_renewal?: string;
-  next_renewal?: string;
-  credential_email?: string | null;
-  credential_password?: string | null;
-  profile_name?: string | null;
-  profile_pin?: string | null;
-  combo_id?: string | null;
+  proxima_fecha?: string;
+  email_cuenta?: string | null;
+  password_cuenta?: string | null;
 }
 
 function logPGRST204Error(error: any, payload: Record<string, unknown> | Record<string, unknown>[]) {
@@ -77,29 +63,21 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
           user_id: payload.user_id,
           service_name: payload.service_name,
           status: payload.status || 'pending_approval',
-          last_renewal: payload.last_renewal,
-          next_renewal: payload.next_renewal,
-          credential_email: payload.credential_email || null,
-          credential_password: payload.credential_password || null,
-          profile_name: payload.profile_name || null,
-          profile_pin: payload.profile_pin || null,
-          combo_id: payload.combo_id || null,
+          proxima_fecha: payload.proxima_fecha,
+          email_cuenta: payload.email_cuenta || null,
+          password_cuenta: payload.password_cuenta || null,
         }
       ])
-      .select();
+      .select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at');
 
     if (error) {
       logPGRST204Error(error, {
         user_id: payload.user_id,
         service_name: payload.service_name,
         status: payload.status || 'pending_approval',
-        last_renewal: payload.last_renewal,
-        next_renewal: payload.next_renewal,
-        credential_email: payload.credential_email,
-        credential_password: payload.credential_password,
-        profile_name: payload.profile_name,
-        profile_pin: payload.profile_pin,
-        combo_id: payload.combo_id,
+        proxima_fecha: payload.proxima_fecha,
+        email_cuenta: payload.email_cuenta,
+        password_cuenta: payload.password_cuenta,
       });
       console.error('[Subscriptions] Insert error:', error);
       return { data: null, error };
@@ -130,19 +108,15 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       user_id: p.user_id,
       service_name: p.service_name,
       status: p.status || 'pending_approval',
-      last_renewal: p.last_renewal,
-      next_renewal: p.next_renewal,
-      credential_email: p.credential_email || null,
-      credential_password: p.credential_password || null,
-      profile_name: p.profile_name || null,
-      profile_pin: p.profile_pin || null,
-      combo_id: p.combo_id || null,
+      proxima_fecha: p.proxima_fecha,
+      email_cuenta: p.email_cuenta || null,
+      password_cuenta: p.password_cuenta || null,
     }));
 
     const { data, error } = await supabase
       .from('subscriptions')
       .insert(cleanedPayloads)
-      .select();
+      .select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at');
 
     if (error) {
       logPGRST204Error(error, cleanedPayloads);
@@ -172,7 +146,7 @@ export async function getUserSubscriptions(userId: string) {
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -198,7 +172,7 @@ export async function getAllSubscriptionsAdmin() {
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -317,7 +291,7 @@ export async function updateSimpleSubscription(subscriptionId: string, payload: 
       .from('subscriptions')
       .update(payload)
       .eq('id', subscriptionId)
-      .select();
+      .select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at');
 
     if (error) {
       console.error('[Subscriptions] Update error:', error);

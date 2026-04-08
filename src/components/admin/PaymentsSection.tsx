@@ -17,7 +17,7 @@ export function PaymentsSection() {
   const fetchMethods = async () => {
     const { data, error } = await supabase
       .from('payment_methods')
-      .select('*')
+      .select('id, method_name, method_type, account_info, instructions, is_active, sort_order, created_at, updated_at')
       .order('sort_order', { ascending: true });
     if (error) { toast.error('Error cargando métodos de pago'); return; }
     setMethods(data || []);
