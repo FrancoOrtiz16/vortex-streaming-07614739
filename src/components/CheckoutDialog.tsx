@@ -146,12 +146,15 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       }
       console.debug('[Checkout] Order created');
 
-      // Step 2: Create subscriptions (SIMPLE - no custom fields)
+      // Step 2: Create subscriptions
       const now = new Date();
       const nextRenewal = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const subscriptions = [];
       const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
       const newOrderItems = items.filter(i => !i.product.renewal);
+
+      // Generate combo ID for grouping multiple services in one purchase
+      const comboId = newOrderItems.length > 1 ? crypto.randomUUID() : null;
 
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
@@ -161,12 +164,13 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             status: 'pending_approval',
             last_renewal: now.toISOString(),
             next_renewal: nextRenewal,
+            combo_id: comboId,
           });
         }
       }
 
       if (subscriptions.length > 0) {
-        console.debug('[Checkout] Creating', subscriptions.length, 'subscriptions');
+        console.debug('[Checkout] Creating', subscriptions.length, 'subscriptions', comboId ? `with combo ID: ${comboId}` : '');
         const { error: subError } = await createSimpleBulkSubscriptions(subscriptions);
         if (subError) {
           throw new Error(`Subscriptions error: ${typeof subError === 'object' ? JSON.stringify(subError) : String(subError)}`);

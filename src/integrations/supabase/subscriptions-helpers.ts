@@ -9,9 +9,15 @@
  * - status (STRING: pending_approval, active, expired)
  * - created_at (TIMESTAMP, auto-set by Supabase)
  * - updated_at (TIMESTAMP, auto-set by Supabase)
+ * - credential_email (TEXT, optional)
+ * - credential_password (TEXT, optional)
+ * - profile_name (TEXT, optional)
+ * - profile_pin (TEXT, optional)
+ * - combo_id (UUID, optional - for grouping services in combos)
  * 
  * REMOVED (were causing 400 errors):
- * - custom ID fields (use native UUID instead)
+ * - subscription_code (use service name + ID instead)
+ * - fecha_inicio / proxima_fecha (use last_renewal / next_renewal)
  */
 
 import { supabase } from './client';
@@ -20,13 +26,14 @@ import { supabase } from './client';
 export interface SimpleSubscriptionPayload {
   user_id: string;
   service_name: string;
-  status?: string; // defaults to 'pending_approval' in trigger
+  status?: string;
   last_renewal?: string;
   next_renewal?: string;
   credential_email?: string | null;
   credential_password?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
+  combo_id?: string | null;
 }
 
 export interface SimpleSubscriptionUpdatePayload {
@@ -37,6 +44,7 @@ export interface SimpleSubscriptionUpdatePayload {
   credential_password?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
+  combo_id?: string | null;
 }
 
 function logPGRST204Error(error: any, payload: Record<string, unknown> | Record<string, unknown>[]) {
@@ -71,10 +79,11 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
           status: payload.status || 'pending_approval',
           last_renewal: payload.last_renewal,
           next_renewal: payload.next_renewal,
-          credential_email: payload.credential_email,
-          credential_password: payload.credential_password,
-          profile_name: payload.profile_name,
-          profile_pin: payload.profile_pin,
+          credential_email: payload.credential_email || null,
+          credential_password: payload.credential_password || null,
+          profile_name: payload.profile_name || null,
+          profile_pin: payload.profile_pin || null,
+          combo_id: payload.combo_id || null,
         }
       ])
       .select();
@@ -90,6 +99,7 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
         credential_password: payload.credential_password,
         profile_name: payload.profile_name,
         profile_pin: payload.profile_pin,
+        combo_id: payload.combo_id,
       });
       console.error('[Subscriptions] Insert error:', error);
       return { data: null, error };
@@ -122,10 +132,11 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       status: p.status || 'pending_approval',
       last_renewal: p.last_renewal,
       next_renewal: p.next_renewal,
-      credential_email: p.credential_email,
-      credential_password: p.credential_password,
-      profile_name: p.profile_name,
-      profile_pin: p.profile_pin,
+      credential_email: p.credential_email || null,
+      credential_password: p.credential_password || null,
+      profile_name: p.profile_name || null,
+      profile_pin: p.profile_pin || null,
+      combo_id: p.combo_id || null,
     }));
 
     const { data, error } = await supabase

@@ -31,6 +31,7 @@ interface Subscription {
   profile_pin?: string | null;
   credential_email?: string | null;
   credential_password?: string | null;
+  combo_id?: string | null;
 }
 
 interface DecryptedCreds {
@@ -220,6 +221,19 @@ const ClientDashboard = () => {
     return diff <= 3 * 24 * 60 * 60 * 1000;
   };
 
+  // Group subscriptions by combo_id to display grouped services
+  const groupedSubs = {
+    combos: subs
+      .filter(sub => sub.combo_id)
+      .reduce((acc: Record<string, Subscription[]>, sub) => {
+        const key = sub.combo_id!;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(sub);
+        return acc;
+      }, {}),
+    individual: subs.filter(sub => !sub.combo_id),
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -257,64 +271,48 @@ const ClientDashboard = () => {
               </div>
             ) : (
               <div className="divide-y divide-white/10">
-                {subs.map((sub) => {
-                  const service = findService(sub.service_name);
-                  const code = `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
-                  const nextRenewal = sub.next_renewal || '';
-                  return (
-                    <motion.div
-                      key={sub.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="px-4 py-4 flex items-center justify-between gap-4 hover:bg-white/5 transition-colors"
-                    >
-                      {/* Service Logo + Name */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {service?.image_url ? (
-                            <img src={service.image_url} alt={service.name} className="w-full h-full object-contain" />
-                          ) : (
-                            <Package className="w-5 h-5 text-slate-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-white text-sm">{sub.service_name}</span>
-                            <button
-                              onClick={() => setSelectedSubscription(sub)}
-                              className="inline-flex items-center justify-center rounded-full p-1.5 bg-secondary/70 text-primary hover:bg-secondary transition-colors"
-                              title="Ver credenciales"
-                            >
-                              <Key className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="text-xs text-slate-400 truncate">{code}</div>
-                        </div>
-                      </div>
+                {/* Combos grouped by combo_id */}
+                {Object.entries(groupedSubs.combos).map(([comboId, comboSubs]) => (
+                  <motion.div
+                    key={comboId}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="border-b border-white/5 last:border-b-0"
+                  >
+                    <div className="px-4 py-3 bg-primary/5 border-b border-primary/10">
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wider">
+                        Combo • {comboSubs.length} servicio{comboSubs.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    {comboSubs.map((sub, idx) => (
+                      <SubscriptionRow
+                        key={sub.id}
+                        sub={sub}
+                        findService={findService}
+                        onSelectCredentials={() => setSelectedSubscription(sub)}
+                        onRenew={() => handleRenew(sub)}
+                        isRenewing={renewing === sub.id}
+                        statusColor={statusColor}
+                        statusLabel={statusLabel}
+                        isLast={idx === comboSubs.length - 1 && Object.keys(groupedSubs.combos).length === Object.keys(groupedSubs.combos).length - 1 && groupedSubs.individual.length === 0}
+                      />
+                    ))}
+                  </motion.div>
+                ))}
 
-                      {/* Date + Status */}
-                      <div className="flex items-center gap-3 flex-wrap justify-end">
-                        <div className="text-right">
-                          <div className="text-xs text-slate-400">Vencimiento</div>
-                          <div className="text-sm font-medium text-white">{nextRenewal ? new Date(nextRenewal).toLocaleDateString() : 'N/A'}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleRenew(sub)}
-                            disabled={renewing === sub.id}
-                            className="inline-flex items-center justify-center rounded-full border border-primary bg-slate-950/90 px-3 py-2 text-xs font-semibold uppercase tracking-[0.03em] text-white shadow-[0_0_0_1px_rgba(59,130,246,0.45)] transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Renovar
-                          </button>
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColor(sub.status)}`}>
-                            {statusLabel(sub.status)}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {/* Individual services */}
+                {groupedSubs.individual.map((sub) => (
+                  <SubscriptionRow
+                    key={sub.id}
+                    sub={sub}
+                    findService={findService}
+                    onSelectCredentials={() => setSelectedSubscription(sub)}
+                    onRenew={() => handleRenew(sub)}
+                    isRenewing={renewing === sub.id}
+                    statusColor={statusColor}
+                    statusLabel={statusLabel}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -393,5 +391,83 @@ const ClientDashboard = () => {
     </div>
   );
 };
+
+// Subscription Row Component for displaying individual or grouped services
+function SubscriptionRow({
+  sub,
+  findService,
+  onSelectCredentials,
+  onRenew,
+  isRenewing,
+  statusColor,
+  statusLabel,
+  isLast = false,
+}: {
+  sub: Subscription;
+  findService: (name: string) => any;
+  onSelectCredentials: () => void;
+  onRenew: () => void;
+  isRenewing: boolean;
+  statusColor: (status: string) => string;
+  statusLabel: (status: string) => string;
+  isLast?: boolean;
+}) {
+  const service = findService(sub.service_name);
+  const code = `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
+  const nextRenewal = sub.next_renewal || '';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="px-4 py-4 flex items-center justify-between gap-4 hover:bg-white/5 transition-colors"
+    >
+      {/* Service Logo + Name */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {service?.image_url ? (
+            <img src={service.image_url} alt={service.name} className="w-full h-full object-contain" />
+          ) : (
+            <Package className="w-5 h-5 text-slate-400" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-white text-sm">{sub.service_name}</span>
+            <button
+              onClick={onSelectCredentials}
+              className="inline-flex items-center justify-center rounded-full p-1.5 bg-secondary/70 text-primary hover:bg-secondary transition-colors"
+              title="Ver credenciales"
+            >
+              <Key className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-xs text-slate-400 truncate">{code}</div>
+        </div>
+      </div>
+
+      {/* Date + Status */}
+      <div className="flex items-center gap-3 flex-wrap justify-end">
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Vencimiento</div>
+          <div className="text-sm font-medium text-white">{nextRenewal ? new Date(nextRenewal).toLocaleDateString() : 'N/A'}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onRenew}
+            disabled={isRenewing}
+            className="inline-flex items-center justify-center rounded-full border border-primary bg-slate-950/90 px-3 py-2 text-xs font-semibold uppercase tracking-[0.03em] text-white shadow-[0_0_0_1px_rgba(59,130,246,0.45)] transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Renovar
+          </button>
+          <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColor(sub.status)}`}>
+            {statusLabel(sub.status)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default ClientDashboard;
