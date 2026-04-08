@@ -23,8 +23,6 @@ export interface SimpleSubscriptionPayload {
   status?: string; // defaults to 'pending_approval' in trigger
   last_renewal?: string;
   next_renewal?: string;
-  fecha_inicio?: string;
-  proxima_fecha?: string;
   credential_email?: string | null;
   credential_password?: string | null;
   profile_name?: string | null;
@@ -35,12 +33,21 @@ export interface SimpleSubscriptionUpdatePayload {
   status?: string;
   last_renewal?: string;
   next_renewal?: string;
-  fecha_inicio?: string;
-  proxima_fecha?: string;
   credential_email?: string | null;
   credential_password?: string | null;
   profile_name?: string | null;
   profile_pin?: string | null;
+}
+
+function logPGRST204Error(error: any, payload: Record<string, unknown> | Record<string, unknown>[]) {
+  if (error?.code === 'PGRST204') {
+    console.error('[Subscriptions] Schema cache missing columns detected. Payload keys:',
+      Array.isArray(payload)
+        ? Array.from(new Set(payload.flatMap(Object.keys)))
+        : Object.keys(payload)
+    );
+    console.error('[Subscriptions] PGRST204 details:', error);
+  }
 }
 
 /**
@@ -64,8 +71,6 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
           status: payload.status || 'pending_approval',
           last_renewal: payload.last_renewal,
           next_renewal: payload.next_renewal,
-          fecha_inicio: payload.fecha_inicio,
-          proxima_fecha: payload.proxima_fecha,
           credential_email: payload.credential_email,
           credential_password: payload.credential_password,
           profile_name: payload.profile_name,
@@ -75,6 +80,17 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
       .select();
 
     if (error) {
+      logPGRST204Error(error, {
+        user_id: payload.user_id,
+        service_name: payload.service_name,
+        status: payload.status || 'pending_approval',
+        last_renewal: payload.last_renewal,
+        next_renewal: payload.next_renewal,
+        credential_email: payload.credential_email,
+        credential_password: payload.credential_password,
+        profile_name: payload.profile_name,
+        profile_pin: payload.profile_pin,
+      });
       console.error('[Subscriptions] Insert error:', error);
       return { data: null, error };
     }
@@ -110,8 +126,6 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       credential_password: p.credential_password,
       profile_name: p.profile_name,
       profile_pin: p.profile_pin,
-      fecha_inicio: p.fecha_inicio,
-      proxima_fecha: p.proxima_fecha,
     }));
 
     const { data, error } = await supabase
@@ -120,6 +134,7 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       .select();
 
     if (error) {
+      logPGRST204Error(error, cleanedPayloads);
       console.error('[Subscriptions] Bulk insert error:', error);
       return { data, error };
     }

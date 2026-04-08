@@ -25,8 +25,6 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
-  fecha_inicio?: string;
-  proxima_fecha?: string;
   profile_name?: string | null;
   profile_pin?: string | null;
   credential_email?: string | null;
@@ -256,8 +254,7 @@ const ClientDashboard = () => {
                 {subs.map((sub) => {
                   const service = findService(sub.service_name);
                   const code = `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
-                  const nextRenewal = sub.next_renewal || sub.proxima_fecha || '';
-                  const lastRenewal = sub.last_renewal || sub.fecha_inicio || '';
+                  const nextRenewal = sub.next_renewal || '';
                   return (
                     <motion.div
                       key={sub.id}

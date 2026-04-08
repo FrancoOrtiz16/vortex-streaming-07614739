@@ -199,8 +199,6 @@ export type Database = {
           id: string
           last_renewal: string
           next_renewal: string
-          fecha_inicio?: string
-          proxima_fecha?: string
           profile_name: string | null
           profile_pin: string | null
           service_name: string
@@ -215,8 +213,6 @@ export type Database = {
           id?: string
           last_renewal?: string
           next_renewal?: string
-          fecha_inicio?: string
-          proxima_fecha?: string
           profile_name?: string | null
           profile_pin?: string | null
           service_name: string
@@ -231,8 +227,6 @@ export type Database = {
           id?: string
           last_renewal?: string
           next_renewal?: string
-          fecha_inicio?: string
-          proxima_fecha?: string
           profile_name?: string | null
           profile_pin?: string | null
           service_name?: string

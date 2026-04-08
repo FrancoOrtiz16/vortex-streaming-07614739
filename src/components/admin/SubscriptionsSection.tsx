@@ -8,7 +8,6 @@ import {
   updateSimpleSubscription,
   updateSimpleSubscriptionStatus,
   getSubscriptionCredentials,
-  type SimpleSubscriptionPayload,
 } from '@/integrations/supabase/subscriptions-helpers';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -20,8 +19,6 @@ interface Subscription {
   status: string;
   last_renewal: string;
   next_renewal: string;
-  fecha_inicio?: string;
-  proxima_fecha?: string;
   created_at: string;
   updated_at: string;
   profile_name?: string | null;
@@ -47,7 +44,7 @@ export function SubscriptionsSection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ user_id: '', service_name: '', days: 30, startDate: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', profile_name: '', profile_pin: '' });
   const [saving, setSaving] = useState(false);
@@ -206,23 +203,30 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Creating manual subscription record');
 
-      const startDate = form.startDate ? new Date(form.startDate) : new Date();
-      const lastRenewal = new Date(startDate).toISOString();
-      const nextRenewal = new Date(startDate.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
+      const now = new Date();
+      const lastRenewal = now.toISOString();
+      const nextRenewal = new Date(now.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error } = await supabase.from('subscriptions').insert({
+      const payload = {
         user_id: form.user_id,
         service_name: form.service_name,
         status: 'active',
-        fecha_inicio: lastRenewal,
-        proxima_fecha: nextRenewal,
-      });
+        last_renewal: lastRenewal,
+        next_renewal: nextRenewal,
+      };
+      const { error } = await supabase.from('subscriptions').insert(payload);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST204') {
+          console.error('[Admin] PGRST204 schema cache error, insert payload keys:', Object.keys(payload));
+          console.error('[Admin] PGRST204 details:', error);
+        }
+        throw error;
+      }
 
       toast.success('✅ Registro añadido correctamente');
       setShowAdd(false);
-      setForm({ user_id: '', service_name: '', days: 30, startDate: new Date().toISOString().slice(0, 10) });
+      setForm({ user_id: '', service_name: '', days: 30 });
       fetchData();
     } catch (err: any) {
       console.error('[Admin] addManualRecord error:', err);
@@ -292,11 +296,7 @@ export function SubscriptionsSection() {
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Servicio</label>
               <input value={form.service_name} onChange={e => setForm(f => ({ ...f, service_name: e.target.value }))} placeholder="Ej: Netflix Premium" className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Inicio</label>
-              <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
-            </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Duración (Días)</label>
               <input type="number" min={1} value={form.days} onChange={e => setForm(f => ({ ...f, days: parseInt(e.target.value) || 30 }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
             </div>
@@ -334,8 +334,8 @@ export function SubscriptionsSection() {
                         {statusLabel(s.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.last_renewal || s.fecha_inicio || '').toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.next_renewal || s.proxima_fecha || '').toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.next_renewal).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.next_renewal} /></td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
