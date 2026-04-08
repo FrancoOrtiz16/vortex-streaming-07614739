@@ -1,10 +1,9 @@
 import { MessageCircle } from 'lucide-react';
-
-const WHATSAPP_NUMBER = '584241772003';
+import { getWhatsAppUrl, getWhatsAppSupportMessage } from '@/lib/whatsapp';
 
 const WhatsAppFloat = () => (
   <a
-    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, necesito soporte técnico de Vortex Streaming.')}`}
+    href={getWhatsAppUrl(getWhatsAppSupportMessage())}
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Soporte técnico por WhatsApp"

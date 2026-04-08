@@ -15,6 +15,7 @@ import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { getWhatsAppUrl } from '@/lib/whatsapp';
 
 interface PaymentMethod {
   id: string;
@@ -28,8 +29,6 @@ interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const WHATSAPP_NUMBER = '584241772003';
 
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
@@ -203,7 +202,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const methodText = confirmedMethod ? ` usando ${confirmedMethod.method_name}` : '';
       const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
       const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
-      const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = getWhatsAppUrl(message);
 
       clear();
       onOpenChange(false);
