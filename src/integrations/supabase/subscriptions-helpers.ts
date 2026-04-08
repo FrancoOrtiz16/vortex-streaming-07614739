@@ -16,8 +16,8 @@
  * - combo_id (UUID, optional - for grouping services in combos)
  * 
  * REMOVED (were causing 400 errors):
- * - subscription_code (use service name + ID instead)
- * - fecha_inicio / proxima_fecha (use last_renewal / next_renewal)
+ * - subscription_code is no longer used in this application
+ * - fecha_inicio / proxima_fecha are not used; the system relies on last_renewal / next_renewal
  */
 
 import { supabase } from './client';

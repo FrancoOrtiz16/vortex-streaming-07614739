@@ -145,7 +145,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       }
       console.debug('[Checkout] Order created');
 
-      // Step 2: Create subscriptions
+      // Step 2: Create subscriptions for each new purchase.
+      // No active-subscription deduplication is performed here; duplicate services are allowed.
       const now = new Date();
       const nextRenewal = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const subscriptions = [];

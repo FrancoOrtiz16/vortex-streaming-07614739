@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -12,14 +12,6 @@ import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
 import { useCart } from '@/hooks/useCart';
 import { CartProduct } from '@/store/cartStore';
-
-interface Order {
-  id: string;
-  product_name: string;
-  created_at: string;
-  status: string;
-  total: number;
-}
 
 interface Subscription {
   id: string;
@@ -57,10 +49,10 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
 const ClientDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<Order[]>([]);
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true);
   const { addItem } = useCart();
 
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
@@ -70,19 +62,18 @@ const ClientDashboard = () => {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   const loadDashboardData = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !isMountedRef.current) return;
 
     setLoading(true);
     console.debug('[ClientDashboard] Loading data for user:', user.id);
 
     try {
-      const [ordersRes, { data: subsData, error: subsError }, servicesRes] = await Promise.all([
-        supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      const [{ data: subsData, error: subsError }, servicesRes] = await Promise.all([
         getUserSubscriptions(user.id),
         supabase.from('services').select('*').eq('is_available', true),
       ]);
 
-      setOrders((ordersRes.data as Order[]) || []);
+      if (!isMountedRef.current) return;
 
       if (subsError) {
         console.error('[ClientDashboard] Subscriptions query error:', subsError);
@@ -114,6 +105,9 @@ const ClientDashboard = () => {
             };
           })
         );
+
+        if (!isMountedRef.current) return;
+
         const credsMap: Record<string, DecryptedCreds> = {};
         results.forEach(r => {
           credsMap[r.id] = r.cred;
@@ -122,14 +116,17 @@ const ClientDashboard = () => {
         setLoadingCreds(false);
       }
     } catch (err) {
+      if (!isMountedRef.current) return;
       console.error('[ClientDashboard] Data loading error:', err);
       toast.error('Error cargando datos');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (!authLoading && !user) {
       navigate('/auth', { replace: true });
       return;
@@ -138,8 +135,15 @@ const ClientDashboard = () => {
     if (user && user.id) {
       loadDashboardData();
       window.addEventListener('focus', loadDashboardData);
-      return () => window.removeEventListener('focus', loadDashboardData);
+      return () => {
+        isMountedRef.current = false;
+        window.removeEventListener('focus', loadDashboardData);
+      };
     }
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [user, authLoading, navigate]);
 
   const findService = (serviceName: string) => {
@@ -257,7 +261,7 @@ const ClientDashboard = () => {
           </Link>
 
           <h1 className="font-display font-bold text-2xl mb-1">Mi Panel</h1>
-          <p className="text-sm text-muted-foreground mb-8">Servicios activos y pedidos.</p>
+          <p className="text-sm text-muted-foreground mb-8">Servicios activos.</p>
 
           {/* Historial de Suscripciones */}
           <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
@@ -317,48 +321,6 @@ const ClientDashboard = () => {
             )}
           </div>
 
-          {/* Historial de Pedidos */}
-          <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
-            <Package className="w-4 h-4 text-primary" />
-            Historial de Pedidos
-          </h2>
-          <div className="space-y-3">
-            {orders.length === 0 ? (
-              <div className="glass rounded-xl p-6 text-center text-muted-foreground text-sm">
-                No tienes pedidos aún.
-              </div>
-            ) : (
-              orders.map((order, i) => {
-                const s = statusConfig[order.status] || statusConfig.pending;
-                const Icon = s.icon;
-                return (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    className="glass rounded-xl p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Package className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-display font-semibold text-sm">{order.product_name}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {order.id.slice(0, 8)} · {new Date(order.created_at).toLocaleDateString()} · ${order.total}
-                        </p>
-                      </div>
-                      <div className={`flex items-center gap-1.5 text-xs font-medium ${s.className}`}>
-                        <Icon className="w-3.5 h-3.5" />
-                        {s.label}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
         </div>
       </main>
       <Footer />

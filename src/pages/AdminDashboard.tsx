@@ -2,29 +2,21 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Package, ShoppingBag, Plus, Pencil, Trash2,
-  Image as ImageIcon, Save, X, LayoutDashboard, ClipboardList
+  ArrowLeft, Package, Plus, Pencil, Trash2,
+  Image as ImageIcon, Save, X, LayoutDashboard
 } from 'lucide-react';
 import { products as initialProducts, Product } from '@/data/products';
 import { toast } from 'sonner';
 
-type Tab = 'catalog' | 'orders';
-
-const mockAdminOrders = [
-  { id: 'ORD-001', customer: 'juan@mail.com', product: 'Netflix Premium', total: 15.99, status: 'paid' as const },
-  { id: 'ORD-002', customer: 'maria@mail.com', product: 'Free Fire 1080 Diamantes', total: 9.99, status: 'paid' as const },
-  { id: 'ORD-003', customer: 'carlos@mail.com', product: 'Spotify Premium', total: 9.99, status: 'completed' as const },
-];
+type Tab = 'catalog';
 
 const AdminDashboard = () => {
   const [tab, setTab] = useState<Tab>('catalog');
   const [catalog, setCatalog] = useState<Product[]>(initialProducts);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [orders, setOrders] = useState(mockAdminOrders);
 
   const tabs = [
     { key: 'catalog' as Tab, label: 'Catálogo', icon: Package },
-    { key: 'orders' as Tab, label: 'Pedidos', icon: ClipboardList },
   ];
 
   const handleDelete = (id: string) => {
@@ -40,17 +32,6 @@ const AdminDashboard = () => {
     });
     setEditing(null);
     toast.success('Producto guardado');
-  };
-
-  const toggleOrderStatus = (id: string) => {
-    setOrders(prev =>
-      prev.map(o =>
-        o.id === id
-          ? { ...o, status: o.status === 'paid' ? 'completed' as const : 'paid' as const }
-          : o
-      )
-    );
-    toast.success('Estado actualizado');
   };
 
   return (
@@ -153,40 +134,6 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Orders tab */}
-          {tab === 'orders' && (
-            <div>
-              <h2 className="font-display font-semibold text-lg mb-4">Pedidos</h2>
-              <div className="space-y-2">
-                {orders.map((o, i) => (
-                  <motion.div
-                    key={o.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="glass rounded-xl p-4 flex items-center gap-4 flex-wrap"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display font-semibold text-sm">{o.product}</p>
-                      <p className="text-xs text-muted-foreground">{o.customer} · {o.id}</p>
-                    </div>
-                    <span className="font-display font-bold text-sm gold-text">${o.total.toFixed(2)}</span>
-                    <button
-                      onClick={() => toggleOrderStatus(o.id)}
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
-                        o.status === 'completed'
-                          ? 'bg-neon/20 text-neon'
-                          : 'bg-gold/20 text-gold'
-                      }`}
-                    >
-                      {o.status === 'completed' ? 'Completado' : 'Pagado'}
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>
