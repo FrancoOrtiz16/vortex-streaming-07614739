@@ -420,14 +420,7 @@ export function SubscriptionsSection() {
                               <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraseña</label>
                               <input type="password" value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Nueva contraseña" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
                             </div>
-                            <div>
-                              <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Perfil</label>
-                              <input value={credForm.profile_name} onChange={e => setCredForm(f => ({ ...f, profile_name: e.target.value }))} placeholder="Nombre perfil" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">PIN</label>
-                              <input value={credForm.profile_pin} onChange={e => setCredForm(f => ({ ...f, profile_pin: e.target.value }))} placeholder="1234" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
-                            </div>
+
                           </div>
                           <div className="flex gap-2">
                             <button onClick={() => saveCredentials(s.id)} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">

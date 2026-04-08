@@ -29,6 +29,13 @@ export function SalesSection() {
   const fetchSubscriptionsAndPrices = useCallback(async () => {
     try {
       setSyncStatus('syncing');
+      const timeoutId = setTimeout(() => {
+        if (isMountedRef.current) {
+          setLoading(false);
+          setSyncStatus('synced');
+        }
+      }, 8000);
+      
       const [{ data: subsData, error: subsError }, { data: servicesData, error: servicesError }] = await Promise.all([
         supabase.from('subscriptions').select('id, user_id, service_name, status, created_at, proxima_fecha').order('created_at', { ascending: false }),
         supabase.from('services').select('name, price'),
@@ -36,7 +43,10 @@ export function SalesSection() {
 
       if (subsError) throw subsError;
 
-      if (isMountedRef.current) setSubscriptions((subsData as Subscription[]) || []);
+      if (isMountedRef.current) {
+        clearTimeout(timeoutId);
+        setSubscriptions((subsData as Subscription[]) || []);
+      }
 
       const prices: ServicePrice = {};
       (servicesData || []).forEach((s: any) => {
@@ -56,6 +66,7 @@ export function SalesSection() {
         setLoading(false);
       }
     }
+    }
   }, []);
 
   useEffect(() => {
@@ -74,7 +85,11 @@ export function SalesSection() {
       .channel('subscriptions-changes')
       .on(
         'postgres_changes',
-        { if (isMountedRef.current) {
+        { event: '*', schema: 'public', table: 'subscriptions' },
+        (payload) => {
+          console.debug('[SalesSection] Realtime event:', payload.eventType, payload.new);
+          
+          if (isMountedRef.current) {
             setSubscriptions(prev => {
               if (payload.eventType === 'INSERT') {
                 return [payload.new as Subscription, ...prev];
@@ -95,10 +110,6 @@ export function SalesSection() {
               if (isMountedRef.current) setSyncStatus('synced');
             }, 1000);
           }
-          });
-
-          setSyncStatus('updated');
-          setTimeout(() => setSyncStatus('synced'), 1000);
         }
       )
       .subscribe((status) => {

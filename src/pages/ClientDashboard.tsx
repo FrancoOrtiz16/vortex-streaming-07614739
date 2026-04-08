@@ -62,6 +62,9 @@ const ClientDashboard = () => {
     if (!user?.id || !isMountedRef.current) return;
 
     setLoading(true);
+    const timeoutId = setTimeout(() => {
+      if (isMountedRef.current) setLoading(false);
+    }, 8000);
     console.debug('[ClientDashboard] Loading data for user:', user.id);
 
     try {
@@ -82,7 +85,9 @@ const ClientDashboard = () => {
 
       setServices((servicesRes.data as Service[]) || []);
 
-      const activeSubs = (subsData as Subscription[] || []).filter(s => s.status === 'active');
+      if (isMountedRef.current) clearTimeout(timeoutId);
+      
+      const activeSubs = (subsData as Subscription[] || []).filter(s => s?.status === 'active');
       if (activeSubs.length > 0) {
         setLoadingCreds(true);
         const results = await Promise.all(
@@ -117,7 +122,10 @@ const ClientDashboard = () => {
       console.error('[ClientDashboard] Data loading error:', err);
       toast.error('Error cargando datos');
     } finally {
-      if (isMountedRef.current) setLoading(false);
+      if (isMountedRef.current) {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      }
     }
   };
 
@@ -217,6 +225,8 @@ const ClientDashboard = () => {
     }
   };
 
+
+
   const isExpiredOrSoon = (nextRenewal: string) => {
     const diff = new Date(nextRenewal).getTime() - Date.now();
     return diff <= 3 * 24 * 60 * 60 * 1000;
@@ -262,7 +272,7 @@ const ClientDashboard = () => {
               </div>
             ) : (
               <div className="divide-y divide-white/10">
-                {subscriptions.map((sub) => (
+                {subscriptions?.filter(s => s?.id)?.map((sub) => (
                   <motion.div
                     key={sub.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -275,32 +285,34 @@ const ClientDashboard = () => {
                           <Package className="w-4 h-4 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{sub.service_name}</p>
-                          <p className="text-xs text-muted-foreground">ID: {sub.id.slice(0, 8).toUpperCase()}</p>
+                          <p className="font-medium text-sm">{sub?.service_name || 'Servicio'}</p>
+                          <p className="text-xs text-muted-foreground">ID: {sub?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
                         </div>
                       </div>
-                      <ExpiryBadge nextRenewal={sub.proxima_fecha || sub.created_at} />
+                      <ExpiryBadge nextRenewal={sub?.proxima_fecha || sub?.created_at || new Date().toISOString()} />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded-full ${statusColor(sub.status)}`}>
-                          {statusLabel(sub.status)}
+                        <span className={`text-xs px-2 py-1 rounded-full ${statusColor(sub?.status)}`}>
+                          {statusLabel(sub?.status)}
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => setSelectedSubscription(sub)}
-                          className="text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"
-                        >
-                          Ver Credenciales
-                        </button>
-                        {isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
+                        {sub?.id && (
+                          <button
+                            onClick={() => setSelectedSubscription(sub)}
+                            className="text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"
+                          >
+                            Ver Credenciales
+                          </button>
+                        )}
+                        {sub?.proxima_fecha && isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
                           <button
                             onClick={() => handleRenew(sub)}
-                            disabled={renewing === sub.id}
+                            disabled={renewing === sub?.id}
                             className="text-xs px-3 py-1 bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-colors disabled:opacity-50"
                           >
-                            {renewing === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Renovar'}
+                            {renewing === sub?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Renovar'}
                           </button>
                         )}
                       </div>
