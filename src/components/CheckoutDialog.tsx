@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { createSimpleBulkSubscriptions } from '@/integrations/supabase/subscriptions-helpers';
+import { createSimpleBulkSubscriptions, updateSimpleSubscription } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
@@ -127,7 +127,12 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       console.debug('[Checkout] Starting order creation');
       
       // Step 1: Create order
-      const productNames = items.map(i => `${i.product.name} x${i.quantity}`).join(', ');
+      const productNames = items
+        .map(i => i.product.renewal
+          ? `${i.product.name} (Renovación: ${i.product.unique_service_id || i.product.subscription_id}) x${i.quantity}`
+          : `${i.product.name} x${i.quantity}`
+        )
+        .join(', ');
       const { error: orderErr } = await supabase.from('orders').insert({
         user_id: user.id,
         customer_email: user.email || '',
@@ -145,7 +150,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const now = new Date();
       const nextRenewal = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const subscriptions = [];
-      for (const item of items) {
+      const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
+      const newOrderItems = items.filter(i => !i.product.renewal);
+
+      for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
           subscriptions.push({
             user_id: user.id,
@@ -160,11 +168,29 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       if (subscriptions.length > 0) {
         console.debug('[Checkout] Creating', subscriptions.length, 'subscriptions');
         const { error: subError } = await createSimpleBulkSubscriptions(subscriptions);
-        
         if (subError) {
           throw new Error(`Subscriptions error: ${typeof subError === 'object' ? JSON.stringify(subError) : String(subError)}`);
         }
         console.debug('[Checkout] Subscriptions created');
+      }
+
+      for (const item of renewalItems) {
+        for (let i = 0; i < item.quantity; i++) {
+          const subscriptionId = item.product.subscription_id!;
+          const currentExpiry = item.product.expires_at ? new Date(item.product.expires_at) : now;
+          const baseDate = currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
+          const renewedNext = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          console.debug('[Checkout] Renewing subscription', subscriptionId, 'to', renewedNext);
+          const { data: updateData, error: updateError } = await updateSimpleSubscription(subscriptionId, {
+            last_renewal: now.toISOString(),
+            next_renewal: renewedNext,
+            status: 'active',
+          });
+          if (updateError) {
+            throw new Error(`Renewal update error: ${updateError.message}`);
+          }
+          console.debug('[Checkout] Subscription renewed:', subscriptionId, updateData);
+        }
       }
 
       // Step 3: Send WhatsApp & clear

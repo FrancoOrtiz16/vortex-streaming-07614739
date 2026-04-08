@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 const CartPage = () => {
   const { items, total, subtotal, discount, removeItem, clear } = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const renewalItems = items.filter(item => item.product.renewal);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -23,6 +24,11 @@ const CartPage = () => {
           </Link>
 
           <h1 className="font-display font-bold text-2xl mb-6">Tu Carrito</h1>
+          {renewalItems.length > 0 && (
+            <div className="mb-4 rounded-2xl border border-primary/30 bg-slate-950/70 p-4 text-sm text-primary">
+              Renovando servicio: {renewalItems.map(item => item.product.unique_service_id || item.product.subscription_id).join(', ')}. Este pago actualizará la fecha de expiración existente.
+            </div>
+          )}
 
           {items.length === 0 ? (
             <div className="text-center py-16">
@@ -38,26 +44,35 @@ const CartPage = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="glass rounded-xl p-4 flex items-center gap-4"
+                    className="glass rounded-xl p-4 flex flex-col gap-4 lg:flex-row lg:items-center"
                   >
-                    <img
-                      src={item.product.image}
-                      alt={item.product.name}
-                      className="w-16 h-12 rounded-lg object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-display font-semibold text-sm truncate">{item.product.name}</h3>
-                      <p className="text-xs text-muted-foreground">Cant: {item.quantity}</p>
+                    <div className="flex items-center gap-4 flex-1">
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-16 h-12 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="font-display font-semibold text-sm truncate">{item.product.name}</h3>
+                        <p className="text-xs text-muted-foreground">Cant: {item.quantity}</p>
+                        {item.product.renewal && (
+                          <p className="text-[11px] text-primary mt-1">
+                            Renovando servicio: {item.product.unique_service_id || item.product.subscription_id}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <span className="font-display font-bold gold-text text-sm whitespace-nowrap">
-                      ${(item.product.price * item.quantity).toFixed(2)}
-                    </span>
-                    <button
-                      onClick={() => removeItem(item.product.id)}
-                      className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-3 justify-between">
+                      <span className="font-display font-bold gold-text text-sm whitespace-nowrap">
+                        ${(item.product.price * item.quantity).toFixed(2)}
+                      </span>
+                      <button
+                        onClick={() => removeItem(item.product.id)}
+                        className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </motion.div>
                 ))}
               </div>

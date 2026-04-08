@@ -10,6 +10,8 @@ import { getUserSubscriptions, getSubscriptionCredentials } from '@/integrations
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
+import { useCart } from '@/hooks/useCart';
+import { CartProduct } from '@/store/cartStore';
 
 interface Order {
   id: string;
@@ -58,11 +60,8 @@ const ClientDashboard = () => {
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addItem } = useCart();
 
-  const getRenewWhatsAppUrl = (serviceName: string, serviceId: string) => {
-    const message = `Hola Vortex Streaming, quiero renovar mi servicio de ${serviceName} con ID: ${serviceId}.`;
-    return `https://wa.me/584241772003?text=${encodeURIComponent(message)}`;
-  };
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [renewing, setRenewing] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
@@ -186,29 +185,31 @@ const ClientDashboard = () => {
     if (!user) return;
     const service = findService(sub.service_name);
     const price = service?.price || 0;
+    const uniqueServiceId = `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
 
     setRenewing(sub.id);
     try {
-      // Create a new order as pending
-      const { error: orderErr } = await supabase.from('orders').insert({
-        user_id: user.id,
-        customer_email: user.email || '',
-        product_name: sub.service_name,
-        total: price,
-        status: 'pending',
-      });
-      if (orderErr) throw orderErr;
+      const renewalProduct: CartProduct = {
+        id: `renewal-${sub.id}`,
+        name: sub.service_name,
+        description: `Renovación de servicio ${uniqueServiceId}`,
+        price,
+        category: 'renewal',
+        image: service?.image_url || '/logo192.png',
+        badge: 'Renovación',
+        renewal: true,
+        subscription_id: sub.id,
+        unique_service_id: uniqueServiceId,
+        renewal_note: `Renovando servicio: ${uniqueServiceId}`,
+        expires_at: sub.next_renewal,
+      };
 
-      const { error: subErr } = await supabase
-        .from('subscriptions')
-        .update({ status: 'pending_approval' })
-        .eq('id', sub.id);
-      if (subErr) throw subErr;
-
-      toast.success('Solicitud de renovación creada. Completa el pago para activar.');
+      addItem(renewalProduct);
+      toast.success('Servicio añadido al carrito para renovación.');
       navigate('/cart');
     } catch (err: any) {
-      toast.error(err.message || 'Error al renovar');
+      console.error('[ClientDashboard] Renew to cart error:', err);
+      toast.error(err.message || 'Error agregando renovación al carrito');
     } finally {
       setRenewing(null);
     }
@@ -300,8 +301,9 @@ const ClientDashboard = () => {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => window.open(getRenewWhatsAppUrl(sub.service_name, code), '_blank')}
-                            className="inline-flex items-center justify-center rounded-full border border-primary bg-slate-950/90 px-3 py-2 text-xs font-semibold uppercase tracking-[0.03em] text-white shadow-[0_0_0_1px_rgba(59,130,246,0.45)] transition hover:bg-slate-900"
+                            onClick={() => handleRenew(sub)}
+                            disabled={renewing === sub.id}
+                            className="inline-flex items-center justify-center rounded-full border border-primary bg-slate-950/90 px-3 py-2 text-xs font-semibold uppercase tracking-[0.03em] text-white shadow-[0_0_0_1px_rgba(59,130,246,0.45)] transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             Renovar
                           </button>

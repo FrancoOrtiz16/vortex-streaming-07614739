@@ -6,6 +6,11 @@ export interface CartProduct {
   category: string;
   image: string;
   badge?: string;
+  renewal?: boolean;
+  subscription_id?: string;
+  unique_service_id?: string;
+  renewal_note?: string;
+  expires_at?: string;
 }
 
 export interface CartItem {
