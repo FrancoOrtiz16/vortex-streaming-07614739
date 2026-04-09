@@ -213,12 +213,12 @@ export default function AdminSubscriptionsNew() {
       </div>
 
       <div className="space-y-4">
-        {filteredSubscriptions.length === 0 ? (
+        {filteredSubscriptions?.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-black/40 p-8 text-center text-sm text-slate-400">
             No se encontraron suscripciones para ese filtro.
           </div>
         ) : (
-          filteredSubscriptions.map((sub) => {
+          filteredSubscriptions?.map((sub) => {
             const isEditing = editingId === sub.id;
             const values = editValues[sub.id] || {
               email_cuenta: sub.email_cuenta || '',
@@ -272,7 +272,7 @@ export default function AdminSubscriptionsNew() {
                   </div>
                   <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-4">
                     <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Id</p>
-                    <p className="mt-2 text-sm text-white">VORTEX-{sub.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="mt-2 text-sm text-white">VORTEX-{sub.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
                   </div>
                 </div>
 

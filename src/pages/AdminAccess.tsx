@@ -12,6 +12,7 @@ import { PaymentsSection } from '@/components/admin/PaymentsSection';
 import AdminSubscriptionsNew from '@/components/admin/AdminSubscriptionsNew';
 import { InventorySection } from '@/components/admin/InventorySection';
 import { SettingsSection } from '@/components/admin/SettingsSection';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function AdminAccess() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -57,7 +58,7 @@ export default function AdminAccess() {
               <Route index element={<Navigate to="subscriptions" replace />} />
               <Route path="users" element={<UsersSection />} />
               <Route path="inventory" element={<InventorySection />} />
-              <Route path="subscriptions" element={<AdminSubscriptionsNew />} />
+              <Route path="subscriptions" element={<ErrorBoundary><AdminSubscriptionsNew /></ErrorBoundary>} />
               <Route path="sales" element={<SalesSection />} />
               <Route path="products" element={<ProductsSection />} />
               <Route path="payments" element={<PaymentsSection />} />
