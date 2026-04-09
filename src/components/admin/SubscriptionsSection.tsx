@@ -166,7 +166,7 @@ export function SubscriptionsSection() {
       // Si está procesando credenciales, activar
       const sub = subs.find(s => s.id === subId);
       if (sub?.status === 'procesando_credenciales') {
-        payload.status = 'active';
+        payload.status = 'confirmed';
       }
 
       const { data, error } = await updateSimpleSubscription(subId, payload);
@@ -265,6 +265,7 @@ export function SubscriptionsSection() {
   const statusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-emerald-500/20 text-emerald-400';
+      case 'confirmed': return 'bg-emerald-500/20 text-emerald-400';
       case 'expired': return 'bg-destructive/20 text-destructive';
       case 'pending_approval': return 'bg-amber-500/20 text-amber-400';
       case 'procesando_credenciales': return 'bg-blue-500/20 text-blue-400';
@@ -275,6 +276,7 @@ export function SubscriptionsSection() {
   const statusLabel = (status: string) => {
     switch (status) {
       case 'active': return 'Activo';
+      case 'confirmed': return 'Confirmado';
       case 'expired': return 'Vencido';
       case 'pending_approval': return 'Pendiente';
       case 'procesando_credenciales': return 'Procesando Credenciales';

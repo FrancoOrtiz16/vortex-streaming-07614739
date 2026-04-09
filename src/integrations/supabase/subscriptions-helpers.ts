@@ -244,7 +244,7 @@ export async function updateSimpleSubscriptionStatus(subscriptionId: string, sta
       .from('subscriptions')
       .update({ status })
       .eq('id', subscriptionId)
-      .select();
+      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at');
 
     if (error) {
       console.error('[Subscriptions] Update error:', error);

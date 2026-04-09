@@ -106,15 +106,15 @@ const ClientDashboard = () => {
 
       if (isMountedRef.current) clearTimeout(timeoutId);
       
-      const activeSubs = (subsData as Subscription[] || []).filter(s => s?.status === 'active');
-      if (activeSubs.length > 0) {
+      const confirmedSubs = (subsData as Subscription[] || []).filter(s => s?.status === 'confirmed');
+      if (confirmedSubs.length > 0) {
         setLoadingCreds(true);
         const results = await Promise.all(
-          activeSubs.map(async (s) => {
+          confirmedSubs.map(async (s) => {
             const { data: credData, error: credError } = await getSubscriptionCredentials(s.id);
             if (credError) {
               console.error('[ClientDashboard] Credentials RPC error:', credError);
-              return { id: s.id, cred: { email_cuenta: null, password_cuenta: null } };
+              return { id: s.id, cred: { email_cuenta: null, password_cuenta: null, perfil: null, pin: null } };
             }
             const cred = credData?.[0];
             return {
@@ -367,7 +367,7 @@ const ClientDashboard = () => {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        {sub?.id && (sub?.status === 'active' || sub?.status === 'confirmed') && (
+                        {sub?.id && sub?.status === 'confirmed' && (
                           <button
                             onClick={() => setSelectedSubscription(sub)}
                             className="inline-flex items-center gap-2 text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"

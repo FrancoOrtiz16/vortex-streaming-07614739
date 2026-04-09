@@ -9,6 +9,30 @@ export function useAuth() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
 
+  const refreshProfile = async (userId: string | null) => {
+    if (!userId) {
+      setIsAdmin(false);
+      setIsBanned(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Auth] profile fetch error:', error);
+      setIsAdmin(false);
+      setIsBanned(false);
+      return;
+    }
+
+    setIsAdmin(data?.role === 'admin');
+    setIsBanned(data?.is_active === false);
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -16,27 +40,26 @@ export function useAuth() {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTimeout(async () => {
-            const [roleRes, profileRes] = await Promise.all([
-              supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' }),
-              supabase.from('profiles').select('is_active').eq('user_id', session.user.id).maybeSingle(),
-            ]);
-            setIsAdmin(!!roleRes.data);
-            setIsBanned(profileRes.data?.is_active === false);
-            setLoading(false);
-          }, 0);
+          await refreshProfile(session.user.id);
         } else {
           setIsAdmin(false);
           setIsBanned(false);
-          setLoading(false);
         }
+
+        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) setLoading(false);
+      if (session?.user) {
+        await refreshProfile(session.user.id);
+      } else {
+        setIsAdmin(false);
+        setIsBanned(false);
+      }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
