@@ -30,35 +30,19 @@ export function OrdersSection() {
     };
   }, []);
 
-  const setCredField = (orderId: string, field: 'email' | 'password', value: string) => {
-    setCredentials(prev => ({
-      ...prev,
-      [orderId]: { ...prev[orderId], [field]: value },
-    }));
-  };
-
   const confirmOrder = async (order: any) => {
     setConfirming(order.id);
     try {
-      const now = new Date();
-
-      const expiryDate = new Date(now);
-      expiryDate.setDate(expiryDate.getDate() + 30);
-
       const { error } = await supabase
         .from('orders')
         .update({
-          status: 'procesando_credenciales',
-          expiry_date: expiryDate.toISOString(),
+          status: 'completed',
         })
         .eq('id', order.id);
 
       if (error) throw error;
 
-      // REMOVED: No longer auto-create subscription here
-      // The admin will manually create the subscription in SubscriptionsSection
-
-      toast.success('Pago aprobado — pendiente de credenciales');
+      toast.success('Pago aprobado');
       fetchOrders();
     } catch (err: any) {
       toast.error(err.message || 'Error al confirmar');
