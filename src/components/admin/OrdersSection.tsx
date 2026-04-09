@@ -46,18 +46,10 @@ export function OrdersSection() {
 
       if (error) throw error;
 
-      if (order.user_id) {
-        const subData: any = {
-          user_id: order.user_id,
-          service_name: order.product_name,
-          status: 'procesando_credenciales',
-          proxima_fecha: expiryDate.toISOString(),
-        };
+      // REMOVED: No longer auto-create subscription here
+      // The admin will manually create the subscription in SubscriptionsSection
 
-        await supabase.from('subscriptions').insert(subData);
-      }
-
-      toast.success('Pago aprobado — procesando credenciales');
+      toast.success('Pago aprobado — pendiente de credenciales');
       fetchOrders();
     } catch (err: any) {
       toast.error(err.message || 'Error al confirmar');

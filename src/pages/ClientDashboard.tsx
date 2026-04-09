@@ -53,7 +53,7 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
   pending: { label: 'Pendiente', icon: Clock, className: 'text-amber-400' },
   completed: { label: 'Completado', icon: CheckCircle, className: 'text-emerald-400' },
   paid: { label: 'Pagado', icon: CheckCircle, className: 'text-primary' },
-  procesando_credenciales: { label: 'Procesando Credenciales', icon: Clock, className: 'text-blue-400' },
+  procesando_credenciales: { label: 'Pendiente de Credenciales', icon: Clock, className: 'text-blue-400' },
   confirmed: { label: 'Confirmado', icon: CheckCircle, className: 'text-emerald-400' },
 };
 
@@ -211,7 +211,7 @@ const ClientDashboard = () => {
       case 'pending':
         return 'En espera';
       case 'procesando_credenciales':
-        return 'Procesando Credenciales';
+        return 'Pendiente de Credenciales';
       case 'confirmed':
         return 'Confirmado';
       default:
@@ -355,7 +355,7 @@ const ClientDashboard = () => {
                         </div>
                         <div>
                           <p className="font-medium text-sm">{sub?.service_name || 'Servicio'}</p>
-                          <p className="text-xs text-muted-foreground">ID: {sub?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
+                          <p className="text-xs text-muted-foreground">ID: VORTEX-{sub?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
                         </div>
                       </div>
                       <ExpiryBadge nextRenewal={sub?.proxima_fecha || sub?.created_at || new Date().toISOString()} />
@@ -401,7 +401,7 @@ const ClientDashboard = () => {
           <DialogHeader>
             <DialogTitle>Credenciales de {selectedSubscription?.service_name || 'servicio'}</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Aquí están los datos guardados para este servicio.
+              ID: VORTEX-{selectedSubscription?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}
             </DialogDescription>
           </DialogHeader>
           {selectedSubscription ? (

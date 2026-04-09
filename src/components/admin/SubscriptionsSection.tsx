@@ -45,7 +45,7 @@ export function SubscriptionsSection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
+  const [form, setForm] = useState({ order_id: '', days: 30 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', perfil: '', pin: '' });
@@ -53,14 +53,16 @@ export function SubscriptionsSection() {
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const isMountedRef = useRef(true);
 
   const fetchData = async () => {
     try {
-      console.debug('[Admin] Fetching all subscriptions');
-      const [{ data: subsData, error: subsError }, profilesRes] = await Promise.all([
+      console.debug('[Admin] Fetching all subscriptions and pending orders');
+      const [{ data: subsData, error: subsError }, profilesRes, ordersRes] = await Promise.all([
         getAllSubscriptionsAdmin(),
         supabase.from('profiles').select('id, user_id, display_name, email'),
+        supabase.from('orders').select('id, user_id, customer_email, product_name, total, status, created_at, updated_at, expiry_date').eq('status', 'procesando_credenciales'),
       ]);
 
       if (subsError) {
@@ -80,8 +82,19 @@ export function SubscriptionsSection() {
         }
       }
 
+      if (ordersRes.error) {
+        console.error('[Admin] Orders fetch error:', ordersRes.error);
+        if (isMountedRef.current) {
+          setPendingOrders([]);
+        }
+      }
+
       const profilesList = profilesRes.data || [];
-      if (isMountedRef.current) setProfiles(profilesList);
+      const pendingOrdersList = ordersRes.data || [];
+      if (isMountedRef.current) {
+        setProfiles(profilesList);
+        setPendingOrders(pendingOrdersList);
+      }
 
       const subsWithProfiles = (subsData || []).map((s: any) => ({
         ...s,
@@ -93,6 +106,7 @@ export function SubscriptionsSection() {
         setLoading(false);
       }
       console.debug('[Admin] Subscriptions loaded:', subsWithProfiles.length);
+      console.debug('[Admin] Pending orders loaded:', pendingOrdersList.length);
     } catch (err) {
       console.error('[Admin] fetchData error:', err);
       if (isMountedRef.current) {
@@ -163,7 +177,7 @@ export function SubscriptionsSection() {
       if (credForm.pin) payload.pin = credForm.pin;
       if (dateForm) payload.proxima_fecha = new Date(dateForm).toISOString();
 
-      // Si está procesando credenciales, activar
+      // Si está procesando credenciales, activar a confirmado
       const sub = subs.find(s => s.id === subId);
       if (sub?.status === 'procesando_credenciales') {
         payload.status = 'confirmed';
@@ -224,22 +238,27 @@ export function SubscriptionsSection() {
   };
 
   const addManualRecord = async () => {
-    if (!form.user_id || !form.service_name) {
-      toast.error('Completa todos los campos requeridos');
+    if (!form.order_id) {
+      toast.error('Selecciona un pedido pendiente');
+      return;
+    }
+
+    const selectedOrder = pendingOrders.find(o => o.id === form.order_id);
+    if (!selectedOrder) {
+      toast.error('Pedido no encontrado');
       return;
     }
 
     try {
-      console.debug('[Admin] Creating manual subscription record');
+      console.debug('[Admin] Creating subscription from order:', selectedOrder.id);
 
       const now = new Date();
-      const lastRenewal = now.toISOString();
       const nextRenewal = new Date(now.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
 
       const payload = {
-        user_id: form.user_id,
-        service_name: form.service_name,
-        status: 'active',
+        user_id: selectedOrder.user_id,
+        service_name: selectedOrder.product_name,
+        status: 'procesando_credenciales',
         proxima_fecha: nextRenewal,
       };
       const { error } = await supabase.from('subscriptions').insert(payload);
@@ -252,13 +271,13 @@ export function SubscriptionsSection() {
         throw error;
       }
 
-      toast.success('✅ Registro añadido correctamente');
+      toast.success('✅ Suscripción creada — pendiente de credenciales');
       setShowAdd(false);
-      setForm({ user_id: '', service_name: '', days: 30 });
+      setForm({ order_id: '', days: 30 });
       fetchData();
     } catch (err: any) {
       console.error('[Admin] addManualRecord error:', err);
-      toast.error(`❌ ${err.message || 'Error al crear registro'}`);
+      toast.error(`❌ ${err.message || 'Error al crear suscripción'}`);
     }
   };
 
@@ -279,7 +298,7 @@ export function SubscriptionsSection() {
       case 'confirmed': return 'Confirmado';
       case 'expired': return 'Vencido';
       case 'pending_approval': return 'Pendiente';
-      case 'procesando_credenciales': return 'Procesando Credenciales';
+      case 'procesando_credenciales': return 'Pendiente de Credenciales';
       default: return status;
     }
   };
@@ -343,27 +362,27 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
       {showAdd && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-semibold text-sm">Nuevo Registro Manual</h3>
+            <h3 className="font-display font-semibold text-sm">Crear Suscripción desde Pedido</h3>
             <button onClick={() => setShowAdd(false)} className="p-1 rounded-lg hover:bg-secondary"><X className="w-4 h-4" /></button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Usuario</label>
-              <select value={form.user_id} onChange={e => setForm(f => ({ ...f, user_id: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border">
-                <option value="">Seleccionar...</option>
-                {profiles?.map(p => <option key={p.user_id} value={p.user_id}>{p.display_name || p.email || p.user_id}</option>)}
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Pedido Pendiente</label>
+              <select value={form.order_id} onChange={e => setForm(f => ({ ...f, order_id: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border">
+                <option value="">Seleccionar pedido...</option>
+                {pendingOrders?.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.product_name} - {o.customer_email} - ${Number(o.total).toFixed(2)} ({o.id.slice(0, 8)})
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Servicio</label>
-              <input value={form.service_name} onChange={e => setForm(f => ({ ...f, service_name: e.target.value }))} placeholder="Ej: Netflix Premium" className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Duración (Días)</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Duración Inicial (Días)</label>
               <input type="number" min={1} value={form.days} onChange={e => setForm(f => ({ ...f, days: parseInt(e.target.value) || 30 }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
             </div>
           </div>
-          <button onClick={addManualRecord} className="px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold">Guardar</button>
+          <button onClick={addManualRecord} className="px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold">Crear Suscripción</button>
         </motion.div>
       )}
 
