@@ -330,7 +330,7 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Usuario</label>
               <select value={form.user_id} onChange={e => setForm(f => ({ ...f, user_id: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border">
                 <option value="">Seleccionar...</option>
-                {profiles.map(p => <option key={p.user_id} value={p.user_id}>{p.display_name || p.email || p.user_id}</option>)}
+                {profiles?.map(p => <option key={p.user_id} value={p.user_id}>{p.display_name || p.email || p.user_id}</option>)}
               </select>
             </div>
             <div>
@@ -348,7 +348,12 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
 
       {/* Grouped by user */}
       <div className="space-y-6">
-        {(Object.entries(groupedByUser) as [string, (Subscription & { profile?: Profile })[]][]).map(([userName, userSubs]) => (
+        {Object.keys(groupedByUser).length === 0 ? (
+          <div className="bg-black/40 border border-white/10 rounded-3xl p-8 text-center text-slate-400 text-sm">
+            No hay suscripciones disponibles.
+          </div>
+        ) : (
+          (Object.entries(groupedByUser) as [string, (Subscription & { profile?: Profile })[]][]).map(([userName, userSubs]) => (
           <div key={userName} className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-secondary/30">
               <h3 className="font-display font-semibold text-sm">{userName}</h3>
@@ -366,7 +371,7 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
               </tr>
             </thead>
             <tbody>
-              {userSubs.map((s) => (
+              {userSubs?.map((s) => (
                 <Fragment key={s.id}>
                   <tr className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
                     <td className="px-4 py-3">{s.service_name}</td>
