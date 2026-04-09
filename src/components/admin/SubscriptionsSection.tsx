@@ -255,23 +255,30 @@ export function SubscriptionsSection() {
       const now = new Date();
       const nextRenewal = new Date(now.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
 
-      const payload = {
+      // Check if it's a combo (contains '+')
+      const isCombo = selectedOrder.product_name.includes('+');
+      const services = isCombo 
+        ? selectedOrder.product_name.split('+').map(s => s.trim())
+        : [selectedOrder.product_name];
+
+      const payloads = services.map(service => ({
         user_id: selectedOrder.user_id,
-        service_name: selectedOrder.product_name,
+        service_name: service,
         status: 'procesando_credenciales',
         proxima_fecha: nextRenewal,
-      };
-      const { error } = await supabase.from('subscriptions').insert(payload);
+      }));
+
+      const { error } = await supabase.from('subscriptions').insert(payloads);
 
       if (error) {
         if (error.code === 'PGRST204') {
-          console.error('[Admin] PGRST204 schema cache error, insert payload keys:', Object.keys(payload));
+          console.error('[Admin] PGRST204 schema cache error, insert payload keys:', Object.keys(payloads[0]));
           console.error('[Admin] PGRST204 details:', error);
         }
         throw error;
       }
 
-      toast.success('✅ Suscripción creada — pendiente de credenciales');
+      toast.success(`✅ ${isCombo ? 'Suscripciones creadas' : 'Suscripción creada'} — pendiente de credenciales`);
       setShowAdd(false);
       setForm({ order_id: '', days: 30 });
       fetchData();

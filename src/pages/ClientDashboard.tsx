@@ -416,7 +416,7 @@ const ClientDashboard = () => {
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
                     <div className="flex items-center gap-2">
-                      <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'No hay correo guardado'}</p>
+                      <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'Credenciales en preparación'}</p>
                       {currentCredentials.email_cuenta && (
                         <button
                           onClick={() => {
@@ -434,7 +434,7 @@ const ClientDashboard = () => {
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
                     <div className="flex items-center gap-2">
                       <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
-                        {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'No hay contraseña guardada') : '••••••••'}
+                        {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'Credenciales en preparación') : '••••••••'}
                       </p>
                       {currentCredentials.password_cuenta && (
                         <button
@@ -448,11 +448,11 @@ const ClientDashboard = () => {
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'No hay perfil asignado'}</p>
+                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'Credenciales en preparación'}</p>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'No hay PIN asignado'}</p>
+                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'Credenciales en preparación'}</p>
                   </div>
                 </>
               )}

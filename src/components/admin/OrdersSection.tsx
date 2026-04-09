@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardList, CheckCircle, Loader2, Clock, Key } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,17 +9,26 @@ export function OrdersSection() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
       .select('id, user_id, customer_email, product_name, total, status, created_at, updated_at, expiry_date')
       .order('created_at', { ascending: false });
-    setOrders(data || []);
-    setLoading(false);
+    if (isMountedRef.current) {
+      setOrders(data || []);
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    isMountedRef.current = true;
+    fetchOrders();
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const setCredField = (orderId: string, field: 'email' | 'password', value: string) => {
     setCredentials(prev => ({
