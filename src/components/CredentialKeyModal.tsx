@@ -66,22 +66,22 @@ export default function CredentialKeyModal({ records = [], serviceName, subscrip
               <div className="grid gap-3">
                 <div className="space-y-1">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Correo</p>
-                  <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.email_cuenta ?? 'Sin correo disponible'}</p>
+                  <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.email_cuenta ?? 'Pendiente de entrega'}</p>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Contraseña</p>
-                  <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.password_cuenta ?? 'Sin contraseña disponible'}</p>
+                  <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.password_cuenta ?? 'Pendiente de entrega'}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Perfil</p>
-                    <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.perfil ?? 'Sin perfil asignado'}</p>
+                    <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.perfil ?? 'Pendiente de entrega'}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">PIN</p>
-                    <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.pin ?? 'Sin PIN disponible'}</p>
+                    <p className="rounded-2xl bg-slate-950/80 px-4 py-3 text-sm text-white break-words">{record.pin ?? 'Pendiente de entrega'}</p>
                   </div>
                 </div>
               </div>

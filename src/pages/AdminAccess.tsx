@@ -9,7 +9,7 @@ import { UsersSection } from '@/components/admin/UsersSection';
 import { SalesSection } from '@/components/admin/SalesSection';
 import { ProductsSection } from '@/components/admin/ProductsSection';
 import { PaymentsSection } from '@/components/admin/PaymentsSection';
-import { SubscriptionsSection } from '@/components/admin/SubscriptionsSection';
+import AdminSubscriptionsNew from '@/components/admin/AdminSubscriptionsNew';
 import { InventorySection } from '@/components/admin/InventorySection';
 import { SettingsSection } from '@/components/admin/SettingsSection';
 
@@ -57,7 +57,7 @@ export default function AdminAccess() {
               <Route index element={<Navigate to="subscriptions" replace />} />
               <Route path="users" element={<UsersSection />} />
               <Route path="inventory" element={<InventorySection />} />
-              <Route path="subscriptions" element={<SubscriptionsSection />} />
+              <Route path="subscriptions" element={<AdminSubscriptionsNew />} />
               <Route path="sales" element={<SalesSection />} />
               <Route path="products" element={<ProductsSection />} />
               <Route path="payments" element={<PaymentsSection />} />

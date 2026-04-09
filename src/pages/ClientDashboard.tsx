@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Key, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import CredentialKeyModal from '@/components/CredentialKeyModal';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserSubscriptions, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,11 +67,9 @@ const ClientDashboard = () => {
   const isMountedRef = useRef(true);
   const { addItem } = useCart();
 
-  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [renewing, setRenewing] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
   const [loadingCreds, setLoadingCreds] = useState(false);
-  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   const loadDashboardData = async () => {
     if (!user?.id || !isMountedRef.current) return;
@@ -219,38 +217,6 @@ const ClientDashboard = () => {
     }
   };
 
-  const currentCredentials = selectedSubscription
-    ? credentials[selectedSubscription.id] ?? {
-        email_cuenta: selectedSubscription.email_cuenta ?? null,
-        password_cuenta: selectedSubscription.password_cuenta ?? null,
-        perfil: selectedSubscription.perfil ?? null,
-        pin: selectedSubscription.pin ?? null,
-      }
-    : { email_cuenta: null, password_cuenta: null, perfil: null, pin: null };
-
-  const isComboSubscription = selectedSubscription?.service_name?.includes('+');
-  const comboServices = isComboSubscription
-    ? selectedSubscription?.service_name.split('+').map((service) => service.trim())
-    : [selectedSubscription?.service_name || 'Servicio'];
-
-  const hasCredentials = (sub: Subscription) => {
-    const creds = credentials[sub.id] ?? {
-      email_cuenta: sub.email_cuenta ?? null,
-      password_cuenta: sub.password_cuenta ?? null,
-      perfil: sub.perfil ?? null,
-      pin: sub.pin ?? null,
-    };
-
-    return !!(creds.email_cuenta || creds.password_cuenta || creds.perfil || creds.pin);
-  };
-
-  const handleOpenCredentials = (sub: Subscription) => {
-    if (!hasCredentials(sub)) {
-      toast.error('Procesando entrega');
-      return;
-    }
-    setSelectedSubscription(sub);
-  };
 
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
@@ -392,13 +358,18 @@ const ClientDashboard = () => {
                       </div>
                       <div className="flex gap-2">
                         {sub?.id && sub?.status === 'confirmed' && (
-                          <button
-                            onClick={() => handleOpenCredentials(sub)}
-                            className="inline-flex items-center gap-2 text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"
-                          >
-                            <Key className="w-3.5 h-3.5" />
-                            Credenciales
-                          </button>
+                          <CredentialKeyModal
+                            serviceName={sub.service_name}
+                            subscriptionId={sub.id}
+                            triggerLabel="Credenciales"
+                            records={[{
+                              service_name: sub.service_name,
+                              email_cuenta: credentials[sub.id]?.email_cuenta ?? sub.email_cuenta ?? null,
+                              password_cuenta: credentials[sub.id]?.password_cuenta ?? sub.password_cuenta ?? null,
+                              perfil: credentials[sub.id]?.perfil ?? sub.perfil ?? null,
+                              pin: credentials[sub.id]?.pin ?? sub.pin ?? null,
+                            }]}
+                          />
                         )}
                         {sub?.proxima_fecha && isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
                           <button
@@ -420,121 +391,6 @@ const ClientDashboard = () => {
         </div>
       </main>
       <Footer />
-      <Dialog open={!!selectedSubscription} onOpenChange={(open) => { if (!open) setSelectedSubscription(null); }}>
-        <DialogContent className="glass border-border sm:rounded-2xl max-w-md">
-          <DialogHeader>
-            <DialogTitle>Credenciales de {selectedSubscription?.service_name || 'servicio'}</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              ID: VORTEX-{selectedSubscription?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSubscription ? (
-            <div className="space-y-4">
-              {loadingCreds ? (
-                <div className="rounded-xl bg-secondary/60 p-4 text-sm text-muted-foreground text-center">
-                  <Loader2 className="mx-auto mb-2 w-4 h-4 animate-spin" />
-                  Cargando credenciales...
-                </div>
-              ) : (
-                <>
-                  {isComboSubscription ? (
-                    comboServices.map((service, idx) => (
-                      <div key={`${service}-${idx}`} className="rounded-xl border border-border p-4 space-y-3">
-                        <h3 className="font-semibold text-sm text-white">{service}</h3>
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
-                          <div className="flex items-center gap-2">
-                            <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'Credenciales en preparación'}</p>
-                            {currentCredentials.email_cuenta && (
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(currentCredentials.email_cuenta || '');
-                                  toast.success('Correo copiado');
-                                }}
-                                className="p-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground"
-                              >
-                                📋
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
-                          <div className="flex items-center gap-2">
-                            <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
-                              {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'Credenciales en preparación') : '••••••••'}
-                            </p>
-                            {currentCredentials.password_cuenta && (
-                              <button
-                                onClick={() => setShowPassword(prev => ({ ...prev, [selectedSubscription.id]: !prev[selectedSubscription.id] }))}
-                                className="p-2 rounded-lg bg-secondary hover:bg-secondary/80"
-                              >
-                                {showPassword[selectedSubscription.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
-                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'Credenciales en preparación'}</p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
-                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'Credenciales en preparación'}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
-                        <div className="flex items-center gap-2">
-                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'Credenciales en preparación'}</p>
-                          {currentCredentials.email_cuenta && (
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(currentCredentials.email_cuenta || '');
-                                toast.success('Correo copiado');
-                              }}
-                              className="p-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground"
-                            >
-                              📋
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
-                        <div className="flex items-center gap-2">
-                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
-                            {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'Credenciales en preparación') : '••••••••'}
-                          </p>
-                          {currentCredentials.password_cuenta && (
-                            <button
-                              onClick={() => setShowPassword(prev => ({ ...prev, [selectedSubscription.id]: !prev[selectedSubscription.id] }))}
-                              className="p-2 rounded-lg bg-secondary hover:bg-secondary/80"
-                            >
-                              {showPassword[selectedSubscription.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
-                        <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'Credenciales en preparación'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
-                        <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'Credenciales en preparación'}</p>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
