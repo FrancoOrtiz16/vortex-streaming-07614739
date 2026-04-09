@@ -61,8 +61,18 @@ export function SubscriptionsSection() {
       if (subsError) {
         console.error('[Admin] Subscriptions fetch error:', subsError);
         toast.error('Error cargando suscripciones');
-        if (isMountedRef.current) setSubs([]);
+        if (isMountedRef.current) {
+          setSubs([]);
+          setLoading(false);
+        }
         return;
+      }
+
+      if (profilesRes.error) {
+        console.error('[Admin] Profiles fetch error:', profilesRes.error);
+        if (isMountedRef.current) {
+          setProfiles([]);
+        }
       }
 
       const profilesList = profilesRes.data || [];
@@ -259,9 +269,9 @@ export function SubscriptionsSection() {
     
     const query = searchQuery.toLowerCase().trim();
     return subs.filter(sub => {
-      const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_id).toLowerCase();
-      const serviceName = sub.service_name.toLowerCase();
-      const uniqueId = `vortex-${sub.id.slice(0, 8)}`.toLowerCase();
+const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_id || '').toLowerCase();
+        const serviceName = (sub.service_name || '').toLowerCase();
+        const uniqueId = `vortex-${sub.id?.slice(0, 8) || 'unknown'}`.toLowerCase();
       
       return (
         clientName.includes(query) ||
@@ -275,7 +285,7 @@ export function SubscriptionsSection() {
 
   // Group filtered subs by user
   const groupedByUser = filteredSubs.reduce<Record<string, (Subscription & { profile?: Profile })[]>>((acc, s) => {
-    const key = s.profile?.display_name || s.profile?.email || s.user_id.slice(0, 8);
+    const key = s.profile?.display_name || s.profile?.email || s.user_id?.slice(0, 8) || 'Desconocido';
     if (!acc[key]) acc[key] = [];
     acc[key].push(s);
     return acc;

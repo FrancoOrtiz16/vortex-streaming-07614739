@@ -153,7 +153,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
       const newOrderItems = items.filter(i => !i.product.renewal);
 
-      // No combo_id; create individual entries for each service
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
           subscriptions.push({

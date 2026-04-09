@@ -77,7 +77,9 @@ const ClientDashboard = () => {
 
       if (subsError) {
         console.error('[ClientDashboard] Subscriptions query error:', subsError);
-        toast.error('Error cargando suscripciones');
+        if (!(subsError?.status === 400 || subsError?.code === 400 || subsError?.code === 'PGRST204')) {
+          toast.error('Error cargando suscripciones');
+        }
         setSubs([]);
       } else {
         setSubs((subsData as Subscription[]) || []);
@@ -190,6 +192,13 @@ const ClientDashboard = () => {
         return status;
     }
   };
+
+  const currentCredentials = selectedSubscription
+    ? credentials[selectedSubscription.id] ?? {
+        email_cuenta: selectedSubscription.email_cuenta ?? null,
+        password_cuenta: selectedSubscription.password_cuenta ?? null,
+      }
+    : { email_cuenta: null, password_cuenta: null };
 
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
@@ -336,14 +345,23 @@ const ClientDashboard = () => {
           </DialogHeader>
           {selectedSubscription ? (
             <div className="space-y-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
-                <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{selectedSubscription.email_cuenta || 'No hay correo guardado'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
-                <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{selectedSubscription.password_cuenta || 'No hay contraseña guardada'}</p>
-              </div>
+              {loadingCreds ? (
+                <div className="rounded-xl bg-secondary/60 p-4 text-sm text-muted-foreground text-center">
+                  <Loader2 className="mx-auto mb-2 w-4 h-4 animate-spin" />
+                  Cargando credenciales...
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
+                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.email_cuenta || 'No hay correo guardado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
+                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.password_cuenta || 'No hay contraseña guardada'}</p>
+                  </div>
+                </>
+              )}
             </div>
           ) : null}
         </DialogContent>
