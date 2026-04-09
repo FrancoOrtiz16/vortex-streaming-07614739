@@ -48,7 +48,7 @@ export function useProducts() {
         console.error('Error fetching products:', error);
         setProducts([]);
       } else {
-        const normalized = ((data || []) as ServiceRow[]).map((item) => ({
+        const normalized = (data as ServiceRow[] | null | undefined)?.map((item) => ({
           id: item.id,
           name: item.name,
           description: item.description,
@@ -61,7 +61,7 @@ export function useProducts() {
           is_available: item.is_available,
           group_name: item.group_name,
           image_scale: item.image_scale ?? 100,
-        }));
+        })) ?? [];
 
         setProducts(normalized);
       }

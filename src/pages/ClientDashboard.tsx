@@ -228,6 +228,30 @@ const ClientDashboard = () => {
       }
     : { email_cuenta: null, password_cuenta: null, perfil: null, pin: null };
 
+  const isComboSubscription = selectedSubscription?.service_name?.includes('+');
+  const comboServices = isComboSubscription
+    ? selectedSubscription?.service_name.split('+').map((service) => service.trim())
+    : [selectedSubscription?.service_name || 'Servicio'];
+
+  const hasCredentials = (sub: Subscription) => {
+    const creds = credentials[sub.id] ?? {
+      email_cuenta: sub.email_cuenta ?? null,
+      password_cuenta: sub.password_cuenta ?? null,
+      perfil: sub.perfil ?? null,
+      pin: sub.pin ?? null,
+    };
+
+    return !!(creds.email_cuenta || creds.password_cuenta || creds.perfil || creds.pin);
+  };
+
+  const handleOpenCredentials = (sub: Subscription) => {
+    if (!hasCredentials(sub)) {
+      toast.error('Procesando entrega');
+      return;
+    }
+    setSelectedSubscription(sub);
+  };
+
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
     const service = findService(sub.service_name);
@@ -369,7 +393,7 @@ const ClientDashboard = () => {
                       <div className="flex gap-2">
                         {sub?.id && sub?.status === 'confirmed' && (
                           <button
-                            onClick={() => setSelectedSubscription(sub)}
+                            onClick={() => handleOpenCredentials(sub)}
                             className="inline-flex items-center gap-2 text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"
                           >
                             <Key className="w-3.5 h-3.5" />
@@ -413,47 +437,98 @@ const ClientDashboard = () => {
                 </div>
               ) : (
                 <>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
-                    <div className="flex items-center gap-2">
-                      <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'Credenciales en preparación'}</p>
-                      {currentCredentials.email_cuenta && (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(currentCredentials.email_cuenta || '');
-                            toast.success('Correo copiado');
-                          }}
-                          className="p-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground"
-                        >
-                          📋
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
-                    <div className="flex items-center gap-2">
-                      <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
-                        {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'Credenciales en preparación') : '••••••••'}
-                      </p>
-                      {currentCredentials.password_cuenta && (
-                        <button
-                          onClick={() => setShowPassword(prev => ({ ...prev, [selectedSubscription.id]: !prev[selectedSubscription.id] }))}
-                          className="p-2 rounded-lg bg-secondary hover:bg-secondary/80"
-                        >
-                          {showPassword[selectedSubscription.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'Credenciales en preparación'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'Credenciales en preparación'}</p>
-                  </div>
+                  {isComboSubscription ? (
+                    comboServices.map((service, idx) => (
+                      <div key={`${service}-${idx}`} className="rounded-xl border border-border p-4 space-y-3">
+                        <h3 className="font-semibold text-sm text-white">{service}</h3>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
+                          <div className="flex items-center gap-2">
+                            <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'Credenciales en preparación'}</p>
+                            {currentCredentials.email_cuenta && (
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(currentCredentials.email_cuenta || '');
+                                  toast.success('Correo copiado');
+                                }}
+                                className="p-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground"
+                              >
+                                📋
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
+                          <div className="flex items-center gap-2">
+                            <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
+                              {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'Credenciales en preparación') : '••••••••'}
+                            </p>
+                            {currentCredentials.password_cuenta && (
+                              <button
+                                onClick={() => setShowPassword(prev => ({ ...prev, [selectedSubscription.id]: !prev[selectedSubscription.id] }))}
+                                className="p-2 rounded-lg bg-secondary hover:bg-secondary/80"
+                              >
+                                {showPassword[selectedSubscription.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
+                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'Credenciales en preparación'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
+                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'Credenciales en preparación'}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
+                        <div className="flex items-center gap-2">
+                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'Credenciales en preparación'}</p>
+                          {currentCredentials.email_cuenta && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(currentCredentials.email_cuenta || '');
+                                toast.success('Correo copiado');
+                              }}
+                              className="p-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground"
+                            >
+                              📋
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
+                        <div className="flex items-center gap-2">
+                          <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
+                            {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'Credenciales en preparación') : '••••••••'}
+                          </p>
+                          {currentCredentials.password_cuenta && (
+                            <button
+                              onClick={() => setShowPassword(prev => ({ ...prev, [selectedSubscription.id]: !prev[selectedSubscription.id] }))}
+                              className="p-2 rounded-lg bg-secondary hover:bg-secondary/80"
+                            >
+                              {showPassword[selectedSubscription.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
+                        <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'Credenciales en preparación'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
+                        <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'Credenciales en preparación'}</p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
