@@ -20,12 +20,24 @@ interface Subscription {
   proxima_fecha?: string;
   email_cuenta?: string | null;
   password_cuenta?: string | null;
+  perfil?: string | null;
+  pin?: string | null;
+  created_at: string;
+}
+
+interface Order {
+  id: string;
+  product_name: string;
+  status: string;
+  total: number;
   created_at: string;
 }
 
 interface DecryptedCreds {
   email_cuenta: string | null;
   password_cuenta: string | null;
+  perfil: string | null;
+  pin: string | null;
 }
 
 interface Service {
@@ -41,12 +53,15 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
   pending: { label: 'Pendiente', icon: Clock, className: 'text-amber-400' },
   completed: { label: 'Completado', icon: CheckCircle, className: 'text-emerald-400' },
   paid: { label: 'Pagado', icon: CheckCircle, className: 'text-primary' },
+  procesando_credenciales: { label: 'Procesando Credenciales', icon: Clock, className: 'text-blue-400' },
+  confirmed: { label: 'Confirmado', icon: CheckCircle, className: 'text-emerald-400' },
 };
 
 const ClientDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [subs, setSubs] = useState<Subscription[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const isMountedRef = useRef(true);
@@ -68,9 +83,10 @@ const ClientDashboard = () => {
     console.debug('[ClientDashboard] Loading data for user:', user.id);
 
     try {
-      const [{ data: subsData, error: subsError }, servicesRes] = await Promise.all([
+      const [{ data: subsData, error: subsError }, servicesRes, ordersRes] = await Promise.all([
         getUserSubscriptions(user.id),
         supabase.from('services').select('id, name, price, image_url, plan_type, is_available').eq('is_available', true),
+        supabase.from('orders').select('id, product_name, status, total, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
       ]);
 
       if (!isMountedRef.current) return;
@@ -86,6 +102,7 @@ const ClientDashboard = () => {
       }
 
       setServices((servicesRes.data as Service[]) || []);
+      setOrders((ordersRes.data as Order[]) || []);
 
       if (isMountedRef.current) clearTimeout(timeoutId);
       
@@ -105,6 +122,8 @@ const ClientDashboard = () => {
               cred: {
                 email_cuenta: cred?.email_cuenta || null,
                 password_cuenta: cred?.password_cuenta || null,
+                perfil: cred?.perfil || null,
+                pin: cred?.pin || null,
               },
             };
           })
@@ -173,6 +192,9 @@ const ClientDashboard = () => {
         return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
       case 'pending':
         return 'bg-slate-700/40 text-slate-200 border-slate-700/30';
+      case 'procesando_credenciales':
+      case 'confirmed':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       default:
         return 'bg-muted/20 text-muted-foreground border-muted/30';
     }
@@ -188,6 +210,10 @@ const ClientDashboard = () => {
         return 'Pendiente';
       case 'pending':
         return 'En espera';
+      case 'procesando_credenciales':
+        return 'Procesando Credenciales';
+      case 'confirmed':
+        return 'Confirmado';
       default:
         return status;
     }
@@ -197,8 +223,10 @@ const ClientDashboard = () => {
     ? credentials[selectedSubscription.id] ?? {
         email_cuenta: selectedSubscription.email_cuenta ?? null,
         password_cuenta: selectedSubscription.password_cuenta ?? null,
+        perfil: selectedSubscription.perfil ?? null,
+        pin: selectedSubscription.pin ?? null,
       }
-    : { email_cuenta: null, password_cuenta: null };
+    : { email_cuenta: null, password_cuenta: null, perfil: null, pin: null };
 
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
@@ -269,6 +297,38 @@ const ClientDashboard = () => {
           <h1 className="font-display font-bold text-2xl mb-1">Mi Panel</h1>
           <p className="text-sm text-muted-foreground mb-8">Servicios activos.</p>
 
+          {/* Historial de Pedidos */}
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary" />
+            Historial de Pedidos
+          </h2>
+          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden mb-8">
+            {orders.length === 0 ? (
+              <div className="px-4 py-8 text-center text-slate-400 text-sm">
+                No tienes pedidos aún.
+              </div>
+            ) : (
+              <div className="divide-y divide-white/10">
+                {orders?.map((order) => (
+                  <div key={order.id} className="px-4 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{order.product_name}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-display font-bold text-sm gold-text">${Number(order.total).toFixed(2)}</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusConfig[order.status]?.className || 'text-muted-foreground'}`}>
+                          {statusConfig[order.status]?.label || order.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Historial de Suscripciones */}
           <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
             <RefreshCw className="w-4 h-4 text-primary" />
@@ -307,12 +367,13 @@ const ClientDashboard = () => {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        {sub?.id && (
+                        {sub?.id && (sub?.status === 'active' || sub?.status === 'confirmed') && (
                           <button
                             onClick={() => setSelectedSubscription(sub)}
-                            className="text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"
+                            className="inline-flex items-center gap-2 text-xs px-3 py-1 bg-secondary/60 hover:bg-secondary/80 rounded-lg transition-colors"
                           >
-                            Ver Credenciales
+                            <Key className="w-3.5 h-3.5" />
+                            Credenciales
                           </button>
                         )}
                         {sub?.proxima_fecha && isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
@@ -354,11 +415,44 @@ const ClientDashboard = () => {
                 <>
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Correo</p>
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.email_cuenta || 'No hay correo guardado'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">{currentCredentials.email_cuenta || 'No hay correo guardado'}</p>
+                      {currentCredentials.email_cuenta && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(currentCredentials.email_cuenta || '');
+                            toast.success('Correo copiado');
+                          }}
+                          className="p-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground"
+                        >
+                          📋
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Contraseña</p>
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.password_cuenta || 'No hay contraseña guardada'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all flex-1">
+                        {showPassword[selectedSubscription.id] ? (currentCredentials.password_cuenta || 'No hay contraseña guardada') : '••••••••'}
+                      </p>
+                      {currentCredentials.password_cuenta && (
+                        <button
+                          onClick={() => setShowPassword(prev => ({ ...prev, [selectedSubscription.id]: !prev[selectedSubscription.id] }))}
+                          className="p-2 rounded-lg bg-secondary hover:bg-secondary/80"
+                        >
+                          {showPassword[selectedSubscription.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Perfil</p>
+                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.perfil || 'No hay perfil asignado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">PIN</p>
+                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-white break-all">{currentCredentials.pin || 'No hay PIN asignado'}</p>
                   </div>
                 </>
               )}

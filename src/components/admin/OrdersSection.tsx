@@ -9,7 +9,6 @@ export function OrdersSection() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState<Record<string, { email: string; password: string }>>({});
 
   const fetchOrders = async () => {
     const { data } = await supabase
@@ -30,7 +29,6 @@ export function OrdersSection() {
   };
 
   const confirmOrder = async (order: any) => {
-    const creds = credentials[order.id];
     setConfirming(order.id);
     try {
       const now = new Date();
@@ -41,7 +39,7 @@ export function OrdersSection() {
       const { error } = await supabase
         .from('orders')
         .update({
-          status: 'completed',
+          status: 'procesando_credenciales',
           expiry_date: expiryDate.toISOString(),
         })
         .eq('id', order.id);
@@ -52,16 +50,14 @@ export function OrdersSection() {
         const subData: any = {
           user_id: order.user_id,
           service_name: order.product_name,
-          status: 'active',
+          status: 'procesando_credenciales',
           proxima_fecha: expiryDate.toISOString(),
         };
-        if (creds?.email) subData.email_cuenta = creds.email;
-        if (creds?.password) subData.password_cuenta = creds.password;
 
         await supabase.from('subscriptions').insert(subData);
       }
 
-      toast.success('Pedido aprobado — suscripción activada');
+      toast.success('Pago aprobado — procesando credenciales');
       fetchOrders();
     } catch (err: any) {
       toast.error(err.message || 'Error al confirmar');
@@ -108,9 +104,10 @@ export function OrdersSection() {
                   <span className="font-display font-bold text-sm gold-text">${Number(o.total).toFixed(2)}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                     o.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400'
+                    : o.status === 'procesando_credenciales' ? 'bg-blue-500/20 text-blue-400'
                     : 'bg-amber-500/20 text-amber-400'
                   }`}>
-                    {o.status === 'completed' ? 'Aprobado' : 'Pendiente'}
+                    {o.status === 'completed' ? 'Completado' : o.status === 'procesando_credenciales' ? 'Procesando Credenciales' : 'Pendiente'}
                   </span>
                   {o.expiry_date && <ExpiryBadge nextRenewal={o.expiry_date} />}
                 </div>
@@ -118,24 +115,6 @@ export function OrdersSection() {
 
               {o.status === 'pending' && (
                 <div className="mt-4 pt-4 border-t border-border/30">
-                  <div className="flex items-center gap-1.5 mb-3 text-xs font-medium text-muted-foreground">
-                    <Key className="w-3.5 h-3.5" />
-                    Credenciales del servicio (opcional)
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <input
-                      placeholder="Email del servicio"
-                      value={credentials[o.id]?.email || ''}
-                      onChange={e => setCredField(o.id, 'email', e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                    />
-                    <input
-                      placeholder="Contraseña del servicio"
-                      value={credentials[o.id]?.password || ''}
-                      onChange={e => setCredField(o.id, 'password', e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                    />
-                  </div>
                   <button
                     onClick={() => confirmOrder(o)}
                     disabled={confirming === o.id}
@@ -146,7 +125,7 @@ export function OrdersSection() {
                     ) : (
                       <CheckCircle className="w-3 h-3" />
                     )}
-                    Aprobar Pedido
+                    Aprobar Pago
                   </button>
                 </div>
               )}

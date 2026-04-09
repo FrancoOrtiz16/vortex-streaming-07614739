@@ -66,7 +66,6 @@ export function SalesSection() {
         setLoading(false);
       }
     }
-    }
   }, []);
 
   useEffect(() => {

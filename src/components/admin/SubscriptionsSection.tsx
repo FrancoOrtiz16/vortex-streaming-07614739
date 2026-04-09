@@ -22,6 +22,8 @@ interface Subscription {
   updated_at: string;
   email_cuenta?: string | null;
   password_cuenta?: string | null;
+  perfil?: string | null;
+  pin?: string | null;
 }
 
 interface Profile {
@@ -34,6 +36,8 @@ interface Profile {
 interface CredentialForm {
   email: string;
   password: string;
+  perfil: string;
+  pin: string;
 }
 
 export function SubscriptionsSection() {
@@ -44,7 +48,8 @@ export function SubscriptionsSection() {
   const [form, setForm] = useState({ user_id: '', service_name: '', days: 30 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '' });
+  const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', perfil: '', pin: '' });
+  const [dateForm, setDateForm] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -125,7 +130,10 @@ export function SubscriptionsSection() {
       setCredForm({
         email: cred?.email_cuenta || '',
         password: '',
+        perfil: cred?.perfil || '',
+        pin: cred?.pin || '',
       });
+      setDateForm(sub.proxima_fecha ? new Date(sub.proxima_fecha).toISOString().split('T')[0] : '');
     } catch (err) {
       console.error('[Admin] startEdit error:', err);
       toast.error('Error al cargar edición');
@@ -151,6 +159,15 @@ export function SubscriptionsSection() {
 
       if (credForm.email) payload.email_cuenta = credForm.email;
       if (credForm.password) payload.password_cuenta = credForm.password;
+      if (credForm.perfil) payload.perfil = credForm.perfil;
+      if (credForm.pin) payload.pin = credForm.pin;
+      if (dateForm) payload.proxima_fecha = new Date(dateForm).toISOString();
+
+      // Si está procesando credenciales, activar
+      const sub = subs.find(s => s.id === subId);
+      if (sub?.status === 'procesando_credenciales') {
+        payload.status = 'active';
+      }
 
       const { data, error } = await updateSimpleSubscription(subId, payload);
       if (error) throw error;
@@ -250,6 +267,7 @@ export function SubscriptionsSection() {
       case 'active': return 'bg-emerald-500/20 text-emerald-400';
       case 'expired': return 'bg-destructive/20 text-destructive';
       case 'pending_approval': return 'bg-amber-500/20 text-amber-400';
+      case 'procesando_credenciales': return 'bg-blue-500/20 text-blue-400';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -259,6 +277,7 @@ export function SubscriptionsSection() {
       case 'active': return 'Activo';
       case 'expired': return 'Vencido';
       case 'pending_approval': return 'Pendiente';
+      case 'procesando_credenciales': return 'Procesando Credenciales';
       default: return status;
     }
   };
@@ -367,94 +386,98 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
                     <th className="text-left px-4 py-2 text-muted-foreground font-medium text-xs">Última</th>
                     <th className="text-left px-4 py-2 text-muted-foreground font-medium text-xs">Próxima</th>
                     <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Semáforo</th>
-                <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userSubs?.map((s) => (
-                <Fragment key={s.id}>
-                  <tr className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
-                    <td className="px-4 py-3">{s.service_name}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColor(s.status)}`}>
-                        {statusLabel(s.status)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{s.proxima_fecha ? new Date(s.proxima_fecha).toLocaleDateString() : 'N/A'}</td>
-                    <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.proxima_fecha || s.created_at} /></td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => editingId === s.id ? setEditingId(null) : startEdit(s)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                          title="Editar credenciales"
-                        >
-                          <Pencil className="w-3 h-3" />
-                          Editar
-                        </button>
-                        {s.status === 'pending_approval' && (
-                          <button
-                            onClick={() => confirmRenewal(s)}
-                            disabled={confirming === s.id}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
-                            title="Confirmar renovación (+30 días)"
-                          >
-                            {confirming === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                            Confirmar
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteSubscription(s.id)}
-                          disabled={deletingId === s.id}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
-                          title="Eliminar suscripción"
-                        >
-                          {deletingId === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
+                    <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Acciones</th>
                   </tr>
-                  {/* Credential edit row */}
-                  <AnimatePresence>
-                    {editingId === s.id && (
-                      <motion.tr
-                        key={`edit-${s.id}`}
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <td colSpan={6} className="px-4 py-4 bg-secondary/20">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                            <div>
-                              <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Correo Servicio</label>
-                              <input value={credForm.email} onChange={e => setCredForm(f => ({ ...f, email: e.target.value }))} placeholder="email@servicio.com" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraseña</label>
-                              <input type="password" value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Nueva contraseña" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
-                            </div>
-
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => saveCredentials(s.id)} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                              Guardar
+                </thead>
+                <tbody>
+                  {userSubs?.map((s) => (
+                    <Fragment key={s.id}>
+                      <tr className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
+                        <td className="px-4 py-3">{s.service_name}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColor(s.status)}`}>
+                            {statusLabel(s.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.proxima_fecha ? new Date(s.proxima_fecha).toLocaleDateString() : 'N/A'}</td>
+                        <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.proxima_fecha || s.created_at} /></td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => editingId === s.id ? setEditingId(null) : startEdit(s)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                              title="Editar credenciales"
+                            >
+                              <Pencil className="w-3 h-3" />
+                              Editar
                             </button>
-                            <button onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-secondary">Cancelar</button>
+                            {s.status === 'pending_approval' && (
+                              <button
+                                onClick={() => confirmRenewal(s)}
+                                disabled={confirming === s.id}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                                title="Confirmar renovación (+30 días)"
+                              >
+                                {confirming === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                Confirmar
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteSubscription(s.id)}
+                              disabled={deletingId === s.id}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                              title="Eliminar suscripción"
+                            >
+                              {deletingId === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                              Eliminar
+                            </button>
                           </div>
                         </td>
-                      </motion.tr>
-                    )}
-                  </AnimatePresence>
-                </Fragment>
-              ))}
+                      </tr>
+                      {editingId === s.id && (
+                        <tr className="bg-secondary/20">
+                          <td colSpan={6} className="px-4 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Correo Servicio</label>
+                                <input value={credForm.email} onChange={e => setCredForm(f => ({ ...f, email: e.target.value }))} placeholder="email@servicio.com" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Contraseña</label>
+                                <input type="password" value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Nueva contraseña" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Perfil</label>
+                                <input value={credForm.perfil} onChange={e => setCredForm(f => ({ ...f, perfil: e.target.value }))} placeholder="Nombre del perfil" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">PIN</label>
+                                <input value={credForm.pin} onChange={e => setCredForm(f => ({ ...f, pin: e.target.value }))} placeholder="PIN del perfil" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Próxima Renovación</label>
+                                <input type="date" value={dateForm} onChange={e => setDateForm(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => saveCredentials(s.id)} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                Guardar
+                              </button>
+                              <button onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-secondary">Cancelar</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
-        ))}
+        ))
+      )}
         {subs.length === 0 && (
           <div className="glass rounded-xl p-8 text-center text-muted-foreground text-sm">No hay suscripciones registradas</div>
         )}
