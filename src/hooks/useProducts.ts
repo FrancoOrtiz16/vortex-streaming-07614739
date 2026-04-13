@@ -46,7 +46,7 @@ export function useProducts() {
         console.debug('[useProducts] Fetching products from Supabase...');
 
         const { data, error: supabaseError } = await supabase
-          .from('products')
+          .from('services')
           .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available, group_name, image_scale')
           .eq('is_available', true)
           .order('sort_order', { ascending: true });

@@ -27,7 +27,7 @@ export function InventorySection() {
 
   const fetchServices = async () => {
     const { data } = await supabase
-      .from('products')
+      .from('services')
       .select('id, name, description, price, category, image_url, badge, plan_type, is_available, sort_order, group_name, image_scale')
       .order('sort_order');
     setServices((data as Service[]) || []);
@@ -42,7 +42,7 @@ export function InventorySection() {
     try {
       if (editing.id) {
         const { error } = await supabase
-          .from('products')
+          .from('services')
           .update({
             name: editing.name,
             description: editing.description,
@@ -59,7 +59,7 @@ export function InventorySection() {
           .eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('products').insert({
+        const { error } = await supabase.from('services').insert({
           name: editing.name,
           description: editing.description,
           price: editing.price,
@@ -85,7 +85,7 @@ export function InventorySection() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('products').delete().eq('id', id);
+    const { error } = await supabase.from('services').delete().eq('id', id);
     if (error) {
       toast.error('Error al eliminar');
     } else {
@@ -95,7 +95,7 @@ export function InventorySection() {
   };
 
   const toggleAvailability = async (s: Service) => {
-    await supabase.from('products').update({ is_available: !s.is_available }).eq('id', s.id);
+    await supabase.from('services').update({ is_available: !s.is_available }).eq('id', s.id);
     fetchServices();
   };
 

@@ -84,7 +84,7 @@ const ClientDashboard = () => {
     try {
       const [{ data: subsData, error: subsError }, servicesRes, ordersRes] = await Promise.all([
         getUserSubscriptions(user.id),
-        supabase.from('products').select('id, name, price, image_url, plan_type, is_available').eq('is_available', true),
+        supabase.from('services').select('id, name, price, image_url, plan_type, is_available').eq('is_available', true),
         supabase.from('orders').select('id, product_name, status, total, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
       ]);
 
