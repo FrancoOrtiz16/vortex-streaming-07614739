@@ -5,6 +5,7 @@ import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Eye, EyeOff, Loader2
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CredentialKeyModal from '@/components/CredentialKeyModal';
+import CredentialService from '@/components/services/CredentialService';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserSubscriptions, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
@@ -358,17 +359,11 @@ const ClientDashboard = () => {
                       </div>
                       <div className="flex gap-2">
                         {sub?.id && sub?.status === 'confirmed' && (
-                          <CredentialKeyModal
-                            serviceName={sub.service_name}
-                            subscriptionId={sub.id}
-                            triggerLabel="Credenciales"
-                            records={[{
-                              service_name: sub.service_name,
-                              email_cuenta: credentials[sub.id]?.email_cuenta ?? sub.email_cuenta ?? null,
-                              password_cuenta: credentials[sub.id]?.password_cuenta ?? sub.password_cuenta ?? null,
-                              perfil: credentials[sub.id]?.perfil ?? sub.perfil ?? null,
-                              pin: credentials[sub.id]?.pin ?? sub.pin ?? null,
-                            }]}
+                          <CredentialService
+                            subscriptionId={sub?.id}
+                            serviceName={sub?.service_name}
+                            triggerLabel="🔑 Credenciales"
+                            variant="button"
                           />
                         )}
                         {sub?.proxima_fecha && isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
