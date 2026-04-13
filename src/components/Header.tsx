@@ -34,7 +34,7 @@ const Header = () => {
               to="/admin-access"
               className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Admin Principal
+              Admin Original
             </Link>
           )}
         </div>
