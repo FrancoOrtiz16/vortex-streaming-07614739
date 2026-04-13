@@ -38,7 +38,7 @@ export function SalesSection() {
       
       const [{ data: subsData, error: subsError }, { data: servicesData, error: servicesError }] = await Promise.all([
         supabase.from('subscriptions').select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at').order('created_at', { ascending: false }),
-        supabase.from('services').select('name, price'),
+        supabase.from('products').select('name, price'),
       ]);
 
       if (subsError) throw subsError;

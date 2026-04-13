@@ -23,7 +23,7 @@ export function useServices() {
   useEffect(() => {
     const fetchServices = async () => {
       const { data } = await supabase
-        .from('services')
+        .from('products')
         .select('id, name, description, price, category, image_url, badge, plan_type, is_available, sort_order, group_name, image_scale')
         .eq('is_available', true)
         .order('sort_order');
