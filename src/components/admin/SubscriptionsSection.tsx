@@ -62,7 +62,7 @@ export function SubscriptionsSection() {
       const [{ data: subsData, error: subsError }, profilesRes, ordersRes] = await Promise.all([
         getAllSubscriptionsAdmin(),
         supabase.from('profiles').select('id, user_id, display_name, email'),
-        supabase.from('orders').select('id, user_id, customer_email, product_name, total, status, created_at, updated_at, expiry_date').eq('status', 'procesando_credenciales'),
+        supabase.from('orders').select('id, user_id, customer_email, product_name, total, status, created_at, expiry_date').eq('status', 'procesando_credenciales'),
       ]);
 
       if (subsError) {

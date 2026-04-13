@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import CartPage from "./pages/CartPage";
@@ -25,47 +26,49 @@ const App = () => {
   }));
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <div className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
-          <div className="absolute inset-0 app-background-layer" />
-          <div className="absolute inset-0 pointer-events-none">
-            {particles.map(particle => (
-              <span
-                key={particle.id}
-                className="particle"
-                style={{
-                  top: particle.top,
-                  left: particle.left,
-                  width: particle.size,
-                  height: particle.size,
-                  animationDuration: particle.duration,
-                  animationDelay: particle.delay,
-                  opacity: particle.opacity,
-                }}
-              />
-            ))}
-          </div>
+    <EmergencyErrorBoundary level="page">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <div className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
+            <div className="absolute inset-0 app-background-layer" />
+            <div className="absolute inset-0 pointer-events-none">
+              {particles.map(particle => (
+                <span
+                  key={particle.id}
+                  className="particle"
+                  style={{
+                    top: particle.top,
+                    left: particle.left,
+                    width: particle.size,
+                    height: particle.size,
+                    animationDuration: particle.duration,
+                    animationDelay: particle.delay,
+                    opacity: particle.opacity,
+                  }}
+                />
+              ))}
+            </div>
 
-          <div className="relative z-10">
-            <BrowserRouter>
-              <BannedGuard>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/dashboard" element={<ClientDashboard />} />
-                  <Route path="/admin-access/*" element={<AdminAccess />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BannedGuard>
-            </BrowserRouter>
+            <div className="relative z-10">
+              <BrowserRouter>
+                <BannedGuard>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/cart" element={<CartPage />} />
+                    <Route path="/dashboard" element={<ClientDashboard />} />
+                    <Route path="/admin-access/*" element={<AdminAccess />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BannedGuard>
+              </BrowserRouter>
+            </div>
           </div>
-        </div>
-      </TooltipProvider>
-    </QueryClientProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </EmergencyErrorBoundary>
   );
 };
 

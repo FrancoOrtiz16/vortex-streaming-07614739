@@ -14,7 +14,7 @@ export function OrdersSection() {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('id, user_id, customer_email, product_name, total, status, created_at, updated_at, expiry_date')
+      .select('id, user_id, customer_email, product_name, total, status, created_at, expiry_date')
       .order('created_at', { ascending: false });
     if (isMountedRef.current) {
       setOrders(data || []);

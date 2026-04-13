@@ -40,7 +40,7 @@ export function UsersSection() {
 
   const fetchData = async () => {
     const [profilesRes, ordersRes] = await Promise.all([
-      supabase.from('profiles').select('id, email, full_name, avatar_url, role, banned, created_at, updated_at').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('id, email, full_name, avatar_url, role, created_at').order('created_at', { ascending: false }),
       supabase.from('orders').select('user_id, expiry_date, status'),
     ]);
     if (profilesRes.error) { toast.error('Error cargando usuarios'); return; }

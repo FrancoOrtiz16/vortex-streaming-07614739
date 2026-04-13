@@ -56,7 +56,7 @@ export default function AdminSubscriptionsNew() {
       const [subsRes, profilesRes] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('id, user_id, service_name, status, proxima_fecha, created_at, updated_at, email_cuenta, password_cuenta, perfil, pin')
+          .select('id, user_id, service_name, status, proxima_fecha, created_at, email_cuenta, password_cuenta, perfil, pin')
           .order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, user_id, display_name, email'),
       ]);
