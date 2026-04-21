@@ -69,7 +69,7 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
         return;
       }
 
-      if (!data) {
+      if (!data || Object.keys(data).length === 0) {
         console.warn('[useCredentialData] No credentials found for subscription:', subscriptionId?.slice(0, 8) + '...');
         setCredentials(null);
         return;
