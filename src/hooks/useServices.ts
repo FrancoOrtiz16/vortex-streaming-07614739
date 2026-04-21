@@ -22,13 +22,29 @@ export function useServices() {
 
   useEffect(() => {
     const fetchServices = async () => {
-      const { data } = await supabase
-        .from('services')
-        .select('id, name, description, price, category, image_url, badge, plan_type, is_available, sort_order, group_name, image_scale')
-        .eq('is_available', true)
-        .order('sort_order');
-      setServices((data as Service[]) || []);
-      setLoading(false);
+      const loadTimeout = setTimeout(() => {
+        if (loading) setLoading(false);
+      }, 3000);
+
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, name, description, price, category, image_url, badge, plan_type, is_available, orden_prioridad, group_name, image_scale')
+          .eq('is_available', true)
+          .order('orden_prioridad');
+        
+        if (error) {
+          console.error('[useServices] Silent error catch:', error);
+          setServices([]);
+        } else {
+          setServices((data as unknown as Service[]) || []);
+        }
+      } catch (err) {
+        console.error('[useServices] Fetch crash prevented:', err);
+      } finally {
+        setLoading(false);
+        clearTimeout(loadTimeout);
+      }
     };
 
     fetchServices();
@@ -37,7 +53,7 @@ export function useServices() {
       .channel('services-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'services' },
+        { event: '*', schema: 'public', table: 'products' },
         () => {
           fetchServices();
         }

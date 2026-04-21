@@ -43,13 +43,21 @@ export function useProducts() {
         setLoading(true);
         setError(null);
 
-        console.debug('[useProducts] Fetching products from Supabase...');
+        // Timeout de seguridad de 3 segundos
+        const loadTimeout = setTimeout(() => {
+          if (loading) {
+            console.warn('[useProducts] Anti-loop: Timeout de 3s alcanzado. Forzando UI.');
+            setLoading(false);
+          }
+        }, 3000);
+
+        console.debug('[useProducts] Fetching products from table: products');
 
         const { data, error: supabaseError } = await supabase
-          .from('services')
-          .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available, group_name, image_scale')
+          .from('products')
+          .select('id, name, description, price, category, image_url, badge, plan_type, orden_prioridad, is_available, group_name, image_scale')
           .eq('is_available', true)
-          .order('sort_order', { ascending: true });
+          .order('orden_prioridad', { ascending: true });
 
         if (supabaseError) {
           console.error('[useProducts] Supabase error:', supabaseError);
@@ -76,13 +84,14 @@ export function useProducts() {
           image: item?.image_url || '/placeholder.png',
           badge: item?.badge ?? null,
           plan_type: item?.plan_type ?? null,
-          orden_prioridad: item?.sort_order ?? null,
+          orden_prioridad: item?.orden_prioridad ?? null,
           is_available: item?.is_available ?? true,
           group_name: item?.group_name ?? null,
           image_scale: item?.image_scale ?? 100,
         })) ?? [];
 
         setProducts(normalized);
+        clearTimeout(loadTimeout);
         console.debug('[useProducts] Loaded', normalized.length, 'products successfully');
       } catch (err) {
         console.error('[useProducts] Catch error:', err);
@@ -100,7 +109,7 @@ export function useProducts() {
       .channel('services-products-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'services' },
+        { event: '*', schema: 'public', table: 'products' },
         () => {
           console.debug('[useProducts] Realtime update detected, refetching...');
           fetchProducts();

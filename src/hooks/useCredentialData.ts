@@ -104,7 +104,7 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
         setIsLoading(false);
         setError(new Error('La conexión es lenta. Por favor, intenta de nuevo.'));
       }
-    }, 5000);
+    }, 3000);
     fetchCredentials();
     return () => clearTimeout(timer);
   }, [fetchCredentials]);
