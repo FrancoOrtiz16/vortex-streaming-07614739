@@ -22,13 +22,6 @@ interface UseCredentialDataResult {
 
 /**
  * Hook seguro para traer credenciales de una suscripción
- * 
- * REGLA DE ORO: .select() NO incluye campos problemáticos:
- * - No: combo_id, subscription_code, fecha_inicio (evita PGRST204)
- * - Sí: id, service_name, email_cuenta, password_cuenta, perfil, pin
- * 
- * @param subscriptionId - ID de la suscripción
- * @returns Objeto con credenciales, loading, error y métodos de control
  */
 export const useCredentialData = (subscriptionId?: string): UseCredentialDataResult => {
   const [credentials, setCredentials] = useState<CredentialData | null>(null);
@@ -49,10 +42,10 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
     try {
       console.debug('[useCredentialData] Fetching credentials for:', subscriptionId?.slice(0, 8) + '...');
 
-      // Consulta SEGURA: incluye status y user_id para control administrativo
+      // REGLA DE ORO: Eliminados campos zombis. Uso de next_renewal.
       const { data, error: supabaseError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha')
+        .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, next_renewal')
         .eq('id', subscriptionId)
         .maybeSingle();
 
@@ -98,7 +91,7 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
       if (isLoading) {
         console.warn('[useCredentialData] Loading timeout reached');
         setIsLoading(false);
-        setError(new Error('La conexión es lenta. Por favor, intenta de nuevo.'));
+        setError(new Error('Tiempo de espera agotado. Reintente.'));
       }
     }, 3000);
     fetchCredentials();

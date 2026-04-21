@@ -1,52 +1,81 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * Hook para procesar la lógica de negocio de pedidos sin depender de la UI de Orders.
- * Implementa el flujo: Aprobación -> Creación de Suscripción 'Pendiente'.
+ * Hook centralizado para la gestión de Suscripciones (Ex-Pedidos)
+ * Maneja la aprobación, listado detallado y filtrado.
  */
 export const useOrderProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchPendingOrders = async () => {
+  const fetchAdminSubscriptions = useCallback(async () => {
     try {
-      // Consulta limpia: Sin combo_id ni campos zombis
+      // REGLA DE ORO: Solo campos existentes. Sin combo_id ni subscription_code.
       const { data, error } = await supabase
-        .from('orders')
-        .select('id, user_id, customer_email, product_name, total, status, created_at')
-        .eq('status', 'pending')
+        .from('subscriptions')
+        .select(`
+          id, 
+          user_id, 
+          service_name, 
+          status, 
+          last_renewal, 
+          next_renewal,
+          email_cuenta,
+          password_cuenta,
+          perfil,
+          pin,
+          created_at
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPendingOrders(data || []);
+      setSubscriptions(data || []);
     } catch (err) {
-      console.error('[OrderProcessing] Error fetching pending:', err);
-      toast.error('No se pudieron cargar las ventas pendientes');
+      console.error('[OrderProcessing] Error fetching subs:', err);
+      toast.error('No se pudo cargar el listado de suscripciones');
     }
+  }, []);
+
+  // Filtrado en tiempo real por Cliente (email/ID) o Servicio
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      sub.service_name?.toLowerCase().includes(searchLower) ||
+      sub.user_id?.toLowerCase().includes(searchLower) ||
+      sub.email_cuenta?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Lógica de "Semáforo" para días restantes
+  const getDaysRemaining = (expiryDate: string | null) => {
+    if (!expiryDate) return null;
+    const diff = new Date(expiryDate).getTime() - new Date().getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   const approveOrder = async (orderId: string, userId: string, serviceName: string) => {
     setIsProcessing(true);
     try {
-      // 1. Actualizar estado del pedido a completado
+      // 1. Actualizar estado del pedido original a completado (Manteniendo integridad)
       const { error: orderError } = await supabase
         .from('orders')
         .update({ status: 'completed' })
         .eq('id', orderId);
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('[OrderProcessing] Order update failed:', orderError);
+      }
 
-      // 2. Crear registro en subscriptions con estado 'Pendiente'
-      // REGLA DE ORO: Solo campos permitidos para evitar PGRST204
+      // 2. Crear registro de suscripción individual
       const { error: subError } = await supabase
         .from('subscriptions')
         .insert([{
           user_id: userId,
           service_name: serviceName,
           status: 'Pendiente',
-          // Las credenciales nacen nulas para ser asignadas en 'AdminSubscriptionsNew'
           email_cuenta: null,
           password_cuenta: null,
           perfil: null,
@@ -66,5 +95,13 @@ export const useOrderProcessing = () => {
     }
   };
 
-  return { approveOrder, fetchPendingOrders, pendingOrders, isProcessing };
+  return { 
+    approveOrder, 
+    fetchAdminSubscriptions, 
+    subscriptions: filteredSubscriptions, 
+    isProcessing,
+    searchTerm,
+    setSearchTerm,
+    getDaysRemaining
+  };
 };

@@ -29,11 +29,10 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-        />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground animate-pulse">Verificando Credenciales...</p>
+        </div>
       </div>
     );
   }
