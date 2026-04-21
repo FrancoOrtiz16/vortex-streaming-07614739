@@ -8,6 +8,8 @@ interface CredentialData {
   password_cuenta: string | null;
   perfil: string | null;
   pin: string | null;
+  user_id?: string;
+  status?: string;
 }
 
 interface UseCredentialDataResult {
@@ -47,10 +49,10 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
     try {
       console.debug('[useCredentialData] Fetching credentials for:', subscriptionId?.slice(0, 8) + '...');
 
-      // Consulta SEGURA: solo campos permitidos, sin combo_id/subscription_code/fecha_inicio
+      // Consulta SEGURA: incluye status y user_id para control administrativo
       const { data, error: supabaseError } = await supabase
         .from('subscriptions')
-        .select('id, service_name, email_cuenta, password_cuenta, perfil, pin')
+        .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha')
         .eq('id', subscriptionId)
         .maybeSingle();
 
