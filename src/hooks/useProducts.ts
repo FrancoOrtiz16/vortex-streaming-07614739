@@ -26,7 +26,7 @@ interface ServiceRow {
   image_url: string;
   badge: string | null;
   plan_type: string | null;
-  sort_order: number | null;
+  orden_prioridad: number | null;
   is_available: boolean;
   group_name: string | null;
   image_scale: number;

@@ -8,6 +8,24 @@ import { toast } from 'sonner';
  */
 export const useOrderProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+
+  const fetchPendingOrders = async () => {
+    try {
+      // Consulta limpia: Sin combo_id ni campos zombis
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, user_id, customer_email, product_name, total, status, created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPendingOrders(data || []);
+    } catch (err) {
+      console.error('[OrderProcessing] Error fetching pending:', err);
+      toast.error('No se pudieron cargar las ventas pendientes');
+    }
+  };
 
   const approveOrder = async (orderId: string, userId: string, serviceName: string) => {
     setIsProcessing(true);
@@ -48,5 +66,5 @@ export const useOrderProcessing = () => {
     }
   };
 
-  return { approveOrder, isProcessing };
+  return { approveOrder, fetchPendingOrders, pendingOrders, isProcessing };
 };

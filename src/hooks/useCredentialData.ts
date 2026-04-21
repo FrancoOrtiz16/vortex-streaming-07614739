@@ -56,14 +56,6 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
         .eq('id', subscriptionId)
         .maybeSingle();
 
-      // Timeout de seguridad: Si no hay respuesta en 5s, liberar el loading
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Tiempo de espera agotado (5s)')), 5000)
-      );
-
-      // Podríamos usar Promise.race aquí, pero por ahora manejamos el timeout 
-      // de forma declarativa en el useEffect para mayor claridad visual.
-
       if (supabaseError) {
         console.error('[useCredentialData] Supabase error:', supabaseError);
         setError(new Error(supabaseError.message || 'Error cargando credenciales'));
@@ -85,6 +77,8 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
         password_cuenta: data?.password_cuenta ?? null,
         perfil: data?.perfil ?? null,
         pin: data?.pin ?? null,
+        user_id: data?.user_id,
+        status: data?.status
       };
 
       setCredentials(validCredential);

@@ -11,7 +11,7 @@ export interface Service {
   badge: string | null;
   plan_type: string;
   is_available: boolean;
-  sort_order: number;
+  orden_prioridad: number;
   group_name: string | null;
   image_scale: number;
 }
