@@ -1,27 +1,27 @@
-# TODO: Implementación del Plan de Mejoras Admin Panel Vortex Streaming
+# Vortex Streaming Catalog Decoupling - TODO
 
-## Plan Aprobado
-- ✅ Transformar AdminSubscriptionsNew.tsx a tabla profesional
-- ✅ Eliminar OrdersSection.tsx completamente  
-- ✅ Añadir optional chaining para prevenir pantallas negras
-- ✅ Verificar Supabase queries seguras (ya OK)
-- ✅ UX: search live, badges dinámicos, acciones per-fila
+## Plan Steps (Approved by User):
 
-## Pasos Pendientes
-### 1. ✅ OrdersSection.tsx eliminado (no usado/no linkeado)
-### 2. ✅ Rediseñar AdminSubscriptionsNew.tsx a tabla profesional [COMPLETADO]
-   - Imports añadidos (Table, Badge, ExpiryBadge)
-   - Functions statusColor/Label, confirmRenewal
-   - Tabla shadcn con columnas Cliente/Servicio/Estado/Badge/Última/Próxima/Semáforo/Acciones
-   - Inline edit tr, Confirmar btn, search live, combos rows
-   - Optional chaining ? añadida
-   - Copiar estructura table de SubscriptionsSection.tsx
-   - Columnas: Servicio, Estado (badge), Última renovación (created_at), Próxima (proxima_fecha), Semáforo (ExpiryBadge), Acciones (Editar/Confirmar/Eliminar)
-   - Mantener combo parsing a rows individuales
-   - Inline edit form en row expandida
-   - Confirmar botón si status pending/procesando → active
-   - Search live por cliente/servicio
+1. **[DONE]** Create src/components/StandaloneCatalog.tsx
+   - Self-contained fetch from Supabase 'products' (safe fields: id,name,price,image_url,description,category,badge,plan_type,orden_prioridad,is_available,group_name,image_scale)
+   - localStorage cache (TTL 5min)
+   - Fallback to static data/products.ts
+   - Skeleton loading
+   - Realtime subscription
+   - Replicate ProductGrid logic/UI/grouping
+   - Export default StandaloneCatalog
 
-### 3. Añadir optional chaining en accesos datos [Pendiente]
-### 4. Test funcionalidad [Pendiente]
-### 5. attempt_completion [Pendiente]
+2. **[DONE]** Update src/pages/Index.tsx
+   - Import StandaloneCatalog
+   - Replace `<ProductGrid />` with `<StandaloneCatalog />`
+   - Remove Suspense around catalog section
+
+3. **[DONE]** Test
+   - npm install completed
+   - StandaloneCatalog integrated in Index.tsx with no Suspense blocks
+   - TS clean (types fixed)
+
+**Task Complete: Catalog decoupled, resilient, fast-loading.**
+
+Run `npm run dev` to test live at http://localhost:5173
+
