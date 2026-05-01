@@ -402,14 +402,17 @@ const StandaloneCatalog: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5 md:gap-3">
-            {grouped.map((item, i) => (
-              <ProductCard
-                key={item.key}
-                product={item.representative}
-                variants={item.variants}
-                index={i}
-              />
-            ))}
+            {grouped.map((item, i) => {
+              const toHookProduct = (p: Product) => ({ ...p, image: p.image_url });
+              return (
+                <ProductCard
+                  key={item.key}
+                  product={toHookProduct(item.representative) as any}
+                  variants={item.variants.map(toHookProduct) as any}
+                  index={i}
+                />
+              );
+            })}
           </div>
         )}
       </div>
