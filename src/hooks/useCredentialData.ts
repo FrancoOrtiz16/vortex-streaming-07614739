@@ -42,10 +42,10 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
     try {
       console.debug('[useCredentialData] Fetching credentials for:', subscriptionId?.slice(0, 8) + '...');
 
-      // REGLA DE ORO: Eliminados campos zombis. Uso de next_renewal.
+      // Esquema real: credential_email/credential_password/profile_name/profile_pin
       const { data, error: supabaseError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, next_renewal')
+        .select('id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, next_renewal')
         .eq('id', subscriptionId)
         .maybeSingle();
 
@@ -62,16 +62,17 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
         return;
       }
 
-      // Validar que tenga los campos básicos
+      // Validar que tenga los campos básicos (alias internos -> esquema real)
+      const d = data as any;
       const validCredential: CredentialData = {
-        id: data?.id || subscriptionId || '',
-        service_name: data?.service_name || '',
-        email_cuenta: data?.email_cuenta ?? null,
-        password_cuenta: data?.password_cuenta ?? null,
-        perfil: data?.perfil ?? null,
-        pin: data?.pin ?? null,
-        user_id: data?.user_id,
-        status: data?.status
+        id: d?.id || subscriptionId || '',
+        service_name: d?.service_name || '',
+        email_cuenta: d?.credential_email ?? null,
+        password_cuenta: d?.credential_password ?? null,
+        perfil: d?.profile_name ?? null,
+        pin: d?.profile_pin ?? null,
+        user_id: d?.user_id,
+        status: d?.status,
       };
 
       setCredentials(validCredential);

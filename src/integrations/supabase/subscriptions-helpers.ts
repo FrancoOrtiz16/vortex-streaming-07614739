@@ -25,7 +25,7 @@ export interface SimpleSubscriptionPayload {
   perfil?: string | null;
   pin?: string | null;
   status?: string;
-  proxima_fecha?: string;
+  proxima_fecha?: string; // alias interno → next_renewal
 }
 
 export interface SimpleSubscriptionUpdatePayload {
@@ -52,6 +52,21 @@ function logPGRST204Error(error: any, payload: Record<string, unknown> | Record<
  * Create a single subscription with minimal fields
  * Supabase will auto-generate: id, created_at, updated_at
  */
+function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
+  const real: Record<string, any> = {};
+  if (p.user_id !== undefined) real.user_id = p.user_id;
+  if (p.service_name !== undefined) real.service_name = p.service_name;
+  if (p.status !== undefined) real.status = p.status;
+  if (p.proxima_fecha !== undefined) real.next_renewal = p.proxima_fecha;
+  if (p.email_cuenta !== undefined) real.credential_email = p.email_cuenta;
+  if (p.password_cuenta !== undefined) real.credential_password = p.password_cuenta;
+  if (p.perfil !== undefined) real.profile_name = p.perfil;
+  if (p.pin !== undefined) real.profile_pin = p.pin;
+  return real;
+}
+
+const SELECT_ALL = 'id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, next_renewal, created_at';
+
 export async function createSimpleSubscription(payload: SimpleSubscriptionPayload) {
   try {
     console.debug('[Subscriptions] Creating simple subscription:', {
@@ -60,38 +75,19 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
       status: payload.status || 'pending_approval'
     });
 
+    const row = toRealColumns({ ...payload, status: payload.status || 'pending_approval' });
     const { data, error } = await supabase
       .from('subscriptions')
-      .insert([
-        {
-          user_id: payload.user_id,
-          service_name: payload.service_name,
-          status: payload.status || 'pending_approval',
-          proxima_fecha: payload.proxima_fecha,
-          email_cuenta: payload.email_cuenta || null,
-          password_cuenta: payload.password_cuenta || null,
-          perfil: payload.perfil || null,
-          pin: payload.pin || null,
-        }
-      ])
-      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at');
+      .insert([row as any])
+      .select(SELECT_ALL);
 
     if (error) {
-      logPGRST204Error(error, {
-        user_id: payload.user_id,
-        service_name: payload.service_name,
-        status: payload.status || 'pending_approval',
-        proxima_fecha: payload.proxima_fecha,
-        email_cuenta: payload.email_cuenta,
-        password_cuenta: payload.password_cuenta,
-        perfil: payload.perfil,
-        pin: payload.pin,
-      });
+      logPGRST204Error(error, row);
       console.error('[Subscriptions] Insert error:', error);
       return { data: null, error };
     }
 
-    console.debug('[Subscriptions] Created successfully:', data?.[0]?.id?.slice(0, 8) + '...');
+    console.debug('[Subscriptions] Created successfully:', (data as any)?.[0]?.id?.slice(0, 8) + '...');
     return { data, error: null };
   } catch (err) {
     console.error('[Subscriptions] createSimpleSubscription catch:', err);
@@ -112,21 +108,11 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
 
     console.debug('[Subscriptions] Creating bulk subscriptions:', payloads.length);
 
-    const cleanedPayloads = payloads.map(p => ({
-      user_id: p.user_id,
-      service_name: p.service_name,
-      status: p.status || 'pending_approval',
-      proxima_fecha: p.proxima_fecha,
-      email_cuenta: p.email_cuenta || null,
-      password_cuenta: p.password_cuenta || null,
-      perfil: p.perfil || null,
-      pin: p.pin || null,
-    }));
-
+    const cleanedPayloads = payloads.map(p => toRealColumns({ ...p, status: p.status || 'pending_approval' }));
     const { data, error } = await supabase
       .from('subscriptions')
-      .insert(cleanedPayloads)
-      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at');
+      .insert(cleanedPayloads as any)
+      .select(SELECT_ALL);
 
     if (error) {
       logPGRST204Error(error, cleanedPayloads);
@@ -156,7 +142,7 @@ export async function getUserSubscriptions(userId: string) {
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at')
+      .select(SELECT_ALL)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -182,7 +168,7 @@ export async function getAllSubscriptionsAdmin() {
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at')
+      .select(SELECT_ALL)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -244,7 +230,7 @@ export async function updateSimpleSubscriptionStatus(subscriptionId: string, sta
       .from('subscriptions')
       .update({ status })
       .eq('id', subscriptionId)
-      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at');
+      .select(SELECT_ALL);
 
     if (error) {
       console.error('[Subscriptions] Update error:', error);
@@ -299,9 +285,9 @@ export async function updateSimpleSubscription(subscriptionId: string, payload: 
 
     const { data, error } = await supabase
       .from('subscriptions')
-      .update(payload)
+      .update(toRealColumns(payload) as any)
       .eq('id', subscriptionId)
-      .select('id, user_id, service_name, email_cuenta, password_cuenta, perfil, pin, status, proxima_fecha, created_at');
+      .select(SELECT_ALL);
 
     if (error) {
       console.error('[Subscriptions] Update error:', error);
