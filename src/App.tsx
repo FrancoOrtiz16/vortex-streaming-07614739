@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,10 +8,12 @@ import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import CartPage from "./pages/CartPage";
-import ClientDashboard from "./pages/ClientDashboard";
-import AdminAccess from "./pages/AdminAccess";
 import NotFound from "./pages/NotFound";
 import BannedGuard from "./components/BannedGuard";
+
+// Lazy load heavy components
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const AdminAccess = lazy(() => import("./pages/AdminAccess"));
 
 const queryClient = new QueryClient();
 
@@ -58,8 +61,16 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/cart" element={<CartPage />} />
-                    <Route path="/dashboard" element={<ClientDashboard />} />
-                    <Route path="/admin-access/*" element={<AdminAccess />} />
+                    <Route path="/dashboard" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                        <ClientDashboard />
+                      </Suspense>
+                    } />
+                    <Route path="/admin-access/*" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando panel de administración...</div>}>
+                        <AdminAccess />
+                      </Suspense>
+                    } />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BannedGuard>
