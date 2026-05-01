@@ -11,7 +11,7 @@ export interface Service {
   badge: string | null;
   plan_type: string;
   is_available: boolean;
-  orden_prioridad: number;
+  sort_order: number;
   group_name: string | null;
   image_scale: number;
 }
@@ -28,10 +28,10 @@ export function useServices() {
 
       try {
         const { data, error } = await supabase
-          .from('products')
-          .select('id, name, description, price, category, image_url, badge, plan_type, is_available, orden_prioridad, group_name, image_scale')
+          .from('services')
+          .select('id, name, description, price, category, image_url, badge, plan_type, is_available, sort_order, group_name, image_scale')
           .eq('is_available', true)
-          .order('orden_prioridad');
+          .order('sort_order');
         
         if (error) {
           console.error('[useServices] Silent error catch:', error);
@@ -50,10 +50,10 @@ export function useServices() {
     fetchServices();
 
     const channel = supabase
-      .channel('services-realtime')
+      .channel('services-hook-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
+        { event: '*', schema: 'public', table: 'services' },
         () => {
           fetchServices();
         }

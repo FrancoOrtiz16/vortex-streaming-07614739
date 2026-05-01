@@ -20,11 +20,13 @@ export function useAuth() {
     try {
       console.debug('[Auth] Fetching profile for userId:', userId.slice(0, 8) + '...');
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role, is_active')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const [profileRes, rolesRes] = await Promise.all([
+        supabase.from('profiles').select('is_active').eq('user_id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId),
+      ]);
+      const error = profileRes.error || rolesRes.error;
+      const data = profileRes.data;
+      const roles = (rolesRes.data || []).map((r: any) => r.role);
 
       if (error) {
         console.error('[Auth] Profile fetch error:', error);
@@ -42,8 +44,8 @@ export function useAuth() {
         return;
       }
 
-      // Validar role de forma segura
-      const userRole = data?.role ?? null;
+      // Validar role desde user_roles
+      const userRole = roles.includes('admin') ? 'admin' : (roles[0] ?? null);
       const isActive = data?.is_active ?? true;
 
       console.debug('[Auth] Profile loaded:', {

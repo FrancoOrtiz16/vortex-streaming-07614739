@@ -194,10 +194,13 @@ export type Database = {
       subscriptions: {
         Row: {
           created_at: string
-          email_cuenta: string | null
-          password_cuenta: string | null
+          credential_email: string | null
+          credential_password: string | null
           id: string
-          proxima_fecha: string | null
+          last_renewal: string
+          next_renewal: string
+          profile_name: string | null
+          profile_pin: string | null
           service_name: string
           status: string
           updated_at: string
@@ -205,10 +208,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email_cuenta?: string | null
-          password_cuenta?: string | null
+          credential_email?: string | null
+          credential_password?: string | null
           id?: string
-          proxima_fecha?: string | null
+          last_renewal?: string
+          next_renewal?: string
+          profile_name?: string | null
+          profile_pin?: string | null
           service_name: string
           status?: string
           updated_at?: string
@@ -216,10 +222,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          email_cuenta?: string | null
-          password_cuenta?: string | null
+          credential_email?: string | null
+          credential_password?: string | null
           id?: string
-          proxima_fecha?: string | null
+          last_renewal?: string
+          next_renewal?: string
+          profile_name?: string | null
+          profile_pin?: string | null
           service_name?: string
           status?: string
           updated_at?: string

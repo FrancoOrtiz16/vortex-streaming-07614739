@@ -185,12 +185,12 @@ const StandaloneCatalog: React.FC = () => {
 
   const fetchProducts = async (): Promise<Product[]> => {
     try {
-      console.debug('[StandaloneCatalog] Fetching products from Supabase');
+      console.debug('[StandaloneCatalog] Fetching from services');
       const { data, error: supabaseError } = await supabase
-        .from('products')
-        .select('id, name, price, image_url, description, category, badge, plan_type, orden_prioridad, is_available, group_name, image_scale')
+        .from('services')
+        .select('id, name, price, image_url, description, category, badge, plan_type, sort_order, is_available, group_name, image_scale')
         .eq('is_available', true)
-        .order('orden_prioridad', { ascending: true });
+        .order('sort_order', { ascending: true });
 
       if (supabaseError) throw supabaseError;
 
@@ -200,7 +200,7 @@ const StandaloneCatalog: React.FC = () => {
       }
 
       // Normalize
-      const normalized: Product[] = data.map((item: any) => ({
+      const normalized: Product[] = (data as any[]).map((item: any) => ({
         id: item.id || '',
         name: item.name || 'Sin nombre',
         description: item.description || '',
@@ -210,7 +210,7 @@ const StandaloneCatalog: React.FC = () => {
         image_scale: item.image_scale ?? 100,
         badge: item.badge ?? null,
         plan_type: item.plan_type ?? null,
-        orden_prioridad: item.orden_prioridad ?? 999,
+        orden_prioridad: item.sort_order ?? 999,
         is_available: item.is_available ?? true,
         group_name: item.group_name ?? null,
       }));
@@ -258,7 +258,7 @@ const StandaloneCatalog: React.FC = () => {
     // Realtime
     const channel = supabase
       .channel('standalone-catalog-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
         console.debug('[StandaloneCatalog] Realtime update');
         init();
       })
@@ -402,14 +402,17 @@ const StandaloneCatalog: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5 md:gap-3">
-            {grouped.map((item, i) => (
-              <ProductCard
-                key={item.key}
-                product={item.representative}
-                variants={item.variants}
-                index={i}
-              />
-            ))}
+            {grouped.map((item, i) => {
+              const toHookProduct = (p: Product) => ({ ...p, image: p.image_url });
+              return (
+                <ProductCard
+                  key={item.key}
+                  product={toHookProduct(item.representative) as any}
+                  variants={item.variants.map(toHookProduct) as any}
+                  index={i}
+                />
+              );
+            })}
           </div>
         )}
       </div>

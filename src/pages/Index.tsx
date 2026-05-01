@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
-import StandaloneCatalog from '@/components/StandaloneCatalog';
+import CatalogVault from '@/components/catalog/CatalogVault';
 import Footer from '@/components/Footer';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 import EmergencyErrorBoundary from '@/components/EmergencyErrorBoundary';
@@ -19,7 +19,7 @@ const Index = () => {
         
         <main className="flex-1">
           <HeroSection />
-          <StandaloneCatalog />
+          <CatalogVault />
         </main>
 
         <Suspense fallback={null}>

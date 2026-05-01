@@ -133,10 +133,7 @@ export function SubscriptionsSection() {
       if (credError) {
         console.error('[Admin] Credentials fetch error:', credError);
         toast.error('Error cargando credenciales');
-        setCredForm({
-          email: '',
-          password: '',
-        });
+        setCredForm({ email: '', password: '', perfil: '', pin: '' });
         return;
       }
 

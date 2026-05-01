@@ -8,20 +8,19 @@ export const useAdminSubscriptions = (searchTerm: string = '', filterStatus: str
   const fetchSubs = async () => {
     setLoading(true);
     try {
-      // Consulta segura Anti-PGRST204
+      // Esquema real: campos correctos de subscriptions y profiles
       let query = supabase
         .from('subscriptions')
         .select(`
-          id, 
-          user_id, 
-          service_name, 
-          email_cuenta, 
-          password_cuenta, 
-          perfil, 
-          pin, 
-          status, 
-          proxima_fecha,
-          profiles:user_id (email, full_name)
+          id,
+          user_id,
+          service_name,
+          credential_email,
+          credential_password,
+          profile_name,
+          profile_pin,
+          status,
+          next_renewal
         `);
 
       if (filterStatus) {
@@ -32,15 +31,28 @@ export const useAdminSubscriptions = (searchTerm: string = '', filterStatus: str
       if (error) throw error;
 
       // Filtro de búsqueda por cliente o servicio
+      // Lookup de perfiles aparte para evitar joins no soportados
+      const userIds = Array.from(new Set((data || []).map((s: any) => s.user_id).filter(Boolean)));
+      let profilesMap: Record<string, { email: string | null; display_name: string | null }> = {};
+      if (userIds.length) {
+        const { data: pData } = await supabase
+          .from('profiles')
+          .select('user_id, email, display_name')
+          .in('user_id', userIds as string[]);
+        (pData || []).forEach((p: any) => {
+          profilesMap[p.user_id] = { email: p.email, display_name: p.display_name };
+        });
+      }
+
       const term = searchTerm.toLowerCase();
-      const filtered = data?.filter(sub => {
-        const profile = sub.profiles as any;
+      const filtered = (data as any[] | null | undefined)?.filter((sub: any) => {
+        const profile = profilesMap[sub.user_id];
         return (
           sub.service_name?.toLowerCase().includes(term) ||
           profile?.email?.toLowerCase().includes(term) ||
-          profile?.full_name?.toLowerCase().includes(term)
+          profile?.display_name?.toLowerCase().includes(term)
         );
-      }) ?? [];
+      }).map((sub: any) => ({ ...sub, profiles: profilesMap[sub.user_id] || null })) ?? [];
 
       setSubscriptions(filtered);
     } catch (err) {

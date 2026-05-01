@@ -37,7 +37,7 @@ export function SalesSection() {
       }, 8000);
       
       const [{ data: subsData, error: subsError }, { data: servicesData, error: servicesError }] = await Promise.all([
-        supabase.from('subscriptions').select('id, user_id, service_name, email_cuenta, password_cuenta, status, proxima_fecha, created_at').order('created_at', { ascending: false }),
+        supabase.from('subscriptions').select('id, user_id, service_name, status, next_renewal, created_at').order('created_at', { ascending: false }),
         supabase.from('services').select('name, price'),
       ]);
 
@@ -45,7 +45,15 @@ export function SalesSection() {
 
       if (isMountedRef.current) {
         clearTimeout(timeoutId);
-        setSubscriptions((subsData as Subscription[]) || []);
+        const mapped = (subsData as any[] | null)?.map((s) => ({
+          id: s.id,
+          user_id: s.user_id,
+          service_name: s.service_name,
+          status: s.status,
+          created_at: s.created_at,
+          proxima_fecha: s.next_renewal,
+        })) || [];
+        setSubscriptions(mapped as Subscription[]);
       }
 
       const prices: ServicePrice = {};
