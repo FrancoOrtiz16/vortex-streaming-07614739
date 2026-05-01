@@ -22,7 +22,7 @@ export default function AdminSubscriptionsNew() {
       const [subsRes, profilesRes] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('id, user_id, service_name, status, next_renewal, last_renewal, credential_email, profile_name, profile_pin')
+          .select('id, user_id, service_name, status, next_renewal, last_renewal, credential_email, credential_password, profile_name, profile_pin')
           .order('created_at', { ascending: false }),
         supabase.from('profiles').select('user_id, display_name, email'),
       ]);
@@ -45,6 +45,7 @@ export default function AdminSubscriptionsNew() {
           next_renewal: s.next_renewal,
           last_renewal: s.last_renewal,
           credential_email: s.credential_email,
+          credential_password: s.credential_password,
           profile_name: s.profile_name,
           profile_pin: s.profile_pin,
           client_label: prof?.display_name || prof?.email || s.user_id?.slice(0, 8) || 'Desconocido',
@@ -112,6 +113,7 @@ export default function AdminSubscriptionsNew() {
               <TableHead>Última</TableHead>
               <TableHead>Próxima</TableHead>
               <TableHead>Semáforo</TableHead>
+              <TableHead>Contraseña</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>

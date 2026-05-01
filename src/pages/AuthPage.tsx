@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
+import { useAuth } from '@/hooks/useAuth';
 
 type AuthMode = 'login' | 'register';
 
@@ -14,7 +15,16 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (justLoggedIn && isAdmin !== undefined) {
+      navigate(isAdmin ? '/admin-access' : '/');
+      setJustLoggedIn(false);
+    }
+  }, [justLoggedIn, isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +46,7 @@ const AuthPage = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success('¡Bienvenido de vuelta!');
-        navigate('/');
+        setJustLoggedIn(true);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error de autenticación');

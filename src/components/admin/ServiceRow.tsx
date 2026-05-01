@@ -6,6 +6,7 @@ import { ExpiryBadge } from '@/components/ExpiryBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
+import PasswordViewer from './PasswordViewer';
 
 /**
  * ServiceRow — Fila independiente de servicio (Sandboxing).
@@ -21,6 +22,7 @@ export interface ServiceRowData {
   next_renewal: string | null;
   last_renewal: string | null;
   credential_email: string | null;
+  credential_password: string | null;
   profile_name: string | null;
   profile_pin: string | null;
   client_label: string;
@@ -63,7 +65,6 @@ const ServiceRow = ({ data, onChanged }: Props) => {
   const [busy, setBusy] = useState<'save' | 'confirm' | 'delete' | 'pay' | null>(null);
   const [form, setForm] = useState({
     credential_email: data.credential_email || '',
-    credential_password: '',
     profile_name: data.profile_name || '',
     profile_pin: data.profile_pin || '',
     next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
@@ -77,7 +78,6 @@ const ServiceRow = ({ data, onChanged }: Props) => {
         profile_name: form.profile_name || null,
         profile_pin: form.profile_pin || null,
       };
-      if (form.credential_password) payload.credential_password = form.credential_password;
       if (form.next_renewal) payload.next_renewal = new Date(form.next_renewal).toISOString();
       const { error } = await supabase.from('subscriptions').update(payload).eq('id', data.id);
       if (error) throw error;
@@ -153,6 +153,9 @@ const ServiceRow = ({ data, onChanged }: Props) => {
           <ExpiryBadge nextRenewal={data.next_renewal || ''} />
         </TableCell>
         <TableCell>
+          <PasswordViewer password={data.credential_password} />
+        </TableCell>
+        <TableCell>
           <div className="flex gap-1">
             <button onClick={() => setEditing((v) => !v)} title={editing ? 'Cancelar' : 'Editar'}
               className="p-1 text-primary hover:bg-primary/10 rounded">
@@ -183,9 +186,6 @@ const ServiceRow = ({ data, onChanged }: Props) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <input type="email" placeholder="Correo cuenta" value={form.credential_email}
                 onChange={(e) => setForm({ ...form, credential_email: e.target.value })}
-                className="rounded-xl border border-border bg-background px-3 py-2 text-sm" />
-              <input type="password" placeholder="Nueva contraseña" value={form.credential_password}
-                onChange={(e) => setForm({ ...form, credential_password: e.target.value })}
                 className="rounded-xl border border-border bg-background px-3 py-2 text-sm" />
               <input type="text" placeholder="Perfil" value={form.profile_name}
                 onChange={(e) => setForm({ ...form, profile_name: e.target.value })}
