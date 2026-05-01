@@ -51,13 +51,13 @@ export function useProducts() {
           }
         }, 3000);
 
-        console.debug('[useProducts] Fetching products from table: products');
+        console.debug('[useProducts] Fetching from table: services');
 
         const { data, error: supabaseError } = await supabase
-          .from('products')
-          .select('id, name, description, price, category, image_url, badge, plan_type, orden_prioridad, is_available, group_name, image_scale')
+          .from('services')
+          .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available, group_name, image_scale')
           .eq('is_available', true)
-          .order('orden_prioridad', { ascending: true });
+          .order('sort_order', { ascending: true });
 
         if (supabaseError) {
           console.error('[useProducts] Supabase error:', supabaseError);
@@ -75,7 +75,7 @@ export function useProducts() {
         }
 
         // Normalizar datos de manera segura con optional chaining
-        const normalized = (data as ServiceRow[] | null | undefined)?.map((item) => ({
+        const normalized = (data as any[] | null | undefined)?.map((item) => ({
           id: item?.id || '',
           name: item?.name || 'Producto sin nombre',
           description: item?.description || '',
@@ -84,7 +84,7 @@ export function useProducts() {
           image: item?.image_url || '/placeholder.png',
           badge: item?.badge ?? null,
           plan_type: item?.plan_type ?? null,
-          orden_prioridad: item?.orden_prioridad ?? null,
+          orden_prioridad: item?.sort_order ?? null,
           is_available: item?.is_available ?? true,
           group_name: item?.group_name ?? null,
           image_scale: item?.image_scale ?? 100,
@@ -106,10 +106,10 @@ export function useProducts() {
 
     // Realtime subscription
     const channel = supabase
-      .channel('services-products-realtime')
+      .channel('services-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
+        { event: '*', schema: 'public', table: 'services' },
         () => {
           console.debug('[useProducts] Realtime update detected, refetching...');
           fetchProducts();
