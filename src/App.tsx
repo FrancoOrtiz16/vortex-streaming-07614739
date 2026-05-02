@@ -6,14 +6,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
 import Index from "./pages/Index";
-import AuthPage from "./pages/AuthPage";
-import CartPage from "./pages/CartPage";
-import NotFound from "./pages/NotFound";
 import BannedGuard from "./components/BannedGuard";
 
 // Lazy load heavy components
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
 const AdminAccess = lazy(() => import("./pages/AdminAccess"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -59,8 +59,16 @@ const App = () => {
                 <BannedGuard>
                   <Routes>
                     <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<AuthPage />} />
-                    <Route path="/cart" element={<CartPage />} />
+                    <Route path="/auth" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                        <AuthPage />
+                      </Suspense>
+                    } />
+                    <Route path="/cart" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                        <CartPage />
+                      </Suspense>
+                    } />
                     <Route path="/dashboard" element={
                       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
                         <ClientDashboard />
@@ -71,7 +79,11 @@ const App = () => {
                         <AdminAccess />
                       </Suspense>
                     } />
-                    <Route path="*" element={<NotFound />} />
+                    <Route path="*" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                        <NotFound />
+                      </Suspense>
+                    } />
                   </Routes>
                 </BannedGuard>
               </BrowserRouter>
