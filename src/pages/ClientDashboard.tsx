@@ -76,15 +76,20 @@ const ClientDashboard = () => {
     if (!user?.id || !isMountedRef.current) return;
 
     setLoading(true);
+    // CORRECCIÓN 1: Timeout AGRESIVO de 2 segundos en lugar de 8 para NO bloquear la UI
     const timeoutId = setTimeout(() => {
-      if (isMountedRef.current) setLoading(false);
-    }, 8000);
+      if (isMountedRef.current) {
+        console.warn('[ClientDashboard] ⚠️ TIMEOUT DE SEGURIDAD: Forzando renderizado después de 2s');
+        setLoading(false);
+      }
+    }, 2000);
     console.debug('[ClientDashboard] Loading data for user:', user.id);
 
     try {
-      const [{ data: subsData, error: subsError }, servicesRes, ordersRes] = await Promise.all([
+      // CORRECCIÓN 2: LIMPIEZA QUIRÚRGICA - Eliminar lectura de tabla 'services'
+      // Solo obtener subscriptions (sin combo_id ni subscription_code) y orders
+      const [{ data: subsData, error: subsError }, ordersRes] = await Promise.all([
         getUserSubscriptions(user.id),
-        supabase.from('services').select('id, name, price, image_url, plan_type, is_available').eq('is_available', true),
         supabase.from('orders').select('id, product_name, status, total, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
       ]);
 
@@ -100,7 +105,7 @@ const ClientDashboard = () => {
         setSubs((subsData as Subscription[]) || []);
       }
 
-      setServices((servicesRes.data as Service[]) || []);
+      // NO cargar services - se carga desde StandaloneCatalog que maneja mejor los errores
       setOrders((ordersRes.data as Order[]) || []);
 
       if (isMountedRef.current) clearTimeout(timeoutId);

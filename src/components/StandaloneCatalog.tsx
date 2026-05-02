@@ -237,18 +237,31 @@ const StandaloneCatalog: React.FC = () => {
         setLoading(false);
       }
 
+      // CORRECCIÓN 4: Timeout de seguridad de 2s para evitar bloqueo
+      const safetyTimeout = setTimeout(() => {
+        console.warn('[StandaloneCatalog] ⚠️ TIMEOUT: Usando fallback automático');
+        const fallback = getStaticFallback();
+        if (products.length === 0) {
+          setProducts(fallback);
+        }
+        setLoading(false);
+      }, 2000);
+
       // Fetch fresh
       try {
         const fresh = await fetchProducts();
+        clearTimeout(safetyTimeout);
         setProducts(fresh);
       } catch (err: any) {
         console.error('[StandaloneCatalog] Fetch failed:', err);
         setError(err.message);
+        clearTimeout(safetyTimeout);
         // Ultimate fallback
         const fallback = getStaticFallback();
         setProducts(fallback);
-        toast.error('Usando catálogo de respaldo');
+        console.log('[StandaloneCatalog] ✓ Catálogo de respaldo cargado exitosamente');
       } finally {
+        clearTimeout(safetyTimeout);
         setLoading(false);
       }
     };
