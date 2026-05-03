@@ -1,5 +1,6 @@
 import { Users, BarChart3, Package, CreditCard, LogOut, Shield, CalendarClock, ClipboardList, Boxes, Settings, Eye, Store } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
+import { useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -29,12 +30,11 @@ interface AdminSidebarProps {
 export function AdminSidebar({ onSignOut }: AdminSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  const navigate = useNavigate();
 
   const handleViewStore = () => {
-    // Abre la tienda en nueva pestaña con parámetro de previsualización
-    // Política Zero Cache: agrega timestamp para invalidar cualquier cache
-    const timestamp = Date.now();
-    window.open(`/?preview=admin&nocache=${timestamp}`, '_blank');
+    // Navega a la ruta del catálogo para modo observador
+    navigate('/catalog');
   };
 
   return (

@@ -13,6 +13,7 @@ const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
 const AdminAccess = lazy(() => import("./pages/AdminAccess"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const CartPage = lazy(() => import("./pages/CartPage"));
+const Catalog = lazy(() => import("./pages/Catalog"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -59,6 +60,11 @@ const App = () => {
                 <BannedGuard>
                   <Routes>
                     <Route path="/" element={<Index />} />
+                    <Route path="/catalog" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando catálogo...</div>}>
+                        <Catalog />
+                      </Suspense>
+                    } />
                     <Route path="/auth" element={
                       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
                         <AuthPage />
