@@ -94,9 +94,13 @@ const ServiceRow = ({ data, onChanged }: Props) => {
   const handleConfirm = async () => {
     setBusy('confirm');
     try {
-      const { error } = await supabase.from('subscriptions').update({ status: 'active' }).eq('id', data.id);
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ status: 'procesando_credenciales' })
+        .eq('id', data.id);
       if (error) throw error;
-      toast.success('Suscripción activada');
+      toast.success('Pago confirmado. Asigna las credenciales.');
+      setEditing(true);
       onChanged();
     } catch (err: any) {
       toast.error(err?.message || 'Error al confirmar');
@@ -168,9 +172,18 @@ const ServiceRow = ({ data, onChanged }: Props) => {
               </button>
             )}
             {(data.status === 'pending_approval' || data.status === 'procesando_credenciales') && (
-              <button onClick={handleConfirm} disabled={busy === 'confirm'} title="Activar"
-                className="p-1 text-emerald-400 hover:bg-emerald-500/10 rounded disabled:opacity-50">
-                {busy === 'confirm' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              <button
+                onClick={handleConfirm}
+                disabled={busy === 'confirm'}
+                title="Confirmar pago"
+                className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
+              >
+                {busy === 'confirm' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                )}
+                Confirmar Pago
               </button>
             )}
             <button onClick={handleDelete} disabled={busy === 'delete'} title="Eliminar"
