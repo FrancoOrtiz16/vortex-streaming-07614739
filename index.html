@@ -18,6 +18,26 @@
     <meta http-equiv="Last-Modified" content="0">
     <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    
+    <!-- 🛡️ CACHE-BUSTING SCRIPT - Previene bucles infinitos de carga -->
+    <script>
+      // Inyectar timestamp único para cache-busting de imports dinámicos
+      window.__CACHE_BUST_VERSION__ = Date.now().toString();
+      
+      // Prevenir caché persistente de archivos críticos en modo incógnito
+      if (navigator.maxTouchPoints !== undefined || /mobile|android|iphone/i.test(navigator.userAgent)) {
+        // En dispositivos móviles, forzar validación de caché
+        document.documentElement.setAttribute('data-cache-mode', 'strict');
+      }
+      
+      // Monitoreo de hilos de carga bloqueantes
+      const loadingStartTime = performance.now();
+      window.__LOADING_TIMEOUT__ = setTimeout(() => {
+        console.error('[CacheControl] ⏰ ALERTA: Página tomando more than 5 segundos para cargar');
+        console.error('[CacheControl] 🔍 Verificar console para bucles infinitos');
+      }, 5000);
+    </script>
 
     <!-- TODO: Update og:title to match your application name -->
     
