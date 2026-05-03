@@ -14,6 +14,7 @@ export default function AdminSubscriptionsNew() {
   const [rows, setRows] = useState<ServiceRowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'pending'>('all');
   const isMountedRef = useRef(true);
 
   const fetchAll = async () => {
@@ -69,12 +70,23 @@ export default function AdminSubscriptionsNew() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      r.client_label.toLowerCase().includes(q) ||
-      r.service_name.toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    let list = rows;
+    if (filter === 'pending') {
+      list = list.filter((r) => r.status === 'pending_approval' || r.status === 'procesando_credenciales');
+    }
+    if (q) {
+      list = list.filter((r) =>
+        r.client_label.toLowerCase().includes(q) ||
+        r.service_name.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [rows, search, filter]);
+
+  const pendingCount = useMemo(
+    () => rows.filter((r) => r.status === 'pending_approval' || r.status === 'procesando_credenciales').length,
+    [rows]
+  );
 
   if (loading) {
     return (
@@ -101,6 +113,34 @@ export default function AdminSubscriptionsNew() {
             className="w-full rounded-3xl border border-border bg-secondary/70 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-primary"
           />
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all ${
+            filter === 'all'
+              ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]'
+              : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+          }`}
+        >
+          Todas ({rows.length})
+        </button>
+        <button
+          onClick={() => setFilter('pending')}
+          className={`px-4 py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
+            filter === 'pending'
+              ? 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.35)]'
+              : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+          }`}
+        >
+          Confirmaciones Pendientes
+          {pendingCount > 0 && (
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px]">
+              {pendingCount}
+            </span>
+          )}
+        </button>
       </div>
 
       <div className="w-full overflow-x-auto rounded-3xl border border-white/10 bg-black/40">
