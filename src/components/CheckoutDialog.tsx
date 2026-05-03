@@ -10,20 +10,13 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { createSimpleBulkSubscriptions, updateSimpleSubscription } from '@/integrations/supabase/subscriptions-helpers';
+import PaymentMethods, { PaymentMethod as PMType } from '@/components/PaymentMethods';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
-
-interface PaymentMethod {
-  id: string;
-  method_name: string;
-  method_type: string;
-  account_info: string;
-  instructions: string | null;
-}
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -35,11 +28,9 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { items, total, subtotal, discount, clear } = useCart();
   const { rate, convertToVES } = useExchangeRate();
   const navigate = useNavigate();
-  const [methods, setMethods] = useState<PaymentMethod[]>([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,15 +42,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       setReceiptFile(null);
       setReceiptPreview(null);
       setReceiptUrl(null);
-      supabase
-        .from('payment_methods')
-        .select('id, method_name, method_type, account_info, instructions')
-        .eq('is_active', true)
-        .order('sort_order')
-        .then(({ data }) => {
-          setMethods((data as PaymentMethod[]) || []);
-          setLoading(false);
-        });
     }
   }, [open]);
 
@@ -184,8 +166,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
       // Step 3: Send WhatsApp & clear
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
-      const confirmedMethod = methods.find(m => m.id === selectedMethod);
-      const methodText = confirmedMethod ? ` usando ${confirmedMethod.method_name}` : '';
+      const methodText = selectedMethod ? ` usando ${selectedMethod.method_name}` : '';
       const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
       const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
       const whatsappUrl = getWhatsAppUrl(message);
@@ -203,8 +184,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     }
   };
 
-  const selected = methods.find(m => m.id === selectedMethod);
+  const selected = selectedMethod;
+  // Botón habilitado en cuanto hay método seleccionado; recordamos al usuario subir comprobante.
   const canSubmit = !!selectedMethod && !!receiptUrl && !submitting && !uploading;
+  const canPick = !!selectedMethod && !submitting;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,39 +202,15 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : methods.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            No hay métodos de pago configurados aún.
-          </p>
-        ) : !selectedMethod ? (
-          <div className="space-y-2">
-            {methods.map((m, i) => (
-              <motion.button
-                key={m.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => setSelectedMethod(m.id)}
-                className="w-full rounded-xl bg-secondary/60 border border-border p-4 text-left hover:border-primary/50 transition-all flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                  {m.method_name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-display font-semibold text-sm">{m.method_name}</p>
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{m.method_type}</p>
-                </div>
-              </motion.button>
-            ))}
-          </div>
+        {!selectedMethod ? (
+          <PaymentMethods
+            selectedId={null}
+            onSelect={(m) => setSelectedMethod(m)}
+          />
         ) : (
           <AnimatePresence mode="wait">
             <motion.div
-              key={selectedMethod}
+              key={selectedMethod.id}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
