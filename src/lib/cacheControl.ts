@@ -51,6 +51,9 @@ const OBSOLETE_COLUMNS = ['combo_id', 'subscription_code'];
 export function initializeCacheControl(): void {
   console.debug('[CacheControl] 🛡️ Inicializando Guardián de Caché...');
 
+  // Unregister Service Workers antiguos
+  unregisterServiceWorkers();
+
   const storedVersion = localStorage.getItem('app_version');
   const hasReloaded = sessionStorage.getItem('has_reloaded') === 'true';
 
@@ -264,6 +267,22 @@ export function forceCacheClear(): void {
     console.log('[CacheControl] ✅ Limpieza forzada completada');
   } else {
     console.warn('[CacheControl] ⚠️ Limpieza manual solo disponible en desarrollo');
+  }
+}
+
+/**
+ * Unregister todos los Service Workers registrados
+ */
+function unregisterServiceWorkers(): void {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(registration => {
+        console.debug('[CacheControl] 🗑️ Unregistering Service Worker:', registration.scope);
+        registration.unregister();
+      });
+    }).catch(error => {
+      console.error('[CacheControl] ❌ Error unregistering Service Workers:', error);
+    });
   }
 }
 
