@@ -64,17 +64,17 @@ export function useProducts() {
         setLoading(true);
         setError(null);
 
-        // CORRECCIÓN 1: Timeout de SEGURIDAD de 2 segundos - Fuerza renderizado incluso si Supabase falla
+        // CORRECCIÓN 1: Timeout de SEGURIDAD de 3 segundos - Fuerza renderizado incluso si Supabase falla
         loadTimeout = setTimeout(() => {
           if (isMounted) {
-            console.warn('[useProducts] ⚠️ FORZANDO RENDERIZADO: Timeout de 2s alcanzado.');
+            console.warn('[useProducts] ⚠️ FORZANDO RENDERIZADO: Timeout de 3s alcanzado.');
             setLoading(false);
             // Usar fallback para evitar pantalla en blanco
             if (products.length === 0) {
               setProducts(STATIC_FALLBACK);
             }
           }
-        }, 2000);
+        }, 3000);
 
         console.debug('[useProducts] Leyendo desde subscriptions (no services)');
 

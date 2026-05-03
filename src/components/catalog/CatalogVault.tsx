@@ -8,7 +8,7 @@ import { fallbackProducts, type FallbackProduct } from '@/data/fallbackProducts'
  * - No comparte estado global con el panel de administración.
  */
 
-const StandaloneCatalog = lazy(() => import('@/components/StandaloneCatalog'));
+const StandaloneCatalog = lazy(() => import('@/components/shop/StandaloneCatalog'));
 
 interface VaultState {
   hasError: boolean;

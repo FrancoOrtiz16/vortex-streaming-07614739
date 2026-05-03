@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import StandaloneCatalog from '@/components/StandaloneCatalog';
+import StandaloneCatalog from '@/components/shop/StandaloneCatalog';
 import EmergencyErrorBoundary from '@/components/EmergencyErrorBoundary';
 import { initializeCacheControl } from '@/lib/cacheControl';
 

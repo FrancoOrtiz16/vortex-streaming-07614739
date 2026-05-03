@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { createSimpleBulkSubscriptions, updateSimpleSubscription } from '@/integrations/supabase/subscriptions-helpers';
-import PaymentMethods, { PaymentMethod as PMType } from '@/components/PaymentMethods';
+import PaymentMethods, { PaymentMethod as PMType } from './PaymentMethods';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';

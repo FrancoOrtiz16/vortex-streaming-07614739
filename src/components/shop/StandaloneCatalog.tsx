@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { ProductCategory } from '@/data/products';
 import ProductCard from './ProductCard';
-import { AdminPreviewBar } from './AdminPreviewBar';
+import { AdminPreviewBar } from '../AdminPreviewBar';
 import { Tv, Gamepad2, LayoutGrid, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';

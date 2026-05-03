@@ -12,7 +12,7 @@ export interface PaymentMethod {
 }
 
 // Manual fallback methods (used if Supabase is slow or fails).
-// Only amount + service name are required upstream — no combo_id / subscription_code.
+// Only amount + service name are required upstream.
 const FALLBACK_METHODS: PaymentMethod[] = [
   {
     id: 'fallback-pago-movil',
