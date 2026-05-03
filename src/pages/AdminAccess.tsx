@@ -5,14 +5,13 @@ import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { UsersSection } from '@/components/admin/UsersSection';
-import { SalesSection } from '@/components/admin/SalesSection';
-import { ProductsSection } from '@/components/admin/ProductsSection';
-import { PaymentsSection } from '@/components/admin/PaymentsSection';
-import AdminSubscriptionsNew from '@/components/admin/AdminSubscriptionsNew';
-import { InventorySection } from '@/components/admin/InventorySection';
-import { SettingsSection } from '@/components/admin/SettingsSection';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AdminUsers } from '@/components/admin/AdminUsers';
+import { AdminSales } from '@/components/admin/AdminSales';
+import { AdminProducts } from '@/components/admin/AdminProducts';
+import { AdminPayments } from '@/components/admin/AdminPayments';
+import { AdminSubscriptions } from '@/components/admin/AdminSubscriptions';
+import { AdminInventory } from '@/components/admin/AdminInventory';
+import { AdminSettings } from '@/components/admin/AdminSettings';
 
 export default function AdminAccess() {
   const { user, loading, isAdmin, signOut } = useAuth();
@@ -56,13 +55,13 @@ export default function AdminAccess() {
           <main className="flex-1 p-6 overflow-y-auto">
             <Routes>
               <Route index element={<Navigate to="subscriptions" replace />} />
-              <Route path="users" element={<UsersSection />} />
-              <Route path="inventory" element={<InventorySection />} />
-              <Route path="subscriptions" element={<ErrorBoundary><AdminSubscriptionsNew /></ErrorBoundary>} />
-              <Route path="sales" element={<SalesSection />} />
-              <Route path="products" element={<ProductsSection />} />
-              <Route path="payments" element={<PaymentsSection />} />
-              <Route path="settings" element={<SettingsSection />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="inventory" element={<AdminInventory />} />
+              <Route path="subscriptions" element={<AdminSubscriptions />} />
+              <Route path="sales" element={<AdminSales />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Routes>
           </main>
         </div>

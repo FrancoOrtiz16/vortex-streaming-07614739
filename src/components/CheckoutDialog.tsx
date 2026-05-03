@@ -67,22 +67,41 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     setReceiptPreview(URL.createObjectURL(file));
 
     // Upload to storage
-    if (!user) return;
+    if (!user) {
+      toast.error('Debes iniciar sesión para subir el comprobante');
+      return;
+    }
+
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('receipts').upload(path, file);
-    if (error) {
-      toast.error('Error subiendo comprobante');
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError, data } = await supabase.storage.from('receipts').upload(path, file);
+      
+      if (uploadError) {
+        console.error('[Checkout] Upload error:', uploadError);
+        toast.error('Error subiendo comprobante');
+        setReceiptFile(null);
+        setReceiptPreview(null);
+        setUploading(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
+      if (!urlData?.publicUrl) {
+        throw new Error('No se pudo obtener la URL pública del comprobante');
+      }
+      
+      setReceiptUrl(urlData.publicUrl);
+      setUploading(false);
+      toast.success('Comprobante cargado correctamente');
+    } catch (err) {
+      console.error('[Checkout] File upload error:', err);
+      toast.error('Error al procesar el comprobante');
       setReceiptFile(null);
       setReceiptPreview(null);
       setUploading(false);
-      return;
     }
-    const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-    setReceiptUrl(urlData.publicUrl);
-    setUploading(false);
-    toast.success('Comprobante cargado');
   };
 
   const handleConfirm = async () => {
@@ -185,9 +204,15 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   };
 
   const selected = selectedMethod;
-  // Botón habilitado en cuanto hay método seleccionado; recordamos al usuario subir comprobante.
-  const canSubmit = !!selectedMethod && !!receiptUrl && !submitting && !uploading;
+  // El botón está habilitado cuando: hay método, hay comprobante, no está en proceso de envío ni carga
+  const canSubmit = !!(selectedMethod && receiptUrl && !submitting && !uploading);
   const canPick = !!selectedMethod && !submitting;
+
+  const buttonLabel = uploading 
+    ? 'Cargando comprobante...'
+    : !receiptUrl 
+    ? 'Sube el comprobante para continuar'
+    : 'Confirmar y enviar por WhatsApp';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -351,10 +376,12 @@ const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil
         >
           {submitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
+          ) : uploading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <MessageCircle className="w-4 h-4" />
           )}
-          {receiptUrl ? 'Confirmar y enviar por WhatsApp' : 'Sube el comprobante para continuar'}
+          {buttonLabel}
         </button>
       </DialogContent>
     </Dialog>

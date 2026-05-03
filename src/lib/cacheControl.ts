@@ -267,6 +267,52 @@ export function forceCacheClear(): void {
   }
 }
 
+/**
+ * Limpieza especializada para Admin Preview
+ * Limpia caché de catálogo pero mantiene autenticación de admin
+ * Evita conflictos de sesión y permite cambios en tiempo real
+ */
+export function clearCacheForAdminPreview(): void {
+  console.debug('[CacheControl] 🛡️ Limpiando caché para Admin Preview...');
+  
+  // Eliminar caché de catálogo específicamente
+  const cacheKeys = [
+    'standalone_catalog_cache',
+    'products_cache',
+    'services_cache',
+    'catalog_data',
+    'store_cache',
+  ];
+  
+  cacheKeys.forEach(key => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+    console.debug(`[CacheControl] 🗑️ Eliminado caché: ${key}`);
+  });
+  
+  // Marcar que estamos en modo preview para evitar conflictos
+  sessionStorage.setItem('admin_preview_mode', 'true');
+  sessionStorage.setItem('admin_preview_timestamp', Date.now().toString());
+  
+  console.log('[CacheControl] ✅ Caché de Admin Preview limpiado - Sesión de autenticación preservada');
+}
+
+/**
+ * Verifica si estamos en modo Admin Preview
+ */
+export function isAdminPreviewMode(): boolean {
+  return sessionStorage.getItem('admin_preview_mode') === 'true';
+}
+
+/**
+ * Limpia marcas de Admin Preview
+ */
+export function clearAdminPreviewMode(): void {
+  sessionStorage.removeItem('admin_preview_mode');
+  sessionStorage.removeItem('admin_preview_timestamp');
+  console.debug('[CacheControl] 🛡️ Modo Admin Preview finalizado');
+}
+
 // =============================================================================
 // 7. INICIALIZACIÓN AUTOMÁTICA
 // =============================================================================

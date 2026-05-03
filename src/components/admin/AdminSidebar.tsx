@@ -1,5 +1,7 @@
 import { Users, BarChart3, Package, CreditCard, LogOut, Shield, CalendarClock, ClipboardList, Boxes, Settings, Eye, Store } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
+import { clearCacheForAdminPreview } from '@/lib/cacheControl';
 import {
   Sidebar,
   SidebarContent,
@@ -29,12 +31,16 @@ interface AdminSidebarProps {
 export function AdminSidebar({ onSignOut }: AdminSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  const navigate = useNavigate();
 
   const handleViewStore = () => {
-    // Abre la tienda en nueva pestaña con parámetro de previsualización
-    // Política Zero Cache: agrega timestamp para invalidar cualquier cache
+    // Limpiar cache antes de acceder en modo admin preview
+    clearCacheForAdminPreview();
+    
+    // Navegar a la tienda en modo admin preview sin nueva pestaña
+    // Esto permite ver cambios en tiempo real sin conflictos de sesión
     const timestamp = Date.now();
-    window.open(`/?preview=admin&nocache=${timestamp}`, '_blank');
+    navigate(`/?preview=admin&nocache=${timestamp}`);
   };
 
   return (
@@ -73,11 +79,14 @@ export function AdminSidebar({ onSignOut }: AdminSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
+                <SidebarMenuButton 
                   onClick={handleViewStore}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
                   title="Ver Tienda"
-                />
+                >
+                  <Store className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span>Ver Tienda</span>}
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
