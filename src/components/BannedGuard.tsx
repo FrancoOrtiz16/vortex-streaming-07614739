@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import BannedScreen from './BannedScreen';
 import { motion } from 'framer-motion';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode } from 'react';
 
 interface BannedGuardProps {
   children: ReactNode;
@@ -9,22 +9,9 @@ interface BannedGuardProps {
 
 const BannedGuard = ({ children }: BannedGuardProps) => {
   const { isBanned, loading, user } = useAuth();
-  const [timedOut, setTimedOut] = useState(false);
-
-  // Timeout de seguridad: si useAuth tarda más de 10 segundos, forzar renderizado
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn('[BannedGuard] ⏰ Timeout de seguridad: useAuth tardó demasiado');
-        setTimedOut(true);
-      }
-    }, 10000);
-
-    return () => clearTimeout(timeoutId);
-  }, [loading]);
 
   // NUNCA devolver null - siempre mostrar algo
-  if (loading && !timedOut) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#030303]">
         <motion.div
@@ -36,18 +23,12 @@ const BannedGuard = ({ children }: BannedGuardProps) => {
     );
   }
 
-  // Si se alcanzó timeout o si ya no está cargando
-  if (timedOut || !loading) {
-    // Usuario baneado
-    if (user && isBanned) {
-      return <BannedScreen />;
-    }
-
-    // Permitido - renderizar children
-    return <>{children}</>;
+  // Usuario baneado
+  if (user && isBanned) {
+    return <BannedScreen />;
   }
 
-  // Fallback (nunca debería llegar aquí)
+  // Permitido - renderizar children
   return <>{children}</>;
 };
 

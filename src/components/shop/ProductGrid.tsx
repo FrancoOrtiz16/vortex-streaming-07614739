@@ -2,7 +2,6 @@ import { ElementType, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductCategory } from '@/data/products';
 import { useProducts, Product } from '@/hooks/useProducts';
-import { safeReload } from '@/lib/cacheControl'; // 🛡️ Protección anti-bucle
 import ProductCard from './ProductCard';
 import { Tv, Gamepad2, LayoutGrid, Loader2, AlertCircle } from 'lucide-react';
 
@@ -118,7 +117,7 @@ const ProductGrid = () => {
               {error}
             </p>
             <button
-              onClick={() => safeReload('Product grid error recovery')}
+              onClick={() => window.location.reload()}
               className="inline-block px-4 py-2 rounded-xl bg-amber-500 text-amber-50 text-sm font-semibold hover:bg-amber-600 transition-colors"
             >
               Reintentar

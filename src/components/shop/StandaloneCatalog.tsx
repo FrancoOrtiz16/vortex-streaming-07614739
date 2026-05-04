@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { safeReload } from '@/lib/cacheControl'; // 🛡️ Protección anti-bucle
 import type { ProductCategory } from '@/data/products';
 import ProductCard from './ProductCard';
 import { AdminPreviewBar } from '../AdminPreviewBar';
@@ -242,7 +241,7 @@ const StandaloneCatalog: React.FC = () => {
               <AlertCircle className="mx-auto h-8 w-8 text-amber-400 mb-4" />
               <h3 className="font-display font-semibold text-lg text-amber-300 mb-2">{error}</h3>
               <button
-                onClick={() => safeReload('Catalog error recovery')}
+                onClick={() => window.location.reload()}
                 className="inline-block px-4 py-2 rounded-xl bg-amber-500 text-amber-50 text-sm font-semibold hover:bg-amber-600"
               >
                 Reintentar
