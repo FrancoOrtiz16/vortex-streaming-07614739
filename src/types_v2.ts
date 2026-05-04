@@ -6,27 +6,27 @@ export interface Subscription {
   proxima_fecha?: string | null;
   created_at: string;
   updated_at: string;
-  email_cuenta?: string | null;
-  password_cuenta?: string | null;
-  perfil?: string | null;
-  pin?: string | null;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
 }
 
 export interface SubscriptionUpdatePayload {
-  email_cuenta?: string | null;
-  password_cuenta?: string | null;
-  perfil?: string | null;
-  pin?: string | null;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
   proxima_fecha?: string | null;
   status?: string;
 }
 
 export interface CredentialRecord {
   service_name?: string;
-  email_cuenta?: string | null;
-  password_cuenta?: string | null;
-  perfil?: string | null;
-  pin?: string | null;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
 }
 
 export interface OrderApprovalResult {

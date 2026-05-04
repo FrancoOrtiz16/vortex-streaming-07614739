@@ -94,12 +94,13 @@ const ServiceRow = ({ data, onChanged }: Props) => {
   const handleConfirm = async () => {
     setBusy('confirm');
     try {
+      const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const { error } = await supabase
         .from('subscriptions')
-        .update({ status: 'procesando_credenciales' })
+        .update({ status: 'active', next_renewal: nextRenewal })
         .eq('id', data.id);
       if (error) throw error;
-      toast.success('Pago confirmado. Asigna las credenciales.');
+      toast.success('Suscripción activada. Próxima renovación en 30 días.');
       setEditing(true);
       onChanged();
     } catch (err: any) {

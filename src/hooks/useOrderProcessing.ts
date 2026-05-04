@@ -23,10 +23,10 @@ export const useOrderProcessing = () => {
           status, 
           last_renewal, 
           next_renewal,
-          email_cuenta,
-          password_cuenta,
-          perfil,
-          pin,
+          credential_email,
+          credential_password,
+          profile_name,
+          profile_pin,
           created_at
         `)
         .order('created_at', { ascending: false });
@@ -45,7 +45,7 @@ export const useOrderProcessing = () => {
     return (
       sub.service_name?.toLowerCase().includes(searchLower) ||
       sub.user_id?.toLowerCase().includes(searchLower) ||
-      sub.email_cuenta?.toLowerCase().includes(searchLower)
+      sub.credential_email?.toLowerCase().includes(searchLower)
     );
   });
 
