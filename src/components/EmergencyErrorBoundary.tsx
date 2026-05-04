@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { safeReload } from '@/lib/cacheControl'; // 🛡️ Protección anti-bucle
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -56,7 +57,7 @@ export class EmergencyErrorBoundary extends React.Component<
       hasError: false,
       error: null,
     });
-    window.location.reload();
+    safeReload('Emergency error boundary reset');
   };
 
   render() {

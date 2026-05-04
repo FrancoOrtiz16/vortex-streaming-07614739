@@ -12,6 +12,71 @@
  */
 
 // =============================================================================
+// 0. RELOAD SEGURO (ANTI-BUCLE INFINITO)
+// =============================================================================
+
+/**
+ * 🔐 RECARGA SEGURA: Previene bucles infinitos de recarga
+ * Verifica si ya hemos recargado demasiadas veces y bloquea
+ * 
+ * @param reason - Razón de la recarga (para debugging)
+ */
+export function safeReload(reason: string = 'Unknown'): void {
+  const reloadKey = 'safe-reload-' + window.location.pathname;
+  const reloadCount = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
+
+  if (reloadCount >= 2) {
+    console.error('[CacheControl] 🚨 BLOQUEADO: Múltiples recargas detectadas');
+    console.error(`[CacheControl] Razón: ${reason}`);
+    console.error('[CacheControl] ⏹️ Recarga bloqueada para prevenir bucle infinito');
+
+    // Marcar que se intentó recargar pero fue bloqueado
+    sessionStorage.setItem(reloadKey + '-blocked', 'true');
+
+    // Mostrar error elegante en consola
+    console.warn('[CacheControl] 💡 SOLUCIÓN: Ejecutar en DevTools:');
+    console.warn('[CacheControl] sessionStorage.clear(); location.reload();');
+    return;
+  }
+
+  // Incrementar contador
+  sessionStorage.setItem(reloadKey, (reloadCount + 1).toString());
+
+  // Auto-limpiar contador después de 30 segundos
+  setTimeout(() => {
+    sessionStorage.removeItem(reloadKey);
+  }, 30000);
+
+  console.warn(`[CacheControl] 🔄 Recarga Segura #${reloadCount + 1}: ${reason}`);
+  window.location.reload();
+}
+
+/**
+ * 🔐 RECARGA CON CACHE-BUST: Recarga sin usar caché del navegador
+ * 
+ * @param reason - Razón de la recarga
+ */
+export function safeReloadNoCachePreserveAuth(reason: string = 'Unknown'): void {
+  const reloadKey = 'safe-reload-' + window.location.pathname;
+  const reloadCount = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
+
+  if (reloadCount >= 2) {
+    console.error('[CacheControl] 🚨 BLOQUEADO: Múltiples recargas detectadas');
+    return;
+  }
+
+  sessionStorage.setItem(reloadKey, (reloadCount + 1).toString());
+
+  console.warn(`[CacheControl] 🔄 Recarga Sin Caché #${reloadCount + 1}: ${reason}`);
+
+  // Agregar parámetro de cache-bust
+  const separator = window.location.search ? '&' : '?';
+  const newUrl = window.location.href + separator + 'cache-bust=' + Date.now();
+
+  window.location.href = newUrl;
+}
+
+// =============================================================================
 // 1. CONFIGURACIÓN DE VERSIÓN Y CONSTANTES
 // =============================================================================
 
@@ -72,8 +137,8 @@ export function initializeCacheControl(): void {
 
     console.log('[CacheControl] ✅ Limpieza completada - Recargando página...');
 
-    // Recarga suave para aplicar cambios
-    window.location.reload();
+    // Usar safeReload en vez de window.location.reload()
+    safeReload('Version mismatch detected');
     return;
   }
 
@@ -230,7 +295,156 @@ export function safeSupabaseQuery<T>(
 }
 
 // =============================================================================
-// 6. UTILIDADES PARA DESARROLLADORES
+// 6. SISTEMA AUTO-CLEAR CON DETECCIÓN DE BLOQUEO (5 segundos)
+// =============================================================================
+
+/**
+ * 🚨 FUNCIÓN CRÍTICA: Detecta bloqueo de renderizado y ejecuta limpieza profunda
+ * Si el componente principal no carga en 5 segundos, activa automáticamente
+ * 
+ * @param timeoutMs - Tiempo máximo de espera en milisegundos (default: 5000)
+ * @param onBlockDetected - Callback cuando se detecta bloqueo
+ */
+export function setupLoadingBlockDetector(
+  timeoutMs: number = 5000,
+  onBlockDetected?: (recovered: boolean) => void
+): () => void {
+  let timeoutId: number | null = null;
+  let blockDetected = false;
+
+  const detectBlock = () => {
+    if (!blockDetected) {
+      blockDetected = true;
+      console.error('[CacheControl] 🚨 BLOQUEO DETECTADO: Componente principal no se renderizó en', timeoutMs, 'ms');
+      console.error('[CacheControl] 🔧 Iniciando Auto-Clear profundo...');
+
+      // Ejecutar Deep Clean automáticamente
+      const recovered = executeDeepClean();
+
+      // Callback opcional
+      if (onBlockDetected) {
+        onBlockDetected(recovered);
+      }
+    }
+  };
+
+  // Iniciar timeout
+  timeoutId = setTimeout(detectBlock, timeoutMs) as any;
+
+  // Retornar función para limpiar el detector cuando se renderize exitosamente
+  return () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      console.debug('[CacheControl] ✅ Bloqueo no detectado - Aplicación cargó correctamente');
+    }
+  };
+}
+
+/**
+ * 🔧 LIMPIEZA PROFUNDA: Método agresivo cuando el renderizado está completamente bloqueado
+ * 
+ * Limpia:
+ * - localStorage (excepto whitelist)
+ * - sessionStorage (excepto whitelist) 
+ * - Service Worker cache
+ * - IndexedDB
+ * - Cookies antiguas
+ * 
+ * @returns true si la limpieza fue exitosa
+ */
+export function executeDeepClean(): boolean {
+  try {
+    console.warn('[CacheControl] 💎 EJECUTANDO DEEP CLEAN...');
+
+    // 1. Limpiar localStorage
+    const localKeys = Object.keys(localStorage);
+    localKeys.forEach(key => {
+      if (!isWhitelisted(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+    console.debug('[CacheControl] ✅ localStorage limpiado');
+
+    // 2. Limpiar sessionStorage
+    const sessionKeys = Object.keys(sessionStorage);
+    sessionKeys.forEach(key => {
+      if (!isWhitelisted(key)) {
+        sessionStorage.removeItem(key);
+      }
+    });
+    console.debug('[CacheControl] ✅ sessionStorage limpiado');
+
+    // 3. Limpiar cache de Service Workers
+    if ('caches' in window) {
+      caches.keys().then(cacheNames => {
+        cacheNames.forEach(cacheName => {
+          caches.delete(cacheName);
+        });
+      });
+      console.debug('[CacheControl] ✅ Service Worker cache limpiado');
+    }
+
+    // 4. Limpiar IndexedDB
+    if ('indexedDB' in window) {
+      const dbs = indexedDB.databases ? indexedDB.databases() : null;
+      if (dbs) {
+        Promise.resolve(dbs).then(dbList => {
+          dbList.forEach(db => {
+            if (db.name) {
+              indexedDB.deleteDatabase(db.name);
+            }
+          });
+        });
+      }
+      console.debug('[CacheControl] ✅ IndexedDB limpiado');
+    }
+
+    // 5. Marcar en sessionStorage que se ejecutó deep clean
+    sessionStorage.setItem('deep-clean-executed', Date.now().toString());
+    sessionStorage.setItem('deep-clean-recovered', 'true');
+
+    console.warn('[CacheControl] 💎 DEEP CLEAN COMPLETADO - Requiere recarga');
+    return true;
+  } catch (err) {
+    console.error('[CacheControl] ❌ Error en Deep Clean:', err);
+    return false;
+  }
+}
+
+/**
+ * 🔐 Función que retorna true si ya se ejecutó Deep Clean
+ * Previene que se bloquee nuevamente
+ */
+export function hasDeepCleanBeenExecuted(): boolean {
+  return sessionStorage.getItem('deep-clean-executed') !== null;
+}
+
+/**
+ * 🎯 Crea un componente que muestra el botón "Deep Clean" manual
+ * Solo se muestra después de un segundo intento fallido
+ * 
+ * @returns HTML string con el botón o null
+ */
+export function getDeepCleanRecoveryUI(): { show: boolean; message: string } {
+  const deepCleanExecuted = hasDeepCleanBeenExecuted();
+  const recovered = sessionStorage.getItem('deep-clean-recovered') === 'true';
+
+  if (!deepCleanExecuted) {
+    return { show: false, message: '' };
+  }
+
+  if (recovered && deepCleanExecuted) {
+    return {
+      show: true,
+      message: 'Se ejecutó Limpieza Profunda. Si el problema persiste, haz clic en "Limpieza Profunda y Reintentar"',
+    };
+  }
+
+  return { show: false, message: '' };
+}
+
+// =============================================================================
+// 7. UTILIDADES PARA DESARROLLADORES
 // =============================================================================
 
 /**
@@ -243,6 +457,7 @@ export function getCacheStatus(): {
   localStorageKeys: number;
   sessionStorageKeys: number;
   whitelistedKeys: string[];
+  deepCleanExecuted: boolean;
 } {
   return {
     version: APP_VERSION,
@@ -250,7 +465,8 @@ export function getCacheStatus(): {
     hasReloaded: sessionStorage.getItem('has_reloaded') === 'true',
     localStorageKeys: Object.keys(localStorage).length,
     sessionStorageKeys: Object.keys(sessionStorage).length,
-    whitelistedKeys: Object.keys(localStorage).filter(isWhitelisted)
+    whitelistedKeys: Object.keys(localStorage).filter(isWhitelisted),
+    deepCleanExecuted: hasDeepCleanBeenExecuted(),
   };
 }
 

@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
+import LoadingBlockGuard from "./components/LoadingBlockGuard"; // 🛡️ NUEVO: Detector de bloqueo de 5s
 import Index from "./pages/Index";
 import BannedGuard from "./components/BannedGuard";
 
@@ -30,54 +31,55 @@ const App = () => {
   }));
 
   return (
-    <EmergencyErrorBoundary level="page">
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <div className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
-            <div className="absolute inset-0 app-background-layer" />
-            <div className="absolute inset-0 pointer-events-none">
-              {particles.map(particle => (
-                <span
-                  key={particle.id}
-                  className="particle"
-                  style={{
-                    top: particle.top,
-                    left: particle.left,
-                    width: particle.size,
-                    height: particle.size,
-                    animationDuration: particle.duration,
-                    animationDelay: particle.delay,
-                    opacity: particle.opacity,
-                  }}
-                />
-              ))}
-            </div>
+    <LoadingBlockGuard timeoutMs={5000}>
+      <EmergencyErrorBoundary level="page">
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <div className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
+              <div className="absolute inset-0 app-background-layer" />
+              <div className="absolute inset-0 pointer-events-none">
+                {particles.map(particle => (
+                  <span
+                    key={particle.id}
+                    className="particle"
+                    style={{
+                      top: particle.top,
+                      left: particle.left,
+                      width: particle.size,
+                      height: particle.size,
+                      animationDuration: particle.duration,
+                      animationDelay: particle.delay,
+                      opacity: particle.opacity,
+                    }}
+                  />
+                ))}
+              </div>
 
-            <div className="relative z-10">
-              <BrowserRouter>
-                <BannedGuard>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/catalog" element={
-                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando catálogo...</div>}>
-                        <Catalog />
-                      </Suspense>
-                    } />
-                    <Route path="/auth" element={
-                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
-                        <AuthPage />
-                      </Suspense>
-                    } />
-                    <Route path="/cart" element={
-                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
-                        <CartPage />
-                      </Suspense>
-                    } />
-                    <Route path="/dashboard" element={
-                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
-                        <ClientDashboard />
+              <div className="relative z-10">
+                <BrowserRouter>
+                  <BannedGuard>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/catalog" element={
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando catálogo...</div>}>
+                          <Catalog />
+                        </Suspense>
+                      } />
+                      <Route path="/auth" element={
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                          <AuthPage />
+                        </Suspense>
+                      } />
+                      <Route path="/cart" element={
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                          <CartPage />
+                        </Suspense>
+                      } />
+                      <Route path="/dashboard" element={
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+                          <ClientDashboard />
                       </Suspense>
                     } />
                     <Route path="/admin-access/*" element={
@@ -98,6 +100,7 @@ const App = () => {
         </TooltipProvider>
       </QueryClientProvider>
     </EmergencyErrorBoundary>
+    </LoadingBlockGuard>
   );
 };
 
