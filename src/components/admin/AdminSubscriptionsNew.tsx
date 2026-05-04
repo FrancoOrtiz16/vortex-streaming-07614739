@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Loader2, Plus } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ServiceRow, { type ServiceRowData } from './ServiceRow';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { createSimpleSubscription } from '@/integrations/supabase/subscriptions-helpers';
-import { fallbackProducts } from '@/data/fallbackProducts';
 
 /**
  * AdminSubscriptionsNew — Vista en tabla con filas independientes (Sandboxing).
@@ -18,18 +15,6 @@ export default function AdminSubscriptionsNew() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({
-    user_email: '',
-    service_name: '',
-    start_date: '',
-    end_date: '',
-    credential_email: '',
-    credential_password: '',
-    profile_name: '',
-    profile_pin: '',
-    status: 'active' as 'active' | 'expired'
-  });
   const isMountedRef = useRef(true);
 
   const fetchAll = async () => {
@@ -103,53 +88,6 @@ export default function AdminSubscriptionsNew() {
     [rows]
   );
 
-  const handleAddSubscription = async () => {
-    try {
-      // Find user by email
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', addForm.user_email)
-        .single();
-
-      if (userError || !userData) {
-        toast.error('Usuario no encontrado con ese email');
-        return;
-      }
-
-      const payload = {
-        user_id: userData.user_id,
-        service_name: addForm.service_name,
-        status: addForm.status,
-        proxima_fecha: addForm.end_date ? new Date(addForm.end_date).toISOString() : null,
-        credential_email: addForm.credential_email || null,
-        credential_password: addForm.credential_password || null,
-        profile_name: addForm.profile_name || null,
-        profile_pin: addForm.profile_pin || null,
-      };
-
-      const { error } = await createSimpleSubscription(payload);
-      if (error) throw error;
-
-      toast.success('Suscripción añadida');
-      setShowAddModal(false);
-      setAddForm({
-        user_email: '',
-        service_name: '',
-        start_date: '',
-        end_date: '',
-        credential_email: '',
-        credential_password: '',
-        profile_name: '',
-        profile_pin: '',
-        status: 'active'
-      });
-      fetchAll();
-    } catch (err: any) {
-      toast.error(err?.message || 'Error al añadir suscripción');
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -166,23 +104,14 @@ export default function AdminSubscriptionsNew() {
           <h1 className="font-display text-2xl font-bold text-white">Gestión de suscripciones</h1>
           <p className="text-sm text-slate-400 mt-2">Cada fila es independiente. Edita, confirma o elimina sin afectar a las demás.</p>
         </div>
-        <div className="flex gap-4 items-center">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Añadir Suscripción
-          </button>
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por cliente o servicio..."
-              className="w-full rounded-3xl border border-border bg-secondary/70 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-primary"
-            />
-          </div>
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por cliente o servicio..."
+            className="w-full rounded-3xl border border-border bg-secondary/70 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-primary"
+          />
         </div>
       </div>
 
@@ -240,107 +169,6 @@ export default function AdminSubscriptionsNew() {
           </div>
         )}
       </div>
-
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="glass border-border sm:rounded-2xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-lg flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
-              Añadir Suscripción Manual
-            </DialogTitle>
-            <DialogDescription>
-              Registra un cliente desde cero con sus credenciales.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <input
-              type="email"
-              placeholder="Email del cliente"
-              value={addForm.user_email}
-              onChange={(e) => setAddForm({ ...addForm, user_email: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            />
-            <select
-              value={addForm.service_name}
-              onChange={(e) => setAddForm({ ...addForm, service_name: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Seleccionar servicio</option>
-              {fallbackProducts.map((product) => (
-                <option key={product.id} value={product.name}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="date"
-                placeholder="Fecha inicio"
-                value={addForm.start_date}
-                onChange={(e) => setAddForm({ ...addForm, start_date: e.target.value })}
-                className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
-              />
-              <input
-                type="date"
-                placeholder="Fecha vencimiento"
-                value={addForm.end_date}
-                onChange={(e) => setAddForm({ ...addForm, end_date: e.target.value })}
-                className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <input
-              type="email"
-              placeholder="Correo cuenta"
-              value={addForm.credential_email}
-              onChange={(e) => setAddForm({ ...addForm, credential_email: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              type="password"
-              placeholder="Contraseña cuenta"
-              value={addForm.credential_password}
-              onChange={(e) => setAddForm({ ...addForm, credential_password: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              type="text"
-              placeholder="Perfil"
-              value={addForm.profile_name}
-              onChange={(e) => setAddForm({ ...addForm, profile_name: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              type="text"
-              placeholder="PIN"
-              value={addForm.profile_pin}
-              onChange={(e) => setAddForm({ ...addForm, profile_pin: e.target.value })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            />
-            <select
-              value={addForm.status}
-              onChange={(e) => setAddForm({ ...addForm, status: e.target.value as 'active' | 'expired' })}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            >
-              <option value="active">Activo</option>
-              <option value="expired">Vencido</option>
-            </select>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddSubscription}
-                className="flex-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90"
-              >
-                Añadir Suscripción
-              </button>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

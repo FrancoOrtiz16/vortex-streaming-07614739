@@ -164,15 +164,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         }
       }
 
-      // Insert new subscriptions
-      if (subscriptions.length > 0) {
-        const { error: subsError } = await createSimpleBulkSubscriptions(subscriptions);
-        if (subsError) {
-          throw new Error(`Subscription creation error: ${subsError.message}`);
-        }
-        console.debug('[Checkout] Subscriptions created:', subscriptions.length);
-      }
-
       // Step 3: Send WhatsApp & clear
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
       const methodText = selectedMethod ? ` usando ${selectedMethod.method_name}` : '';

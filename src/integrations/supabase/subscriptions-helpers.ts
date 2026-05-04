@@ -20,10 +20,10 @@ import { supabase } from './client';
 export interface SimpleSubscriptionPayload {
   user_id: string;
   service_name: string;
-  credential_email?: string | null;
-  credential_password?: string | null;
-  profile_name?: string | null;
-  profile_pin?: string | null;
+  email_cuenta?: string | null;
+  password_cuenta?: string | null;
+  perfil?: string | null;
+  pin?: string | null;
   status?: string;
   proxima_fecha?: string; // alias interno → next_renewal
 }
@@ -31,10 +31,10 @@ export interface SimpleSubscriptionPayload {
 export interface SimpleSubscriptionUpdatePayload {
   status?: string;
   proxima_fecha?: string;
-  credential_email?: string | null;
-  credential_password?: string | null;
-  profile_name?: string | null;
-  profile_pin?: string | null;
+  email_cuenta?: string | null;
+  password_cuenta?: string | null;
+  perfil?: string | null;
+  pin?: string | null;
 }
 
 function logPGRST204Error(error: any, payload: Record<string, unknown> | Record<string, unknown>[]) {
@@ -58,10 +58,10 @@ function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
   if (p.service_name !== undefined) real.service_name = p.service_name;
   if (p.status !== undefined) real.status = p.status;
   if (p.proxima_fecha !== undefined) real.next_renewal = p.proxima_fecha;
-  if (p.credential_email !== undefined) real.credential_email = p.credential_email;
-  if (p.credential_password !== undefined) real.credential_password = p.credential_password;
-  if (p.profile_name !== undefined) real.profile_name = p.profile_name;
-  if (p.profile_pin !== undefined) real.profile_pin = p.profile_pin;
+  if (p.email_cuenta !== undefined) real.credential_email = p.email_cuenta;
+  if (p.password_cuenta !== undefined) real.credential_password = p.password_cuenta;
+  if (p.perfil !== undefined) real.profile_name = p.perfil;
+  if (p.pin !== undefined) real.profile_pin = p.pin;
   return real;
 }
 
