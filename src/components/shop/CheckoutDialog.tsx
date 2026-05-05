@@ -140,7 +140,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           subscriptions.push({
             user_id: user.id,
             service_name: item.product.name,
-            status: 'pending_approval',
+            status: 'Pendiente de Pago',
             proxima_fecha: nextRenewal,
           });
         }

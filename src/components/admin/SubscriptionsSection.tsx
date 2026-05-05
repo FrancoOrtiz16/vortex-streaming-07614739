@@ -45,7 +45,16 @@ export function SubscriptionsSection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ order_id: '', days: 30 });
+  const [form, setForm] = useState({ 
+    clientName: '', 
+    serviceName: '', 
+    startDate: '', 
+    expiryDate: '', 
+    email: '', 
+    password: '', 
+    profile: '', 
+    pin: '' 
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', perfil: '', pin: '' });
@@ -54,15 +63,18 @@ export function SubscriptionsSection() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [services, setServices] = useState<any[]>([]);
   const isMountedRef = useRef(true);
 
   const fetchData = async () => {
     try {
       console.debug('[Admin] Fetching all subscriptions and pending orders');
-      const [{ data: subsData, error: subsError }, profilesRes, ordersRes] = await Promise.all([
+      const [{ data: subsData, error: subsError }, profilesRes, ordersRes, servicesRes] = await Promise.all([
         getAllSubscriptionsAdmin(),
         supabase.from('profiles').select('id, user_id, display_name, email'),
         supabase.from('orders').select('id, user_id, customer_email, product_name, total, status, created_at, expiry_date').eq('status', 'procesando_credenciales'),
+        supabase.from('services').select('id, name').eq('is_available', true),
       ]);
 
       if (subsError) {
@@ -89,11 +101,20 @@ export function SubscriptionsSection() {
         }
       }
 
+      if (servicesRes.error) {
+        console.error('[Admin] Services fetch error:', servicesRes.error);
+        if (isMountedRef.current) {
+          setServices([]);
+        }
+      }
+
       const profilesList = profilesRes.data || [];
       const pendingOrdersList = ordersRes.data || [];
+      const servicesList = servicesRes.data || [];
       if (isMountedRef.current) {
         setProfiles(profilesList);
         setPendingOrders(pendingOrdersList);
+        setServices(servicesList);
       }
 
       const subsWithProfiles = (subsData || []).map((s: any) => ({
@@ -234,61 +255,63 @@ export function SubscriptionsSection() {
     }
   };
 
-  const addManualRecord = async () => {
-    if (!form.order_id) {
-      toast.error('Selecciona un pedido pendiente');
-      return;
+  const handleApprovePayment = async (subId: string) => {
+    setConfirming(subId);
+    try {
+      const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { error } = await updateSimpleSubscriptionStatus(subId, 'Activo', nextRenewal);
+      if (error) throw error;
+      toast.success('Pago aprobado. Suscripción activada.');
+      fetchData();
+    } catch (err: any) {
+      console.error('[Admin] approve error:', err);
+      toast.error('Error aprobando pago');
+    } finally {
+      setConfirming(null);
     }
+  };
 
-    const selectedOrder = pendingOrders.find(o => o.id === form.order_id);
-    if (!selectedOrder) {
-      toast.error('Pedido no encontrado');
+  const addManualRecord = async () => {
+    if (!form.clientName || !form.serviceName || !form.startDate || !form.expiryDate) {
+      toast.error('Completa todos los campos obligatorios');
       return;
     }
 
     try {
-      console.debug('[Admin] Creating subscription from order:', selectedOrder.id);
+      console.debug('[Admin] Creating manual subscription');
 
-      const now = new Date();
-      const nextRenewal = new Date(now.getTime() + form.days * 24 * 60 * 60 * 1000).toISOString();
+      const payload = {
+        user_id: null, // Para clientes externos, no hay user_id
+        service_name: form.serviceName,
+        status: 'Activo',
+        next_renewal: new Date(form.expiryDate).toISOString(),
+        credential_email: form.email || null,
+        credential_password: form.password || null,
+        profile_name: form.profile || null,
+        profile_pin: form.pin || null,
+        // Nota: Para clientes externos, podríamos necesitar campos adicionales en la tabla
+      };
 
-      // Check if it's a combo (contains '+')
-      const isCombo = selectedOrder.product_name.includes('+');
-      const services = isCombo 
-        ? selectedOrder.product_name.split('+').map(s => s.trim())
-        : [selectedOrder.product_name];
+      const { error } = await supabase.from('subscriptions').insert([payload]);
 
-      const payloads = services.map(service => ({
-        user_id: selectedOrder.user_id,
-        service_name: service,
-        status: 'procesando_credenciales',
-        next_renewal: nextRenewal,
-      }));
+      if (error) throw error;
 
-      const { error } = await supabase.from('subscriptions').insert(payloads);
-
-      if (error) {
-        if (error.code === 'PGRST204') {
-          console.error('[Admin] PGRST204 schema cache error, insert payload keys:', Object.keys(payloads[0]));
-          console.error('[Admin] PGRST204 details:', error);
-        }
-        throw error;
-      }
-
-      toast.success(`✅ ${isCombo ? 'Suscripciones creadas' : 'Suscripción creada'} — pendiente de credenciales`);
+      toast.success('Suscripción manual creada');
       setShowAdd(false);
-      setForm({ order_id: '', days: 30 });
+      setForm({ clientName: '', serviceName: '', startDate: '', expiryDate: '', email: '', password: '', profile: '', pin: '' });
       fetchData();
     } catch (err: any) {
       console.error('[Admin] addManualRecord error:', err);
-      toast.error(`❌ ${err.message || 'Error al crear suscripción'}`);
+      toast.error(`Error: ${err.message || 'Error al crear suscripción'}`);
     }
   };
 
   const statusColor = (status: string) => {
     switch (status) {
+      case 'Activo': return 'bg-emerald-500/20 text-emerald-400';
       case 'active': return 'bg-emerald-500/20 text-emerald-400';
       case 'confirmed': return 'bg-emerald-500/20 text-emerald-400';
+      case 'Pendiente de Pago': return 'bg-amber-500/20 text-amber-400';
       case 'expired': return 'bg-destructive/20 text-destructive';
       case 'pending_approval': return 'bg-amber-500/20 text-amber-400';
       case 'procesando_credenciales': return 'bg-blue-500/20 text-blue-400';
@@ -298,8 +321,10 @@ export function SubscriptionsSection() {
 
   const statusLabel = (status: string) => {
     switch (status) {
+      case 'Activo': return 'Activo';
       case 'active': return 'Activo';
       case 'confirmed': return 'Confirmado';
+      case 'Pendiente de Pago': return 'Pendiente de Pago';
       case 'expired': return 'Vencido';
       case 'pending_approval': return 'Pendiente';
       case 'procesando_credenciales': return 'Pendiente de Credenciales';
@@ -309,13 +334,19 @@ export function SubscriptionsSection() {
 
   // Intelligent search filter
   const filteredSubs = useMemo(() => {
-    if (!searchQuery.trim()) return subs;
+    let filtered = subs;
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(sub => sub.status === statusFilter);
+    }
+    
+    if (!searchQuery.trim()) return filtered;
     
     const query = searchQuery.toLowerCase().trim();
-    return subs.filter(sub => {
-const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_id || '').toLowerCase();
-        const serviceName = (sub.service_name || '').toLowerCase();
-        const uniqueId = `vortex-${sub.id?.slice(0, 8) || 'unknown'}`.toLowerCase();
+    return filtered.filter(sub => {
+      const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_id || '').toLowerCase();
+      const serviceName = (sub.service_name || '').toLowerCase();
+      const uniqueId = `vortex-${sub.id?.slice(0, 8) || 'unknown'}`.toLowerCase();
       
       return (
         clientName.includes(query) ||
@@ -323,7 +354,7 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
         uniqueId.includes(query)
       );
     });
-  }, [subs, searchQuery]);
+  }, [subs, searchQuery, statusFilter]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
 
@@ -347,7 +378,7 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
         >
           <Plus className="w-3.5 h-3.5" />
-          Añadir
+          Nueva Suscripción Manual
         </button>
       </div>
 
@@ -363,22 +394,122 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
         />
       </div>
 
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 mb-6 overflow-x-auto">
+        {[
+          { value: 'all', label: 'Todas' },
+          { value: 'Pendiente de Pago', label: 'Confirmaciones Pendientes' },
+          { value: 'Activo', label: 'Activas' },
+          { value: 'expired', label: 'Vencidas' },
+        ].map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setStatusFilter(tab.value)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
+              statusFilter === tab.value
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary/60 text-muted-foreground hover:bg-secondary'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {showAdd && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-semibold text-sm">Crear Suscripción desde Pedido</h3>
+            <h3 className="font-display font-semibold text-sm">Nueva Suscripción Manual</h3>
             <button onClick={() => setShowAdd(false)} className="p-1 rounded-lg hover:bg-secondary"><X className="w-4 h-4" /></button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Pedido Pendiente</label>
-              <select value={form.order_id} onChange={e => setForm(f => ({ ...f, order_id: e.target.value }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border">
-                <option value="">Seleccionar pedido...</option>
-                {pendingOrders?.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.product_name} - {o.customer_email} - ${Number(o.total).toFixed(2)} ({o.id.slice(0, 8)})
-                  </option>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre del Cliente</label>
+              <input
+                value={form.clientName}
+                onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Servicio</label>
+              <select
+                value={form.serviceName}
+                onChange={e => setForm(f => ({ ...f, serviceName: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+              >
+                <option value="">Seleccionar servicio...</option>
+                {services.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Fecha de Inicio</label>
+              <input
+                type="date"
+                value={form.startDate}
+                onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Fecha de Vencimiento</label>
+              <input
+                type="date"
+                value={form.expiryDate}
+                onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Usuario/Email</label>
+              <input
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+                placeholder="usuario@servicio.com"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Contraseña</label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+                placeholder="Contraseña del servicio"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Perfil (opcional)</label>
+              <input
+                value={form.profile}
+                onChange={e => setForm(f => ({ ...f, profile: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+                placeholder="Nombre del perfil"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">PIN (opcional)</label>
+              <input
+                value={form.pin}
+                onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border"
+                placeholder="PIN del perfil"
+              />
+            </div>
+          </div>
+          <button
+            onClick={addManualRecord}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Crear Suscripción
+          </button>
+        </motion.div>
+      )}
               </select>
             </div>
             <div>
@@ -437,6 +568,17 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
                               <Pencil className="w-3 h-3" />
                               Editar
                             </button>
+                            {s.status === 'Pendiente de Pago' && (
+                              <button
+                                onClick={() => handleApprovePayment(s.id)}
+                                disabled={confirming === s.id}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                                title="Aprobar Pago"
+                              >
+                                {confirming === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                Aprobar Pago
+                              </button>
+                            )}
                             {s.status === 'pending_approval' && (
                               <button
                                 onClick={() => confirmRenewal(s)}

@@ -14,17 +14,17 @@ export function ExpiryBadge({ nextRenewal, className }: ExpiryBadgeProps) {
   let color: string;
   let label: string;
 
-  if (daysLeft <= 0) {
+  if (daysLeft < 0) {
     color = 'bg-destructive/20 text-destructive';
     label = 'Vencido';
-  } else if (daysLeft <= 2) {
-    color = 'bg-destructive/20 text-destructive';
-    label = `Faltan ${daysLeft} día${daysLeft > 1 ? 's' : ''}`;
-  } else if (daysLeft <= 7) {
+  } else if (daysLeft <= 3) {
     color = 'bg-amber-500/20 text-amber-400';
+    label = `Faltan ${daysLeft} día${daysLeft > 1 ? 's' : ''}`;
+  } else if (daysLeft > 5) {
+    color = 'bg-emerald-500/20 text-emerald-400';
     label = `Faltan ${daysLeft} días`;
   } else {
-    color = 'bg-emerald-500/20 text-emerald-400';
+    color = 'bg-amber-500/20 text-amber-400';
     label = `Faltan ${daysLeft} días`;
   }
 
