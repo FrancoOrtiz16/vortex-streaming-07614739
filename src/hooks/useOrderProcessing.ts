@@ -13,7 +13,7 @@ export const useOrderProcessing = () => {
 
   const fetchAdminSubscriptions = useCallback(async () => {
     try {
-      // REGLA DE ORO: Solo campos existentes. Sin combo_id ni subscription_code.
+      // REGLA DE ORO: Solo campos existentes en subscriptions.
       const { data, error } = await supabase
         .from('subscriptions')
         .select(`
@@ -23,10 +23,10 @@ export const useOrderProcessing = () => {
           status, 
           last_renewal, 
           next_renewal,
-          email_cuenta,
-          password_cuenta,
-          perfil,
-          pin,
+          credential_email,
+          credential_password,
+          profile_name,
+          profile_pin,
           created_at
         `)
         .order('created_at', { ascending: false });
@@ -76,10 +76,10 @@ export const useOrderProcessing = () => {
           user_id: userId,
           service_name: serviceName,
           status: 'Pendiente',
-          email_cuenta: null,
-          password_cuenta: null,
-          perfil: null,
-          pin: null
+          credential_email: null,
+          credential_password: null,
+          profile_name: null,
+          profile_pin: null
         }]);
 
       if (subError) throw subError;
