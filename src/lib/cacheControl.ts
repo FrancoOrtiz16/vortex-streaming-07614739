@@ -16,10 +16,11 @@
 // =============================================================================
 
 /**
- * Versión de la aplicación basada en timestamp de despliegue
- * Esto asegura que cada despliegue tenga una versión única
+ * Versión de la aplicación. DEBE ser estable entre cargas (no Date.now()),
+ * de lo contrario se produce un bucle infinito de recarga al inicializar.
+ * Bumpea este string manualmente cuando quieras forzar limpieza global.
  */
-export const APP_VERSION = Date.now().toString();
+export const APP_VERSION = "2026.05.05.1";
 
 /**
  * Claves whitelist que NO deben ser eliminadas durante limpieza de caché
