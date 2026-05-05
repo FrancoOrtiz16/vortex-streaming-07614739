@@ -77,7 +77,7 @@ const ClientDashboard = () => {
 
     try {
       // CORRECCIÓN 2: LIMPIEZA QUIRÚRGICA - Eliminar lectura de tabla 'services'
-      // Solo obtener subscriptions (sin combo_id ni subscription_code) y orders
+      // Solo obtener subscriptions y orders con campos vigentes del esquema.
       const [{ data: subsData, error: subsError }, ordersRes] = await Promise.all([
         getUserSubscriptions(user.id),
         supabase.from('orders').select('id, product_name, status, total, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
