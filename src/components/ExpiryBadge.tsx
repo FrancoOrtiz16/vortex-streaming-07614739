@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { getDaysUntilExpiry } from '@/lib/trafficLightUtils';
 
 interface ExpiryBadgeProps {
   nextRenewal: string;
@@ -6,10 +7,7 @@ interface ExpiryBadgeProps {
 }
 
 export function ExpiryBadge({ nextRenewal, className }: ExpiryBadgeProps) {
-  const now = new Date();
-  const expiry = new Date(nextRenewal);
-  const diffMs = expiry.getTime() - now.getTime();
-  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const daysLeft = getDaysUntilExpiry(nextRenewal);
 
   let color: string;
   let label: string;
@@ -17,14 +15,14 @@ export function ExpiryBadge({ nextRenewal, className }: ExpiryBadgeProps) {
   if (daysLeft < 0) {
     color = 'bg-destructive/20 text-destructive';
     label = 'Vencido';
+  } else if (daysLeft === 0) {
+    color = 'bg-destructive/20 text-destructive';
+    label = 'Vence hoy';
   } else if (daysLeft <= 3) {
     color = 'bg-amber-500/20 text-amber-400';
     label = `Faltan ${daysLeft} día${daysLeft > 1 ? 's' : ''}`;
-  } else if (daysLeft > 5) {
-    color = 'bg-emerald-500/20 text-emerald-400';
-    label = `Faltan ${daysLeft} días`;
   } else {
-    color = 'bg-amber-500/20 text-amber-400';
+    color = 'bg-emerald-500/20 text-emerald-400';
     label = `Faltan ${daysLeft} días`;
   }
 
