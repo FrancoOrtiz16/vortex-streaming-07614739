@@ -37,10 +37,27 @@ export async function syncOrderToSubscription(
   try {
     console.debug('[orderService] Sincronizando orden a suscripción:', order.id);
 
-    // Si la orden no tiene user_id, usar email como identificador
-    const userId = order.user_id || `external_order_${order.id}`;
+    let userId = order.user_id;
+    if (!userId && order.customer_email) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('email', order.customer_email)
+        .maybeSingle();
 
-    // Crear suscripción en estado "pending_approval"
+      if (profileError) throw profileError;
+      if (profile?.user_id) {
+        userId = profile.user_id;
+      }
+    }
+
+    if (!userId) {
+      return {
+        ok: false,
+        error: 'No se pudo vincular la orden a un usuario registrado. El cliente debe registrarse primero.',
+      };
+    }
+
     const subscriptionPayload = {
       user_id: userId,
       service_name: order.product_name,
