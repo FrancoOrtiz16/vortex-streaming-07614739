@@ -322,7 +322,7 @@ const ClientDashboard = () => {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        {sub?.id && sub?.status === 'confirmed' && (
+                        {sub?.id && (
                           <CredentialService
                             subscriptionId={sub?.id}
                             serviceName={sub?.service_name}

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Key, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Key, Eye, EyeOff, AlertCircle, Loader2, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCredentialData } from '@/hooks/useCredentialData';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CredentialServiceProps {
   subscriptionId?: string;
@@ -28,10 +30,51 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
   triggerLabel = 'Ver credenciales',
   variant = 'button',
 }) => {
-  const { credentials, isLoading, error, isReady } = useCredentialData(subscriptionId);
+  const { credentials, isLoading, error, refetch } = useCredentialData(subscriptionId);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Estados calculados
+  const hasCredentials = credentials?.password_cuenta && credentials.password_cuenta.trim() !== '';
+  const isExpired = credentials?.next_renewal && new Date(credentials.next_renewal) < new Date();
+  const isExpiredSoon = credentials?.next_renewal && (new Date(credentials.next_renewal).getTime() - Date.now()) <= 3 * 24 * 60 * 60 * 1000;
+  const isVencido = isExpired || credentials?.status === 'expired';
+
+  // Estado visual del icono
+  const getKeyState = () => {
+    if (isVencido) return 'expired'; // Rojo/candado
+    if (hasCredentials) return 'active'; // Azul/neón
+    return 'pending'; // Gris
+  };
+
+  const keyState = getKeyState();
+
+  // Realtime updates
+  useEffect(() => {
+    if (!subscriptionId) return;
+
+    const channel = supabase
+      .channel(`subscription-${subscriptionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `id=eq.${subscriptionId}`,
+        },
+        (payload) => {
+          console.log('[CredentialService] Realtime update:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [subscriptionId, refetch]);
 
   if (!subscriptionId) {
     return null;
@@ -51,21 +94,47 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
     );
   }
 
-  // Botón trigger
+  // Tooltip basado en estado
+  const getTooltip = () => {
+    if (keyState === 'expired') return 'Suscripción vencida. Renueva para acceder a tus credenciales';
+    if (keyState === 'pending') return 'Credenciales en preparación...';
+    return 'Acceso disponible - Haz clic para ver credenciales';
+  };
+
+  // Botón trigger con estados visuales
   const triggerButton = (
     <motion.button
       type="button"
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl font-semibold transition-colors ${
-        variant === 'icon-only'
-          ? 'text-primary hover:text-primary/80'
-          : 'bg-secondary/70 text-sm text-white hover:bg-secondary'
-      }`}
-      aria-label="Abrir credenciales"
+      whileHover={{ scale: keyState !== 'expired' ? 1.05 : 1 }}
+      whileTap={{ scale: keyState !== 'expired' ? 0.95 : 1 }}
+      onClick={() => {
+        if (keyState === 'expired') {
+          toast.error('Suscripción vencida. Renueva para acceder a tus credenciales');
+          return;
+        }
+        if (keyState === 'active') {
+          setIsOpen(true);
+        }
+      }}
+      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl font-semibold transition-all duration-300 ${
+        keyState === 'expired'
+          ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed'
+          : keyState === 'active'
+          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/25'
+          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed'
+      } ${variant === 'icon-only' ? 'p-2' : 'text-sm'}`}
+      title={getTooltip()}
+      disabled={keyState === 'expired' || keyState === 'pending'}
+      aria-label={getTooltip()}
     >
-      <Key className="w-4 h-4" />
-      {variant !== 'icon-only' && triggerLabel}
+      {keyState === 'expired' ? (
+        <Lock className="w-4 h-4" />
+      ) : (
+        <Key className={`w-4 h-4 ${keyState === 'active' ? 'animate-pulse' : ''}`} />
+      )}
+      {variant !== 'icon-only' && (
+        keyState === 'expired' ? 'Vencido' : keyState === 'active' ? 'Credenciales' : 'Pendiente'
+      )}
     </motion.button>
   );
 
@@ -102,32 +171,49 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
           )}
 
           {/* Credenciales pendientes */}
-          {!isReady && !error && (
+          {keyState === 'pending' && !error && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 text-center"
             >
               <div className="flex justify-center mb-3">
-                <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+                <Key className="w-8 h-8 text-amber-400" />
               </div>
               <p className="text-sm font-semibold text-amber-300 mb-1">Credenciales en preparación</p>
               <p className="text-xs text-amber-300/70">
-                Tus credenciales están siendo preparadas. Por favor espera a que el administrador las confirme.
+                Tus credenciales están siendo preparadas por el administrador. Recibirás una notificación cuando estén listas.
               </p>
             </motion.div>
           )}
 
-          {/* Credenciales lista */}
-          {isReady && credentials && (
+          {/* Suscripción vencida */}
+          {keyState === 'expired' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6 text-center"
+            >
+              <div className="flex justify-center mb-3">
+                <Lock className="w-8 h-8 text-red-400" />
+              </div>
+              <p className="text-sm font-semibold text-red-300 mb-1">Suscripción vencida</p>
+              <p className="text-xs text-red-300/70">
+                Tu suscripción ha expirado. Renueva tu servicio para volver a acceder a tus credenciales.
+              </p>
+            </motion.div>
+          )}
+
+          {/* Credenciales disponibles */}
+          {keyState === 'active' && credentials && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-white/10 bg-black/50 p-4 shadow-xl shadow-cyan-500/5 space-y-3"
+              className="rounded-3xl border border-cyan-500/30 bg-cyan-500/5 p-4 shadow-xl shadow-cyan-500/10 space-y-3"
             >
               {/* Correo */}
               <CredentialField
-                label="Correo"
+                label="Usuario/Correo"
                 value={credentials?.email_cuenta}
                 copyable={true}
               />
@@ -194,9 +280,10 @@ const CredentialField: React.FC<CredentialFieldProps> = ({
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      // Feedback visual breve podría añadirse aquí
+      toast.success('¡Copiado!');
     } catch (err) {
       console.error('[CredentialService] Copy error:', err);
+      toast.error('Error al copiar');
     }
   };
 

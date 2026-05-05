@@ -99,13 +99,8 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
     return () => clearTimeout(timer);
   }, [fetchCredentials]);
 
-  // Verificar si las credenciales están listas (no todas null)
-  const isReady = credentials ? 
-    (credentials.email_cuenta !== null || 
-     credentials.password_cuenta !== null || 
-     credentials.perfil !== null || 
-     credentials.pin !== null) 
-    : false;
+  // Verificar si las credenciales están listas (tiene contraseña)
+  const isReady = credentials?.password_cuenta && credentials.password_cuenta.trim() !== '';
 
   return {
     credentials,
