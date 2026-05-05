@@ -83,13 +83,15 @@ export function useAuth() {
       setUser(nextSession?.user ?? null);
 
       if (nextSession?.user) {
-        void refreshProfile(nextSession.user.id);
+        setLoading(true);
+        void refreshProfile(nextSession.user.id).finally(() => {
+          if (isActive) setLoading(false);
+        });
       } else {
         setIsAdmin(false);
         setIsBanned(false);
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     const readyTimeout = window.setTimeout(() => {
