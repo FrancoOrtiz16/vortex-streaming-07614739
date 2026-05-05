@@ -262,7 +262,7 @@ export function SubscriptionsSection() {
         user_id: selectedOrder.user_id,
         service_name: service,
         status: 'procesando_credenciales',
-        proxima_fecha: nextRenewal,
+        next_renewal: nextRenewal,
       }));
 
       const { error } = await supabase.from('subscriptions').insert(payloads);
@@ -425,8 +425,8 @@ const clientName = (sub.profile?.display_name || sub.profile?.email || sub.user_
                           </span>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.proxima_fecha ? new Date(s.proxima_fecha).toLocaleDateString() : 'N/A'}</td>
-                        <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.proxima_fecha || s.created_at} /></td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.next_renewal ? new Date(s.next_renewal).toLocaleDateString() : 'N/A'}</td>
+                        <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.next_renewal || s.created_at} /></td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
