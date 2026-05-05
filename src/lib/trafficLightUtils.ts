@@ -11,8 +11,8 @@ export interface TrafficLightConfig {
 }
 
 const DEFAULT_CONFIG: TrafficLightConfig = {
-  greenThreshold: 5,         // Verde: más de 5 días
-  yellowThreshold: 3,        // Amarillo: 3 días o menos (alerta)
+  greenThreshold: 4,         // Verde: 4 días o más
+  yellowThreshold: 3,        // Amarillo: 1-3 días
 };
 
 /**
@@ -55,7 +55,7 @@ export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined)
   const todayUtcMidnight = Date.UTC(vetToday.year, vetToday.month - 1, vetToday.day);
 
   const diffTime = expiryUtcMidnight - todayUtcMidnight;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   return diffDays;
 }
@@ -74,19 +74,18 @@ export function getTrafficLightStatus(
   const daysLeft = getDaysUntilExpiry(expiryDate);
 
   if (daysLeft <= 0) {
-    return 'expired'; // Vencido o vence hoy: bloqueo de seguridad
+    return 'red'; // Vencido: la fecha actual es igual o mayor a la fecha próxima
   }
 
-  if (daysLeft > mergedConfig.greenThreshold) {
+  if (daysLeft >= mergedConfig.greenThreshold) {
     return 'green';
   }
 
-  if (daysLeft <= mergedConfig.yellowThreshold) {
+  if (daysLeft >= 1) {
     return 'yellow';
   }
 
-  // Entre greenThreshold y yellowThreshold
-  return 'yellow';
+  return 'red';
 }
 
 /**
@@ -124,25 +123,25 @@ export function getTrafficLightInfo(status: TrafficLightStatus): {
       return {
         icon: '🟢',
         label: 'Activo',
-        tooltip: 'Suscripción vigente - Más de 5 días para vencimiento',
+        tooltip: 'Suscripción vigente - 4 días o más para vencimiento',
       };
     case 'yellow':
       return {
         icon: '🟡',
         label: 'Alerta',
-        tooltip: 'Vencimiento próximo - 3 días o menos',
+        tooltip: 'Vencimiento próximo - 1 a 3 días restantes',
       };
     case 'red':
       return {
         icon: '🔴',
-        label: 'Crítico',
-        tooltip: 'Muy próximo al vencimiento - 1-2 días',
+        label: 'Vencido',
+        tooltip: 'Suscripción vencida - Renueva para recuperar acceso',
       };
     case 'expired':
       return {
         icon: '⚫',
         label: 'Vencido',
-        tooltip: 'Suscripción vencida - Requiere renovación',
+        tooltip: 'Suscripción vencida - Renueva para recuperar acceso',
       };
     default:
       return {
