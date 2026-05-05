@@ -283,7 +283,7 @@ export function SubscriptionsSection() {
       const payload = {
         user_id: null, // Para clientes externos, no hay user_id
         service_name: form.serviceName,
-        status: 'Activo',
+        status: 'active',
         next_renewal: new Date(form.expiryDate).toISOString(),
         credential_email: form.email || null,
         credential_password: form.password || null,

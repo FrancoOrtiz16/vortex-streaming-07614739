@@ -57,12 +57,10 @@ export function ManualSubscriptionModal({
       }
 
       // Crear suscripción manual (sin user_id real)
-      // Usamos un UUID placeholder que identifique como cliente externo
-      const EXTERNAL_CLIENT_PREFIX = 'external_';
-      const externalUserId = `${EXTERNAL_CLIENT_PREFIX}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Para clientes externos, user_id es null
 
       const payload = {
-        user_id: externalUserId,
+        user_id: null, // Clientes externos no tienen user_id
         service_name: form.serviceName,
         status: 'active', // Las suscripciones manuales se crean activas
         credential_email: form.credentialEmail || null,

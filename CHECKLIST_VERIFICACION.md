@@ -153,7 +153,7 @@
 - [x] Modal tiene todos los formularios
 - [x] Validación: clientName y serviceName requeridos
 - [x] Al crear:
-  - [x] user_id = 'external_[timestamp]_[random]'
+  - [x] user_id = null (para clientes externos)
   - [x] Status = 'active' (no pending, porque es manual)
   - [x] next_renewal = fecha seleccionada
   - [x] Todos los campos se guardan
