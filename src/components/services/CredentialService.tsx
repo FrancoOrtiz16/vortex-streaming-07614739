@@ -49,6 +49,7 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
   // Estado visual del icono
   const getKeyState = () => {
     if (isVencido) return 'expired'; // Rojo/candado - BLOQUEADO
+    if (hasCredentials && !isExpired) return 'active'; // Mantener acceso mientras la suscripción sigue vigente
     if (isActiveStatus && hasCredentials) return 'active'; // Azul/neón - ACCESO PERMITIDO
     return 'pending'; // Gris - EN PREPARACIÓN
   };

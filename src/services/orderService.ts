@@ -58,6 +58,61 @@ export async function syncOrderToSubscription(
       };
     }
 
+    const renewalMatches = Array.from(
+      order.product_name.matchAll(/Renovación:\s*VORTEX-([A-Z0-9]{8})/gi),
+      (match) => match[1],
+    );
+
+    if (renewalMatches.length > 0) {
+      console.debug('[orderService] Orden de renovación detectada:', renewalMatches.join(', '));
+      let firstSubscriptionId: string | undefined;
+      let matchedAny = false;
+
+      for (const shortId of renewalMatches) {
+        const normalizedShortId = shortId.toLowerCase();
+        const { data: existingSubs, error: existingError } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .ilike('id', `${normalizedShortId}%`)
+          .limit(1);
+
+        if (existingError) throw existingError;
+
+        if (!existingSubs || existingSubs.length === 0) {
+          console.warn('[orderService] Renovación no encontrada en subscriptions para:', shortId);
+          continue;
+        }
+
+        matchedAny = true;
+        const subscriptionId = existingSubs[0].id;
+        if (!firstSubscriptionId) firstSubscriptionId = subscriptionId;
+
+        const { error: updateStatusError } = await supabase
+          .from('subscriptions')
+          .update({ status: 'pending_approval' })
+          .eq('id', subscriptionId);
+
+        if (updateStatusError) throw updateStatusError;
+        console.debug('[orderService] Suscripción marcada como pendiente de confirmación:', subscriptionId);
+      }
+
+      if (!matchedAny) {
+        return { ok: false, error: 'No se encontró ninguna suscripción asociada para esta renovación' };
+      }
+
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ status: 'processing_credentials' })
+        .eq('id', order.id);
+
+      if (orderError) throw orderError;
+
+      return {
+        ok: true,
+        subscriptionId: firstSubscriptionId,
+      };
+    }
+
     const subscriptionPayload = {
       user_id: userId,
       service_name: order.product_name,
@@ -109,8 +164,21 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
   try {
     console.debug('[orderService] Aprobando pago de suscripción:', subscriptionId);
 
-    // Calcular próxima fecha: 30 días desde ahora
-    const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .select('user_id, service_name, next_renewal')
+      .eq('id', subscriptionId)
+      .maybeSingle();
+
+    if (subscriptionError) throw subscriptionError;
+    if (!subscription) {
+      return { ok: false, error: 'Suscripción no encontrada' };
+    }
+
+    const currentExpiry = subscription.next_renewal ? new Date(subscription.next_renewal) : new Date();
+    const now = new Date();
+    const baseDate = currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
+    const nextRenewal = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
       .from('subscriptions')

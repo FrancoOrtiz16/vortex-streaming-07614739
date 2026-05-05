@@ -149,12 +149,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       for (const item of renewalItems) {
         for (let i = 0; i < item.quantity; i++) {
           const subscriptionId = item.product.subscription_id!;
-          const currentExpiry = item.product.expires_at ? new Date(item.product.expires_at) : now;
-          const baseDate = currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
-          const renewedNext = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          console.debug('[Checkout] Renewing subscription', subscriptionId, 'to', renewedNext);
+          console.debug('[Checkout] Renewal order for existing subscription', subscriptionId);
           const { data: updateData, error: updateError } = await updateSimpleSubscription(subscriptionId, {
-            proxima_fecha: renewedNext,
             status: 'pending_approval',
           });
           if (updateError) {
