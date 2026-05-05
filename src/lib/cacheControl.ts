@@ -50,6 +50,11 @@ const OBSOLETE_COLUMNS = ['combo_id', 'subscription_code'];
  * Compara versiones y limpia solo si es necesario
  */
 export function initializeCacheControl(): void {
+  if (sessionStorage.getItem('cache_control_initialized') === APP_VERSION) {
+    return;
+  }
+
+  sessionStorage.setItem('cache_control_initialized', APP_VERSION);
   console.debug('[CacheControl] 🛡️ Inicializando Guardián de Caché...');
 
   // Unregister Service Workers antiguos
@@ -317,26 +322,9 @@ if (typeof window !== 'undefined') {
     }
   }, 0);
 
-  // Detectar recarga infinita y prevenirla
-  let reloadCount = 0;
-  const reloadKey = 'reload-attempt-count';
-  
-  // Incrementar contador de recargas
-  const currentReloads = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
-  if (currentReloads > 2) {
-    console.error('[CacheControl] 🚨 BUCLE INFINITO DETECTADO - Deteniendo recargas automáticas');
-    sessionStorage.removeItem(reloadKey);
-    localStorage.removeItem('app_version');
-    
-    // Forzar página sin caché
-    window.location.href = window.location.href + (window.location.search ? '&' : '?') + 'no-cache=' + Date.now();
-    throw new Error('Bucle infinito detectado y bloqueado');
-  }
-  
-  // Registrar intento de recarga usando beforeunload
-  window.addEventListener('beforeunload', () => {
-    sessionStorage.setItem(reloadKey, (currentReloads + 1).toString());
-  }, { once: true });
+  // Nota: no se registra beforeunload para contar recargas. Ese patrón convertía
+  // cualquier navegación/HMR en falso positivo y podía forzar reloads con query
+  // no-cache indefinidamente en la previsualización.
 }
 
 console.log(`[CacheControl] 🛡️ Guardián de Caché v1.0.0 inicializado (Versión: ${APP_VERSION})`);

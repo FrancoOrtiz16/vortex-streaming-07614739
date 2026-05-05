@@ -4,10 +4,13 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { ProductCategory } from '@/data/products';
+import { fallbackProducts } from '@/data/fallbackProducts';
 import ProductCard from './ProductCard';
 import { AdminPreviewBar } from '../AdminPreviewBar';
 import { Tv, Gamepad2, LayoutGrid, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const DATA_TIMEOUT_MS = 4000;
 
 interface Product {
   id: string;
@@ -86,16 +89,40 @@ const StandaloneCatalog: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      const timeoutId = window.setTimeout(() => {
+        if (!isMounted) return;
+        console.warn('[StandaloneCatalog] Timeout de seguridad — mostrando catálogo de respaldo');
+        setProducts(fallbackProducts.map((item) => ({
+          id: item.id,
+          name: item.name,
+          description: '',
+          price: item.price,
+          category: item.category,
+          image_url: item.image_url,
+          image_scale: 100,
+          badge: item.badge ?? null,
+          plan_type: null,
+          orden_prioridad: 999,
+          is_available: true,
+          group_name: null,
+        })));
+        setError('Catálogo de respaldo activo');
+        setLoading(false);
+      }, DATA_TIMEOUT_MS);
+
       try {
         const fresh = await fetchProducts();
         if (!isMounted) return;
+        window.clearTimeout(timeoutId);
         setProducts(fresh);
       } catch (err: any) {
         if (!isMounted) return;
+        window.clearTimeout(timeoutId);
         setError(err?.message || 'No se pudo cargar el catálogo. Intenta recargar la página.');
         setProducts([]);
       } finally {
         if (!isMounted) return;
+        window.clearTimeout(timeoutId);
         setLoading(false);
       }
     };

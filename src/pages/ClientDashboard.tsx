@@ -4,10 +4,9 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import CredentialKeyModal from '@/components/CredentialKeyModal';
 import CredentialService from '@/components/services/CredentialService';
 import { supabase } from '@/integrations/supabase/client';
-import { getUserSubscriptions, getSubscriptionCredentials } from '@/integrations/supabase/subscriptions-helpers';
+import { getUserSubscriptions } from '@/integrations/supabase/subscriptions-helpers';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -18,11 +17,11 @@ interface Subscription {
   id: string;
   service_name: string;
   status: string;
-  proxima_fecha?: string;
-  email_cuenta?: string | null;
-  password_cuenta?: string | null;
-  perfil?: string | null;
-  pin?: string | null;
+  next_renewal?: string;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
   created_at: string;
 }
 
@@ -32,13 +31,6 @@ interface Order {
   status: string;
   total: number;
   created_at: string;
-}
-
-interface DecryptedCreds {
-  email_cuenta: string | null;
-  password_cuenta: string | null;
-  perfil: string | null;
-  pin: string | null;
 }
 
 interface Service {
@@ -69,8 +61,6 @@ const ClientDashboard = () => {
   const { addItem } = useCart();
 
   const [renewing, setRenewing] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState<Record<string, DecryptedCreds>>({});
-  const [loadingCreds, setLoadingCreds] = useState(false);
 
   const loadDashboardData = async () => {
     if (!user?.id || !isMountedRef.current) return;
@@ -87,7 +77,7 @@ const ClientDashboard = () => {
 
     try {
       // CORRECCIÓN 2: LIMPIEZA QUIRÚRGICA - Eliminar lectura de tabla 'services'
-      // Solo obtener subscriptions (sin combo_id ni subscription_code) y orders
+      // Solo obtener subscriptions y orders con campos vigentes del esquema.
       const [{ data: subsData, error: subsError }, ordersRes] = await Promise.all([
         getUserSubscriptions(user.id),
         supabase.from('orders').select('id, product_name, status, total, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
@@ -110,38 +100,7 @@ const ClientDashboard = () => {
 
       if (isMountedRef.current) clearTimeout(timeoutId);
       
-      const confirmedSubs = (subsData as Subscription[] || []).filter(s => s?.status === 'confirmed');
-      if (confirmedSubs.length > 0) {
-        setLoadingCreds(true);
-        const results = await Promise.all(
-          confirmedSubs.map(async (s) => {
-            const { data: credData, error: credError } = await getSubscriptionCredentials(s.id);
-            if (credError) {
-              console.error('[ClientDashboard] Credentials RPC error:', credError);
-              return { id: s.id, cred: { email_cuenta: null, password_cuenta: null, perfil: null, pin: null } };
-            }
-            const cred = credData?.[0];
-            return {
-              id: s.id,
-              cred: {
-                email_cuenta: cred?.email_cuenta || null,
-                password_cuenta: cred?.password_cuenta || null,
-                perfil: cred?.perfil || null,
-                pin: cred?.pin || null,
-              },
-            };
-          })
-        );
-
-        if (!isMountedRef.current) return;
-
-        const credsMap: Record<string, DecryptedCreds> = {};
-        results.forEach(r => {
-          credsMap[r.id] = r.cred;
-        });
-        setCredentials(credsMap);
-        setLoadingCreds(false);
-      }
+      // Las credenciales se cargan bajo demanda desde CredentialService para no bloquear el dashboard.
     } catch (err) {
       if (!isMountedRef.current) return;
       console.error('[ClientDashboard] Data loading error:', err);
@@ -244,7 +203,7 @@ const ClientDashboard = () => {
         subscription_id: sub.id,
         unique_service_id: uniqueServiceId,
         renewal_note: `Renovando servicio: ${uniqueServiceId}`,
-        expires_at: sub.proxima_fecha,
+        expires_at: sub.next_renewal,
       };
 
       addItem(renewalProduct);
@@ -354,7 +313,7 @@ const ClientDashboard = () => {
                           <p className="text-xs text-muted-foreground">ID: VORTEX-{sub?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
                         </div>
                       </div>
-                      <ExpiryBadge nextRenewal={sub?.proxima_fecha || sub?.created_at || new Date().toISOString()} />
+                      <ExpiryBadge nextRenewal={sub?.next_renewal || sub?.created_at || new Date().toISOString()} />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -371,7 +330,7 @@ const ClientDashboard = () => {
                             variant="button"
                           />
                         )}
-                        {sub?.proxima_fecha && isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
+                        {sub?.next_renewal && isExpiredOrSoon(sub.next_renewal || sub.created_at) && (
                           <button
                             onClick={() => handleRenew(sub)}
                             disabled={renewing === sub?.id}
