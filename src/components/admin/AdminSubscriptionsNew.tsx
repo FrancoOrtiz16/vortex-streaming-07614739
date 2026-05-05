@@ -1,22 +1,97 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Plus, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ServiceRow, { type ServiceRowData } from './ServiceRow';
+import { ManualSubscriptionModal } from './ManualSubscriptionModal';
+import { syncOrderToSubscription } from '@/services/orderService';
 
 /**
  * AdminSubscriptionsNew — Vista en tabla con filas independientes (Sandboxing).
  * Cada ServiceRow gestiona su propio estado. Si una fila falla, el resto sigue.
- * La aprobación de pagos se delega al servicio aislado orderService.
+ * Características:
+ * - Sincronización automática de órdenes a suscripciones
+ * - Creación manual de suscripciones
+ * - Semáforo automático por vencimiento
  */
 export default function AdminSubscriptionsNew() {
   const [rows, setRows] = useState<ServiceRowData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [services, setServices] = useState<Array<{ id: string; name: string }>>([]);
+  const [syncing, setSyncing] = useState(false);
   const isMountedRef = useRef(true);
 
+  /**
+   * Cargar los servicios disponibles para el selector
+   */
+  const fetchServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, name')
+        .eq('is_available', true)
+        .order('name');
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (err) {
+      console.error('[AdminSubscriptionsNew] Error fetching services:', err);
+    }
+  };
+
+  /**
+   * Sincronizar órdenes completadas a suscripciones pendientes
+   */
+  const handleSyncOrders = async () => {
+    setSyncing(true);
+    try {
+      // Obtener órdenes completadas
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('id, user_id, customer_email, product_name, total, status, created_at')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (!orders || orders.length === 0) {
+        toast.info('ℹ️ No hay órdenes completadas para sincronizar');
+        setSyncing(false);
+        return;
+      }
+
+      let synced = 0;
+      let failed = 0;
+
+      for (const order of orders) {
+        const result = await syncOrderToSubscription(order as any);
+        if (result.ok) {
+          synced++;
+        } else {
+          failed++;
+          console.warn('[AdminSubscriptionsNew] Sync failed for order:', order.id, result.error);
+        }
+      }
+
+      toast.success(`✅ Sincronización completada: ${synced} órdenes procesadas${failed > 0 ? `, ${failed} fallidas` : ''}`);
+      fetchAll(); // Recargar suscripciones
+    } catch (err: any) {
+      console.error('[AdminSubscriptionsNew] Sync error:', err);
+      toast.error(err?.message || 'Error sincronizando órdenes');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  /**
+   * Cargar todas las suscripciones y perfil de usuarios
+   */
   const fetchAll = async () => {
     try {
       setLoading(true);
@@ -64,6 +139,7 @@ export default function AdminSubscriptionsNew() {
 
   useEffect(() => {
     isMountedRef.current = true;
+    fetchServices();
     fetchAll();
     return () => { isMountedRef.current = false; };
   }, []);
@@ -102,17 +178,45 @@ export default function AdminSubscriptionsNew() {
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-2">Admin</p>
           <h1 className="font-display text-2xl font-bold text-white">Gestión de suscripciones</h1>
-          <p className="text-sm text-slate-400 mt-2">Cada fila es independiente. Edita, confirma o elimina sin afectar a las demás.</p>
+          <p className="text-sm text-slate-400 mt-2">
+            Sincronización automática de ventas + Creación manual + Semáforo de vencimiento
+          </p>
         </div>
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por cliente o servicio..."
-            className="w-full rounded-3xl border border-border bg-secondary/70 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-primary"
-          />
+        <div className="flex gap-2">
+          <button
+            onClick={handleSyncOrders}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition"
+            title="Sincronizar órdenes completadas con suscripciones"
+          >
+            {syncing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Zap className="w-4 h-4" />
+            )}
+            {syncing ? 'Sincronizando...' : 'Sincronizar Órdenes'}
+          </button>
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition"
+            title="Crear una nueva suscripción manual"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva Manual
+          </button>
         </div>
+      </div>
+
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onFocus={() => setSearching(true)}
+          onBlur={() => setSearching(false)}
+          placeholder="Buscar por cliente o servicio..."
+          className="w-full rounded-3xl border border-border bg-secondary/70 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-primary transition"
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -169,6 +273,17 @@ export default function AdminSubscriptionsNew() {
           </div>
         )}
       </div>
+
+      {/* Modal de Nueva Suscripción Manual */}
+      <ManualSubscriptionModal
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        onSuccess={() => {
+          setShowManualModal(false);
+          fetchAll();
+        }}
+        services={services}
+      />
     </div>
   );
 }
