@@ -111,17 +111,10 @@ const ServiceRow = ({ data, onChanged }: Props) => {
   const handleApprovePendingPayment = async () => {
     setBusy('pay');
     try {
-      const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({
-          status: 'active',
-          next_renewal: nextRenewal,
-          last_renewal: new Date().toISOString(),
-        })
-        .eq('id', data.id);
-
-      if (error) throw error;
+      const result = await approvePayment(data.id);
+      if (!result.ok) {
+        throw new Error(result.error || 'Error al aprobar pago');
+      }
       toast.success('✅ Pago aprobado - Suscripción activada');
       setEditing(true); // Habilitar edición de credenciales
       onChanged();

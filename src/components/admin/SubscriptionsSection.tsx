@@ -10,6 +10,7 @@ import {
   getSubscriptionCredentials,
 } from '@/integrations/supabase/subscriptions-helpers';
 import { toast } from 'sonner';
+import { approvePayment } from '@/services/orderService';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
 
 interface Subscription {
@@ -241,9 +242,10 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Confirming renewal for subscription:', sub.id);
 
-      const { error } = await updateSimpleSubscriptionStatus(sub.id, 'active');
-
-      if (error) throw error;
+      const result = await approvePayment(sub.id);
+      if (!result.ok) {
+        throw new Error(result.error || 'Error al confirmar renovación');
+      }
 
       toast.success('✅ Renovación confirmada — estado actualizado a activo');
       fetchData();
@@ -258,9 +260,11 @@ export function SubscriptionsSection() {
   const handleApprovePayment = async (subId: string) => {
     setConfirming(subId);
     try {
-      const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await updateSimpleSubscriptionStatus(subId, 'Activo', nextRenewal);
-      if (error) throw error;
+      const result = await approvePayment(subId);
+      if (!result.ok) {
+        throw new Error(result.error || 'Error aprobando pago');
+      }
+
       toast.success('Pago aprobado. Suscripción activada.');
       fetchData();
     } catch (err: any) {
@@ -508,16 +512,6 @@ export function SubscriptionsSection() {
             <Plus className="w-3.5 h-3.5" />
             Crear Suscripción
           </button>
-        </motion.div>
-      )}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Duración Inicial (Días)</label>
-              <input type="number" min={1} value={form.days} onChange={e => setForm(f => ({ ...f, days: parseInt(e.target.value) || 30 }))} className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border" />
-            </div>
-          </div>
-          <button onClick={addManualRecord} className="px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold">Crear Suscripción</button>
         </motion.div>
       )}
 

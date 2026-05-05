@@ -5,6 +5,7 @@ import { useCredentialData } from '@/hooks/useCredentialData';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getTrafficLightStatus } from '@/lib/trafficLightUtils';
 
 interface CredentialServiceProps {
   subscriptionId?: string;
@@ -38,14 +39,18 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
   // Estados calculados
   const hasCredentials = credentials?.password_cuenta && credentials.password_cuenta.trim() !== '';
   const isExpired = credentials?.next_renewal && new Date(credentials.next_renewal) < new Date();
-  const isExpiredSoon = credentials?.next_renewal && (new Date(credentials.next_renewal).getTime() - Date.now()) <= 3 * 24 * 60 * 60 * 1000;
-  const isVencido = isExpired || credentials?.status === 'expired';
+  const trafficLightStatus = getTrafficLightStatus(credentials?.next_renewal);
+  const isTrafficRed = ['red', 'expired'].includes(trafficLightStatus);
+  const isActiveStatus = ['active', 'Activo', 'confirmed'].includes(credentials?.status || '');
+
+  // ✅ SEGURIDAD: Bloqueo basado en vencimiento real y estado del semáforo
+  const isVencido = isExpired || isTrafficRed || credentials?.status === 'expired';
 
   // Estado visual del icono
   const getKeyState = () => {
-    if (isVencido) return 'expired'; // Rojo/candado
-    if (hasCredentials) return 'active'; // Azul/neón
-    return 'pending'; // Gris
+    if (isVencido) return 'expired'; // Rojo/candado - BLOQUEADO
+    if (isActiveStatus && hasCredentials) return 'active'; // Azul/neón - ACCESO PERMITIDO
+    return 'pending'; // Gris - EN PREPARACIÓN
   };
 
   const keyState = getKeyState();
@@ -96,20 +101,33 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
 
   // Tooltip basado en estado
   const getTooltip = () => {
-    if (keyState === 'expired') return 'Suscripción vencida. Renueva para acceder a tus credenciales';
-    if (keyState === 'pending') return 'Credenciales en preparación...';
-    return 'Acceso disponible - Haz clic para ver credenciales';
+    if (keyState === 'expired') {
+      if (credentials?.status === 'pending_approval') {
+        return 'Acceso bloqueado. Tu pago está pendiente de confirmación. El admin actualizará el estado pronto.';
+      }
+      return 'Acceso bloqueado. Renueva tu suscripción para ver las credenciales';
+    }
+    if (keyState === 'pending') return 'Credenciales en preparación. El admin las entregará pronto...';
+    return '✅ Acceso disponible - Haz clic para ver credenciales';
   };
 
-  // Botón trigger con estados visuales
+  // Botón trigger con estados visuales mejorados
   const triggerButton = (
     <motion.button
       type="button"
-      whileHover={{ scale: keyState !== 'expired' ? 1.05 : 1 }}
-      whileTap={{ scale: keyState !== 'expired' ? 0.95 : 1 }}
+      whileHover={{ scale: keyState !== 'expired' && keyState !== 'pending' ? 1.05 : 1 }}
+      whileTap={{ scale: keyState !== 'expired' && keyState !== 'pending' ? 0.95 : 1 }}
       onClick={() => {
         if (keyState === 'expired') {
-          toast.error('Suscripción vencida. Renueva para acceder a tus credenciales');
+          if (credentials?.status === 'pending_approval') {
+            toast.error('⏳ Acceso bloqueado. Tu pago está pendiente de confirmación por el administrador.');
+          } else {
+            toast.error('🔒 Acceso bloqueado. Renueva tu suscripción para ver las credenciales');
+          }
+          return;
+        }
+        if (keyState === 'pending') {
+          toast.info('⏳ Tus credenciales aún están siendo preparadas. El admin las entregará pronto.');
           return;
         }
         if (keyState === 'active') {
@@ -118,14 +136,15 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
       }}
       className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl font-semibold transition-all duration-300 ${
         keyState === 'expired'
-          ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed'
+          ? 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed opacity-60 hover:opacity-60'
           : keyState === 'active'
-          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/25'
-          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed'
+          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/25 opacity-100'
+          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed opacity-60 hover:opacity-60'
       } ${variant === 'icon-only' ? 'p-2' : 'text-sm'}`}
       title={getTooltip()}
       disabled={keyState === 'expired' || keyState === 'pending'}
       aria-label={getTooltip()}
+      data-credential-blocked={keyState === 'expired'}
     >
       {keyState === 'expired' ? (
         <Lock className="w-4 h-4" />
@@ -133,7 +152,11 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
         <Key className={`w-4 h-4 ${keyState === 'active' ? 'animate-pulse' : ''}`} />
       )}
       {variant !== 'icon-only' && (
-        keyState === 'expired' ? 'Vencido' : keyState === 'active' ? 'Credenciales' : 'Pendiente'
+        keyState === 'expired' 
+          ? '🔒 Bloqueado' 
+          : keyState === 'active' 
+          ? '✓ Credenciales' 
+          : '⏳ Pendiente'
       )}
     </motion.button>
   );

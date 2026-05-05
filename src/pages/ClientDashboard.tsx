@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -48,6 +48,8 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
   paid: { label: 'Pagado', icon: CheckCircle, className: 'text-primary' },
   procesando_credenciales: { label: 'Pendiente de Credenciales', icon: Clock, className: 'text-blue-400' },
   confirmed: { label: 'Confirmado', icon: CheckCircle, className: 'text-emerald-400' },
+  approved: { label: 'Aprobado', icon: CheckCircle, className: 'text-emerald-400' },
+  'Aprobado/Confirmado': { label: 'Aprobado', icon: CheckCircle, className: 'text-emerald-400' },
 };
 
 const ClientDashboard = () => {
@@ -61,7 +63,7 @@ const ClientDashboard = () => {
 
   const [renewing, setRenewing] = useState<string | null>(null);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user?.id || !isMountedRef.current) return;
 
     setLoading(true);
@@ -110,7 +112,7 @@ const ClientDashboard = () => {
         setLoading(false);
       }
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -132,7 +134,35 @@ const ClientDashboard = () => {
     return () => {
       isMountedRef.current = false;
     };
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, loadDashboardData]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`orders-user-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          console.debug('[ClientDashboard] Realtime order insert:', payload);
+          loadDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          console.debug('[ClientDashboard] Realtime order update:', payload);
+          loadDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadDashboardData]);
 
   const normalizeServicePrefix = (name: string) => {
     const cleaned = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();

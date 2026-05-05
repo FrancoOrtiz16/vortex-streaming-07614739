@@ -112,22 +112,55 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
     // Calcular próxima fecha: 30 días desde ahora
     const nextRenewal = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('subscriptions')
       .update({
         status: 'active',
         next_renewal: nextRenewal,
         last_renewal: new Date().toISOString(),
       })
-      .eq('id', subscriptionId);
+      .eq('id', subscriptionId)
+      .select('user_id, service_name')
+      .single();
 
     if (error) throw error;
+
+    if (data?.user_id && data?.service_name) {
+      await markOrderCompletedForSubscription(data.user_id, data.service_name);
+    }
 
     console.debug('[orderService] Pago aprobado para:', subscriptionId);
     return { ok: true };
   } catch (err: any) {
     console.error('[orderService.approvePayment]', err);
     return { ok: false, error: err?.message || 'Error aprobando pago' };
+  }
+}
+
+export async function markOrderCompletedForSubscription(
+  userId: string | null,
+  serviceName: string,
+): Promise<OrderActionResult> {
+  if (!userId || !serviceName) {
+    return { ok: false, error: 'userId y serviceName son requeridos' };
+  }
+
+  try {
+    console.debug('[orderService] Marcando orden como completada para usuario:', userId, 'servicio:', serviceName);
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'completed' })
+      .eq('user_id', userId)
+      .ilike('product_name', `%${serviceName}%`)
+      .in('status', ['pending', 'pending_approval', 'processing_credentials']);
+
+    if (error) throw error;
+
+    return { ok: true };
+  } catch (err: any) {
+    console.error('[orderService.markOrderCompletedForSubscription]', err);
+    return { ok: false, error: err?.message || 'Error actualizando orden' };
   }
 }
 
