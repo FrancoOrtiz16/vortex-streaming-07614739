@@ -4,6 +4,7 @@ import { Package, Plus, Pencil, Trash2, Save, X, Loader2, Eye, EyeOff } from 'lu
 import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/hooks/useServices';
 import { toast } from 'sonner';
+import { Slider } from '@/components/ui/slider';
 
 const emptyService: Omit<Service, 'id'> & { id?: string } = {
   name: '',
@@ -97,6 +98,18 @@ export function InventorySection() {
   const toggleAvailability = async (s: Service) => {
     await supabase.from('services').update({ is_available: !s.is_available }).eq('id', s.id);
     fetchServices();
+  };
+
+  const updateImageScale = async (id: string, scale: number) => {
+    const { error } = await supabase
+      .from('services')
+      .update({ image_scale: scale })
+      .eq('id', id);
+    if (error) {
+      toast.error('Error al actualizar escala');
+    } else {
+      toast.success('Escala actualizada');
+    }
   };
 
   if (loading) {
@@ -206,15 +219,28 @@ export function InventorySection() {
              </div>
              <div>
                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Escala de Imagen (%)</label>
-               <input
-                 type="number"
-                 min={50}
-                 max={150}
-                 value={editing.image_scale ?? 100}
-                 onChange={e => setEditing(prev => prev ? { ...prev, image_scale: parseInt(e.target.value) || 100 } : null)}
-                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-               />
-               <p className="text-[10px] text-muted-foreground mt-1">50% a 150% del tamaño original</p>
+               <div className="px-3">
+                 <Slider
+                   value={[editing.image_scale ?? 100]}
+                   onValueChange={(value) => {
+                     const newScale = value[0];
+                     setEditing(prev => prev ? { ...prev, image_scale: newScale } : null);
+                     if (editing.id) {
+                       updateImageScale(editing.id, newScale);
+                     }
+                   }}
+                   min={50}
+                   max={150}
+                   step={5}
+                   className="w-full"
+                 />
+                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                   <span>50%</span>
+                   <span className="font-medium">{editing.image_scale ?? 100}%</span>
+                   <span>150%</span>
+                 </div>
+               </div>
+               <p className="text-[10px] text-muted-foreground mt-1">Ajusta el tamaño de la imagen en la tienda</p>
              </div>
            </div>
 

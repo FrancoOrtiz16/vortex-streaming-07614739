@@ -64,8 +64,13 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
         <img
           src={selected.image}
           alt={selected.name}
-          className="object-contain drop-shadow-lg transition-transform duration-500 group-hover:scale-110"
-          style={{ maxHeight: '9rem', maxWidth: '120%' }}
+          className="object-contain drop-shadow-lg transition-transform duration-500"
+          style={{
+            maxHeight: '9rem',
+            maxWidth: '120%',
+            transform: `scale(${scale})`,
+            transformOrigin: 'center',
+          }}
           loading="lazy"
         />
       </div>
