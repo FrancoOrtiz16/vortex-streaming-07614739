@@ -20,20 +20,43 @@ const DEFAULT_CONFIG: TrafficLightConfig = {
  * @param expiryDate - Fecha de vencimiento (ISO string o Date)
  * @returns Días restantes (negativo si ya venció)
  */
+function getVETDateParts(date: Date): { year: number; month: number; day: number } {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Caracas',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+
+  const parts = formatter.formatToParts(date).reduce(
+    (acc, part) => ({ ...acc, [part.type]: part.value }),
+    {} as Record<string, string>
+  );
+
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+  };
+}
+
 export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined): number {
   if (!expiryDate) return -999; // Indefinido, considerar como vencido
-  
-  const expiry = typeof expiryDate === 'string' 
-    ? new Date(expiryDate) 
-    : expiryDate;
-  
+
+  const expiry = typeof expiryDate === 'string' ? new Date(expiryDate) : new Date(expiryDate.getTime());
+  if (Number.isNaN(expiry.getTime())) return -999;
+
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  expiry.setHours(0, 0, 0, 0);
-  
-  const diffTime = expiry.getTime() - today.getTime();
+
+  const vetExpiry = getVETDateParts(expiry);
+  const vetToday = getVETDateParts(today);
+
+  const expiryUtcMidnight = Date.UTC(vetExpiry.year, vetExpiry.month - 1, vetExpiry.day);
+  const todayUtcMidnight = Date.UTC(vetToday.year, vetToday.month - 1, vetToday.day);
+
+  const diffTime = expiryUtcMidnight - todayUtcMidnight;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   return diffDays;
 }
 
@@ -49,19 +72,19 @@ export function getTrafficLightStatus(
 ): TrafficLightStatus {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
   const daysLeft = getDaysUntilExpiry(expiryDate);
-  
-  if (daysLeft < 0) {
-    return 'expired'; // Rojo oscuro para vencido
+
+  if (daysLeft <= 0) {
+    return 'expired'; // Vencido o vence hoy: bloqueo de seguridad
   }
-  
+
   if (daysLeft > mergedConfig.greenThreshold) {
     return 'green';
   }
-  
+
   if (daysLeft <= mergedConfig.yellowThreshold) {
     return 'yellow';
   }
-  
+
   // Entre greenThreshold y yellowThreshold
   return 'yellow';
 }

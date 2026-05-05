@@ -5,7 +5,7 @@ import { useCredentialData } from '@/hooks/useCredentialData';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { getTrafficLightStatus } from '@/lib/trafficLightUtils';
+import { getDaysUntilExpiry, getTrafficLightStatus } from '@/lib/trafficLightUtils';
 
 interface CredentialServiceProps {
   subscriptionId?: string;
@@ -38,13 +38,13 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
 
   // Estados calculados
   const hasCredentials = credentials?.password_cuenta && credentials.password_cuenta.trim() !== '';
-  const isExpired = credentials?.next_renewal && new Date(credentials.next_renewal) < new Date();
+  const daysUntilExpiry = getDaysUntilExpiry(credentials?.next_renewal);
+  const isExpired = credentials?.next_renewal ? daysUntilExpiry <= 0 : false;
   const trafficLightStatus = getTrafficLightStatus(credentials?.next_renewal);
-  const isTrafficRed = ['red', 'expired'].includes(trafficLightStatus);
   const isActiveStatus = ['active', 'Activo', 'confirmed'].includes(credentials?.status || '');
 
-  // ✅ SEGURIDAD: Bloqueo basado en vencimiento real y estado del semáforo
-  const isVencido = isExpired || isTrafficRed || credentials?.status === 'expired';
+  // ✅ SEGURIDAD: Bloqueo solo cuando vence hoy o ya está vencido
+  const isVencido = isExpired || credentials?.status === 'expired';
 
   // Estado visual del icono
   const getKeyState = () => {
@@ -235,6 +235,12 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
               animate={{ opacity: 1, y: 0 }}
               className="rounded-3xl border border-cyan-500/30 bg-cyan-500/5 p-4 shadow-xl shadow-cyan-500/10 space-y-3"
             >
+              {trafficLightStatus === 'yellow' && (
+                <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+                  Tu servicio vence pronto. ¡No olvides renovar para no perder el acceso!
+                </div>
+              )}
+
               {/* Correo */}
               <CredentialField
                 label="Usuario/Correo"
