@@ -84,7 +84,14 @@ export function useAuth() {
 
       if (nextSession?.user) {
         setLoading(true);
+        const profileTimeout = window.setTimeout(() => {
+          if (isActive) {
+            console.warn('[Auth] Profile timeout — continuing without blocking render');
+            setLoading(false);
+          }
+        }, AUTH_READY_TIMEOUT_MS);
         void refreshProfile(nextSession.user.id).finally(() => {
+          window.clearTimeout(profileTimeout);
           if (isActive) setLoading(false);
         });
       } else {
