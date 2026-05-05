@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
+const AUTH_READY_TIMEOUT_MS = 4000;
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -72,46 +74,54 @@ export function useAuth() {
 
   useEffect(() => {
     console.debug('[Auth] Initializing auth state...');
+    let isActive = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.debug('[Auth] Auth state changed:', { event: _event, hasSession: !!session });
+    const applySession = (nextSession: Session | null) => {
+      if (!isActive) return;
 
-        setSession(session);
-        setUser(session?.user ?? null);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-        if (session?.user) {
-          await refreshProfile(session.user.id);
-        } else {
-          setIsAdmin(false);
-          setIsBanned(false);
-        }
-
-        setLoading(false);
-      }
-    );
-
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.debug('[Auth] Initial session check:', { hasSession: !!session });
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        await refreshProfile(session.user.id);
+      if (nextSession?.user) {
+        void refreshProfile(nextSession.user.id);
       } else {
         setIsAdmin(false);
         setIsBanned(false);
       }
 
       setLoading(false);
+    };
+
+    const readyTimeout = window.setTimeout(() => {
+      if (!isActive) return;
+      console.warn('[Auth] Session/profile timeout — rendering app in resilient mode');
+      setLoading(false);
+    }, AUTH_READY_TIMEOUT_MS);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        console.debug('[Auth] Auth state changed:', { event: _event, hasSession: !!session });
+        applySession(session);
+      }
+    );
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.debug('[Auth] Initial session check:', { hasSession: !!session });
+      applySession(session);
     }).catch((err) => {
+      if (!isActive) return;
       console.error('[Auth] getSession error:', err);
       setLoading(false);
+    }).finally(() => {
+      window.clearTimeout(readyTimeout);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isActive = false;
+      window.clearTimeout(readyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
