@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
 import { useCart } from '@/hooks/useCart';
 import { CartProduct } from '@/store/cartStore';
-import { getDaysUntilExpiry } from '@/lib/trafficLightUtils';
 
 interface Subscription {
   id: string;
@@ -281,8 +280,8 @@ const ClientDashboard = () => {
 
 
   const isExpiredOrSoon = (nextRenewal: string) => {
-    const daysLeft = getDaysUntilExpiry(nextRenewal);
-    return daysLeft <= 3;
+    const diff = new Date(nextRenewal).getTime() - Date.now();
+    return diff <= 3 * 24 * 60 * 60 * 1000;
   };
 
   // Display each subscription individually
