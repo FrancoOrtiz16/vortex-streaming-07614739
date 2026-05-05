@@ -45,7 +45,7 @@ export const useOrderProcessing = () => {
     return (
       sub.service_name?.toLowerCase().includes(searchLower) ||
       sub.user_id?.toLowerCase().includes(searchLower) ||
-      sub.email_cuenta?.toLowerCase().includes(searchLower)
+      sub.credential_email?.toLowerCase().includes(searchLower)
     );
   });
 
