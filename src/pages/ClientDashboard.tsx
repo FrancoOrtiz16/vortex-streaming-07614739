@@ -55,7 +55,6 @@ const ClientDashboard = () => {
   const navigate = useNavigate();
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const isMountedRef = useRef(true);
   const { addItem } = useCart();
@@ -135,11 +134,6 @@ const ClientDashboard = () => {
     };
   }, [user, authLoading, navigate]);
 
-  const findService = (serviceName: string) => {
-    return services.find(s => s.name.toLowerCase() === serviceName.toLowerCase()) 
-      || services.find(s => serviceName.toLowerCase().includes(s.name.toLowerCase()));
-  };
-
   const normalizeServicePrefix = (name: string) => {
     const cleaned = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     return cleaned.length >= 4 ? cleaned.slice(0, 4) : cleaned.padEnd(4, 'X');
@@ -182,22 +176,58 @@ const ClientDashboard = () => {
     }
   };
 
+  const fetchServiceByName = async (serviceName: string): Promise<Service | null> => {
+    if (!serviceName) return null;
+
+    const normalizedName = serviceName.trim();
+    const { data, error } = await supabase
+      .from('services')
+      .select('id, name, price, image_url, plan_type, is_available')
+      .ilike('name', `%${normalizedName}%`)
+      .limit(1);
+
+    if (error) {
+      console.error('[ClientDashboard] fetchServiceByName error:', error);
+      return null;
+    }
+
+    const serviceRow = (data as any[])[0];
+    if (!serviceRow) return null;
+
+    return {
+      id: serviceRow.id,
+      name: serviceRow.name,
+      price: Number(serviceRow.price ?? 0),
+      image_url: serviceRow.image_url ?? '/logo192.png',
+      plan_type: serviceRow.plan_type,
+      is_available: serviceRow.is_available,
+    };
+  };
 
   const handleRenew = async (sub: Subscription) => {
     if (!user) return;
-    const service = findService(sub.service_name);
-    const price = service?.price || 0;
     const uniqueServiceId = `VORTEX-${sub.id.slice(0, 8).toUpperCase()}`;
-
     setRenewing(sub.id);
+
     try {
+      const service = await fetchServiceByName(sub.service_name);
+      if (!service) {
+        toast.error(`No se encontró el servicio '${sub.service_name}' en el catálogo.`);
+        return;
+      }
+
+      if (!service.price || service.price <= 0) {
+        toast.error(`El servicio '${service.name}' no tiene un precio definido en el catálogo.`);
+        return;
+      }
+
       const renewalProduct: CartProduct = {
         id: `renewal-${sub.id}`,
-        name: sub.service_name,
-        description: `Renovación de servicio ${uniqueServiceId}`,
-        price,
+        name: service.name,
+        description: `Renovación de servicio ${service.name} (${uniqueServiceId})`,
+        price: service.price,
         category: 'renewal',
-        image: service?.image_url || '/logo192.png',
+        image: service.image_url || '/logo192.png',
         badge: 'Renovación',
         renewal: true,
         subscription_id: sub.id,

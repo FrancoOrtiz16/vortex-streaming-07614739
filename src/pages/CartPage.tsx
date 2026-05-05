@@ -48,12 +48,15 @@ const CartPage = () => {
                   >
                     <div className="flex items-center gap-4 flex-1">
                       <img
-                        src={item.product.image}
+                        src={item.product.image || '/logo192.png'}
                         alt={item.product.name}
                         className="w-16 h-12 rounded-lg object-cover"
                       />
                       <div className="min-w-0">
                         <h3 className="font-display font-semibold text-sm truncate">{item.product.name}</h3>
+                        {item.product.description && (
+                          <p className="text-[11px] text-muted-foreground truncate">{item.product.description}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">Cant: {item.quantity}</p>
                         {item.product.renewal && (
                           <p className="text-[11px] text-primary mt-1">

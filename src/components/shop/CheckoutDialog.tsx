@@ -155,12 +155,12 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           console.debug('[Checkout] Renewing subscription', subscriptionId, 'to', renewedNext);
           const { data: updateData, error: updateError } = await updateSimpleSubscription(subscriptionId, {
             proxima_fecha: renewedNext,
-            status: 'active',
+            status: 'pending_approval',
           });
           if (updateError) {
             throw new Error(`Renewal update error: ${updateError.message}`);
           }
-          console.debug('[Checkout] Subscription renewed:', subscriptionId, updateData);
+          console.debug('[Checkout] Subscription marked for renewal confirmation:', subscriptionId, updateData);
         }
       }
 
