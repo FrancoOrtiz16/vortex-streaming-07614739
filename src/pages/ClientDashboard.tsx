@@ -203,7 +203,7 @@ const ClientDashboard = () => {
         subscription_id: sub.id,
         unique_service_id: uniqueServiceId,
         renewal_note: `Renovando servicio: ${uniqueServiceId}`,
-        expires_at: sub.proxima_fecha,
+        expires_at: sub.next_renewal,
       };
 
       addItem(renewalProduct);
@@ -313,7 +313,7 @@ const ClientDashboard = () => {
                           <p className="text-xs text-muted-foreground">ID: VORTEX-{sub?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
                         </div>
                       </div>
-                      <ExpiryBadge nextRenewal={sub?.proxima_fecha || sub?.created_at || new Date().toISOString()} />
+                      <ExpiryBadge nextRenewal={sub?.next_renewal || sub?.created_at || new Date().toISOString()} />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ const ClientDashboard = () => {
                             variant="button"
                           />
                         )}
-                        {sub?.proxima_fecha && isExpiredOrSoon(sub.proxima_fecha || sub.created_at) && (
+                        {sub?.next_renewal && isExpiredOrSoon(sub.next_renewal || sub.created_at) && (
                           <button
                             onClick={() => handleRenew(sub)}
                             disabled={renewing === sub?.id}
