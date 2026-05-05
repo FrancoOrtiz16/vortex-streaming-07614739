@@ -17,13 +17,13 @@ interface Subscription {
   user_id: string;
   service_name: string;
   status: string;
-  proxima_fecha?: string;
+  next_renewal?: string;
   created_at: string;
   updated_at: string;
-  email_cuenta?: string | null;
-  password_cuenta?: string | null;
-  perfil?: string | null;
-  pin?: string | null;
+  credential_email?: string | null;
+  credential_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
 }
 
 interface Profile {
@@ -139,12 +139,12 @@ export function SubscriptionsSection() {
 
       const cred = credData?.[0];
       setCredForm({
-        email: cred?.email_cuenta || '',
+        email: cred?.credential_email || sub.credential_email || '',
         password: '',
-        perfil: cred?.perfil || '',
-        pin: cred?.pin || '',
+        perfil: sub.profile_name || '',
+        pin: sub.profile_pin || '',
       });
-      setDateForm(sub.proxima_fecha ? new Date(sub.proxima_fecha).toISOString().split('T')[0] : '');
+      setDateForm(sub.next_renewal ? new Date(sub.next_renewal).toISOString().split('T')[0] : '');
     } catch (err) {
       console.error('[Admin] startEdit error:', err);
       toast.error('Error al cargar edición');
