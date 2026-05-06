@@ -158,6 +158,14 @@ const ClientDashboard = () => {
           loadDashboardData();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          console.debug('[ClientDashboard] Realtime subscription change:', payload);
+          loadDashboardData();
+        }
+      )
       .subscribe();
 
     return () => {
