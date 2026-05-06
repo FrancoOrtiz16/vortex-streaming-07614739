@@ -1,9 +1,11 @@
 import { useState, memo } from 'react';
-import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, User, Package } from 'lucide-react';
+import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell, User, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import PasswordViewer from './PasswordViewer';
+import { createSubscriptionExpirationNotification } from '@/integrations/supabase/subscriptions-helpers';
+import { getWhatsAppUrl } from '@/lib/whatsapp';
 import {
   getTrafficLightStatus,
   getTrafficLightColor,
@@ -46,7 +48,7 @@ const statusColor = (status?: string | null) => {
 
 const MobileServiceCard = ({ data, onChanged }: Props) => {
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState<'save' | 'delete' | 'pay' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
   const [form, setForm] = useState({
     credential_email: data.credential_email || '',
     credential_password: data.credential_password || '',
@@ -94,6 +96,38 @@ const MobileServiceCard = ({ data, onChanged }: Props) => {
       onChanged();
     } catch (err: any) {
       toast.error(err?.message || 'Error al aprobar pago');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleNotifyExpiration = async () => {
+    setBusy('notify');
+    try {
+      if (!data.user_id) {
+        throw new Error('No se encontró el usuario asociado');
+      }
+
+      const result = await createSubscriptionExpirationNotification(
+        data.user_id,
+        data.id,
+        data.service_name,
+      );
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast.success('✅ Notificación creada y recordatorio guardado');
+
+      if (data.profile_phone) {
+        const message = `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
+        window.open(getWhatsAppUrl(message, data.profile_phone), '_blank');
+      }
+
+      onChanged();
+    } catch (err: any) {
+      toast.error(err?.message || 'Error al crear notificación');
     } finally {
       setBusy(null);
     }
@@ -161,6 +195,16 @@ const MobileServiceCard = ({ data, onChanged }: Props) => {
           >
             {busy === 'pay' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             Aprobar Pago
+          </button>
+        )}
+        {daysRemaining <= 3 && daysRemaining >= 0 && (
+          <button
+            onClick={handleNotifyExpiration}
+            disabled={busy === 'notify'}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50 transition"
+          >
+            {busy === 'notify' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+            Notificar Vencimiento
           </button>
         )}
         <div className="grid grid-cols-2 gap-2">

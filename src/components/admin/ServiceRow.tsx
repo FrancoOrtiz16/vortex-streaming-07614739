@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Pencil, Save, X, Loader2, Trash2, CheckCircle2 } from 'lucide-react';
+import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import PasswordViewer from './PasswordViewer';
+import { createSubscriptionExpirationNotification } from '@/integrations/supabase/subscriptions-helpers';
+import { getWhatsAppUrl } from '@/lib/whatsapp';
 import {
   getTrafficLightStatus,
   getTrafficLightColor,
@@ -28,10 +30,12 @@ export interface ServiceRowData {
   status: string | null;
   next_renewal: string | null;
   last_renewal: string | null;
+  notified_at?: string | null;
   credential_email: string | null;
   credential_password: string | null;
   profile_name: string | null;
   profile_pin: string | null;
+  profile_phone?: string | null;
   client_label: string;
   order_id?: string | null;
 }
@@ -69,7 +73,7 @@ const statusLabel = (status?: string | null) => {
 
 const ServiceRow = ({ data, onChanged }: Props) => {
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState<'save' | 'confirm' | 'delete' | 'pay' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
   const [form, setForm] = useState({
     credential_email: data.credential_email || '',
     profile_name: data.profile_name || '',
@@ -126,6 +130,38 @@ const ServiceRow = ({ data, onChanged }: Props) => {
     }
   };
 
+  const handleNotifyExpiration = async () => {
+    setBusy('notify');
+    try {
+      if (!data.user_id) {
+        throw new Error('No se encontró el usuario asociado');
+      }
+
+      const result = await createSubscriptionExpirationNotification(
+        data.user_id,
+        data.id,
+        data.service_name,
+      );
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast.success('✅ Notificación creada y fecha de recordatorio actualizada');
+
+      if (data.profile_phone) {
+        const message = `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
+        window.open(getWhatsAppUrl(message, data.profile_phone), '_blank');
+      }
+
+      onChanged();
+    } catch (err: any) {
+      toast.error(err?.message || 'Error al crear notificación');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleDelete = async () => {
     if (!window.confirm('¿Eliminar esta suscripción? Esta acción no se puede deshacer.')) return;
     setBusy('delete');
@@ -156,6 +192,9 @@ const ServiceRow = ({ data, onChanged }: Props) => {
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
+        </TableCell>
+        <TableCell className="text-xs text-muted-foreground">
+          {data.notified_at ? new Date(data.notified_at).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'Nunca'}
         </TableCell>
 
         {/* SEMÁFORO - Traffic Light */}
@@ -206,6 +245,23 @@ const ServiceRow = ({ data, onChanged }: Props) => {
               </button>
             )}
 
+            {/* Botón Notificar Vencimiento - Solo si quedan 3 días o menos */}
+            {daysRemaining <= 3 && daysRemaining >= 0 && (
+              <button
+                onClick={handleNotifyExpiration}
+                disabled={busy === 'notify'}
+                title="Notificar al cliente sobre el vencimiento"
+                className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-1 disabled:opacity-50 transition"
+              >
+                {busy === 'notify' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bell className="h-3.5 w-3.5" />
+                )}
+                Notificar Vencimiento
+              </button>
+            )}
+
             {/* Botón Eliminar */}
             <button
               onClick={handleDelete}
@@ -226,7 +282,7 @@ const ServiceRow = ({ data, onChanged }: Props) => {
       {/* Fila de edición - Credenciales */}
       {editing && (
         <TableRow className="bg-secondary/20">
-          <TableCell colSpan={8} className="p-4">
+          <TableCell colSpan={9} className="p-4">
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-white">
                 Editar Credenciales y Fechas
