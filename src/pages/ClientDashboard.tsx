@@ -382,7 +382,7 @@ const ClientDashboard = () => {
                           {statusLabel(sub?.status)}
                         </span>
                       </div>
-                      <div className="flex gap-2">
+                       <div className="flex gap-2">
                         {sub?.id && (
                           <CredentialService
                             subscriptionId={sub?.id}
@@ -391,7 +391,7 @@ const ClientDashboard = () => {
                             variant="button"
                           />
                         )}
-                        {sub?.next_renewal && isExpiredOrSoon(sub.next_renewal || sub.created_at) && (
+                        {sub?.id && (
                           <button
                             onClick={() => handleRenew(sub)}
                             disabled={renewing === sub?.id}
