@@ -1,6 +1,7 @@
 /**
  * Traffic Light / Semáforo - Sistema de alertas por vencimiento
  * Determina el estado visual según días para vencimiento
+ * Usando exclusivamente la zona horaria de Venezuela (UTC-4)
  */
 
 export type TrafficLightStatus = 'green' | 'yellow' | 'red' | 'expired';
@@ -16,11 +17,9 @@ const DEFAULT_CONFIG: TrafficLightConfig = {
 };
 
 /**
- * Calcula los días restantes hasta el vencimiento
- * @param expiryDate - Fecha de vencimiento (ISO string o Date)
- * @returns Días restantes (negativo si ya venció)
+ * Extrae la fecha local en Venezuela (sin hora) de un Date.
  */
-function getVETDateParts(date: Date): { year: number; month: number; day: number } {
+export function getVETDateParts(date: Date): { year: number; month: number; day: number } {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Caracas',
     year: 'numeric',
@@ -40,6 +39,23 @@ function getVETDateParts(date: Date): { year: number; month: number; day: number
   };
 }
 
+/**
+ * Convierte una fecha a la medianoche del mismo día en hora de Venezuela.
+ */
+export function getVETMidnight(date: Date = new Date()): Date {
+  const { year, month, day } = getVETDateParts(date);
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+}
+
+/**
+ * Suma días a una fecha en la zona horaria de Venezuela y devuelve la fecha resultante a medianoche VET.
+ */
+export function addVETDays(date: Date, days: number): Date {
+  const { year, month, day } = getVETDateParts(date);
+  const utcMidnight = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+  return new Date(utcMidnight + days * 24 * 60 * 60 * 1000);
+}
+
 export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined): number {
   if (!expiryDate) return -999; // Indefinido, considerar como vencido
 
@@ -47,12 +63,11 @@ export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined)
   if (Number.isNaN(expiry.getTime())) return -999;
 
   const today = new Date();
-
   const vetExpiry = getVETDateParts(expiry);
   const vetToday = getVETDateParts(today);
 
-  const expiryUtcMidnight = Date.UTC(vetExpiry.year, vetExpiry.month - 1, vetExpiry.day);
-  const todayUtcMidnight = Date.UTC(vetToday.year, vetToday.month - 1, vetToday.day);
+  const expiryUtcMidnight = Date.UTC(vetExpiry.year, vetExpiry.month - 1, vetExpiry.day, 0, 0, 0, 0);
+  const todayUtcMidnight = Date.UTC(vetToday.year, vetToday.month - 1, vetToday.day, 0, 0, 0, 0);
 
   const diffTime = expiryUtcMidnight - todayUtcMidnight;
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -60,12 +75,6 @@ export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined)
   return diffDays;
 }
 
-/**
- * Obtiene el estado del semáforo basado en la fecha de vencimiento
- * @param expiryDate - Fecha de vencimiento
- * @param config - Configuración personalizada (opcional)
- * @returns Estado: 'green' | 'yellow' | 'red' | 'expired'
- */
 export function getTrafficLightStatus(
   expiryDate: string | Date | null | undefined,
   config: Partial<TrafficLightConfig> = {},
@@ -88,11 +97,6 @@ export function getTrafficLightStatus(
   return 'red';
 }
 
-/**
- * Obtiene el color CSS para mostrar el semáforo
- * @param status - Estado del semáforo
- * @returns Clase CSS para aplicar al elemento
- */
 export function getTrafficLightColor(status: TrafficLightStatus): string {
   switch (status) {
     case 'green':
@@ -108,11 +112,6 @@ export function getTrafficLightColor(status: TrafficLightStatus): string {
   }
 }
 
-/**
- * Obtiene el icono y mensaje descriptivo del semáforo
- * @param status - Estado del semáforo
- * @returns { icon, label, tooltip }
- */
 export function getTrafficLightInfo(status: TrafficLightStatus): {
   icon: string;
   label: string;
@@ -152,11 +151,6 @@ export function getTrafficLightInfo(status: TrafficLightStatus): {
   }
 }
 
-/**
- * Formatea un mensaje legible sobre el vencimiento
- * @param expiryDate - Fecha de vencimiento
- * @returns Mensaje descriptivo
- */
 export function getExpiryMessage(expiryDate: string | Date | null | undefined): string {
   const daysLeft = getDaysUntilExpiry(expiryDate);
   

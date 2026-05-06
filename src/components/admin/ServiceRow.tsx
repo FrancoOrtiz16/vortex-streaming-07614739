@@ -151,10 +151,10 @@ const ServiceRow = ({ data, onChanged }: Props) => {
           </Badge>
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
-          {data.last_renewal ? new Date(data.last_renewal).toLocaleDateString('es-ES') : 'N/A'}
+          {data.last_renewal ? new Date(data.last_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
-          {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-ES') : 'N/A'}
+          {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
         </TableCell>
 
         {/* SEMÁFORO - Traffic Light */}

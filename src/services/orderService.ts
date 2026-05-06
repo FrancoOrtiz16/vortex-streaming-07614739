@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
+import { addVETDays, getVETMidnight } from '@/lib/trafficLightUtils';
 
 /**
  * orderService — Lógica aislada de pagos/órdenes (Sandboxing).
@@ -87,13 +89,9 @@ export async function syncOrderToSubscription(
         const subscriptionId = existingSubs[0].id;
         if (!firstSubscriptionId) firstSubscriptionId = subscriptionId;
 
-        const { error: updateStatusError } = await supabase
-          .from('subscriptions')
-          .update({ status: 'pending_approval' })
-          .eq('id', subscriptionId);
-
-        if (updateStatusError) throw updateStatusError;
-        console.debug('[orderService] Suscripción marcada como pendiente de confirmación:', subscriptionId);
+        const { data: updateResult, error: updateError } = await renewExistingSubscription(subscriptionId);
+        if (updateError) throw updateError;
+        console.debug('[orderService] Suscripción de renovación marcada como pendiente de confirmación:', subscriptionId, updateResult);
       }
 
       if (!matchedAny) {
@@ -113,29 +111,27 @@ export async function syncOrderToSubscription(
       };
     }
 
-    const subscriptionPayload = {
-      user_id: userId,
-      service_name: order.product_name,
-      status: 'pending_approval', // Estado inicial: Pendiente de Pago
-      credential_email: null,      // Se asignará en la aprobación
-      credential_password: null,   // Se asignará en la aprobación
-      profile_name: null,          // Opcional
-      profile_pin: null,           // Opcional
-      next_renewal: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      last_renewal: new Date().toISOString(),
-    };
+    const quantityMatch = order.product_name.match(/x(\d+)/i);
+    const quantity = quantityMatch ? Number(quantityMatch[1]) : 1;
+    const cleanServiceName = order.product_name.replace(/\s*x\d+$/i, '').trim();
+    let createdCount = 0;
 
-    const { data: subData, error: subError } = await supabase
-      .from('subscriptions')
-      .insert([subscriptionPayload])
-      .select('id')
-      .single();
+    for (let i = 0; i < quantity; i++) {
+      const { error: createError } = await createNewSubscriptionInstance({
+        userId,
+        serviceName: cleanServiceName,
+        status: 'pending_approval',
+      });
+      if (createError) {
+        throw createError;
+      }
+      createdCount++;
+    }
 
-    if (subError) throw subError;
+    if (createdCount === 0) {
+      return { ok: false, error: 'No se pudo crear ninguna suscripción nueva' };
+    }
 
-    console.debug('[orderService] Suscripción creada:', subData?.id);
-
-    // Actualizar estado del pedido a 'processing_credentials'
     const { error: orderError } = await supabase
       .from('orders')
       .update({ status: 'processing_credentials' })
@@ -145,7 +141,6 @@ export async function syncOrderToSubscription(
 
     return {
       ok: true,
-      subscriptionId: subData?.id,
     };
   } catch (err: any) {
     console.error('[orderService.syncOrderToSubscription]', err);
@@ -175,10 +170,10 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
       return { ok: false, error: 'Suscripción no encontrada' };
     }
 
-    const currentExpiry = subscription.next_renewal ? new Date(subscription.next_renewal) : new Date();
-    const now = new Date();
-    const baseDate = currentExpiry.getTime() > now.getTime() ? currentExpiry : now;
-    const nextRenewal = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const nowVET = getVETMidnight();
+    const currentExpiryVET = subscription.next_renewal ? getVETMidnight(new Date(subscription.next_renewal)) : nowVET;
+    const baseDate = currentExpiryVET.getTime() > nowVET.getTime() ? currentExpiryVET : nowVET;
+    const nextRenewal = addVETDays(baseDate, 30).toISOString();
 
     const { data, error } = await supabase
       .from('subscriptions')

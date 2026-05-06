@@ -338,7 +338,7 @@ const ClientDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-sm">{order.product_name}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' })}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="font-display font-bold text-sm gold-text">${Number(order.total).toFixed(2)}</span>
