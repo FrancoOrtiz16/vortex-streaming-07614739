@@ -14,18 +14,33 @@ export interface NewInstanceInput {
   status?: string;
 }
 
+export function createVortexCode(serviceName: string) {
+  const prefix = serviceName
+    .replace(/[^A-Z0-9]/gi, '')
+    .toUpperCase()
+    .slice(0, 4)
+    .padEnd(4, 'X');
+
+  const suffix = crypto?.randomUUID?.()?.split('-')[0].toUpperCase() ||
+    Math.random().toString(36).substring(2, 10).toUpperCase();
+
+  return `VORTEX-${prefix}-${suffix}`;
+}
+
 export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval' }: NewInstanceInput) {
   if (!userId || !serviceName) {
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
   const nowVET = getVETStartOfDay();
   const nextRenewal = addVETDays(nowVET, 30).toISOString();
+  const subscription_code = createVortexCode(serviceName);
 
   const { data, error } = await supabase
     .from('subscriptions')
     .insert([{
       user_id: userId,
       service_name: serviceName,
+      subscription_code,
       status,
       last_renewal: nowVET.toISOString(),
       next_renewal: nextRenewal,
@@ -34,7 +49,7 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       profile_name: null,
       profile_pin: null,
     }])
-    .select('id, user_id, service_name, status, next_renewal')
+    .select('id, user_id, service_name, subscription_code, status, next_renewal')
     .single();
 
   if (error) {
