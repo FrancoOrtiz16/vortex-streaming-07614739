@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { createSimpleBulkSubscriptions, updateSimpleSubscription } from '@/integrations/supabase/subscriptions-helpers';
+import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
 import PaymentMethods, { PaymentMethod as PMType } from './PaymentMethods';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
@@ -127,36 +127,30 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       }
       console.debug('[Checkout] Order created');
 
-      // Step 2: Create subscriptions for each new purchase.
-      // No active-subscription deduplication is performed here; duplicate services are allowed.
-      const now = new Date();
-      const nextRenewal = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const subscriptions = [];
+      // Step 2: Procesar cada item del carrito.
+      // - Renovaciones: actualizar la suscripción existente.
+      // - Compras nuevas: crear SIEMPRE una fila independiente por unidad (multi-instancia).
       const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
       const newOrderItems = items.filter(i => !i.product.renewal);
 
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
-          subscriptions.push({
-            user_id: user.id,
-            service_name: item.product.name,
-            status: 'Pendiente de Pago',
-            proxima_fecha: nextRenewal,
+          const { error: insertError } = await createNewSubscriptionInstance({
+            userId: user.id,
+            serviceName: item.product.name,
+            status: 'pending_approval',
           });
+          if (insertError) {
+            throw new Error(`No se pudo crear la suscripción: ${insertError.message}`);
+          }
         }
       }
 
       for (const item of renewalItems) {
-        for (let i = 0; i < item.quantity; i++) {
-          const subscriptionId = item.product.subscription_id!;
-          console.debug('[Checkout] Renewal order for existing subscription', subscriptionId);
-          const { data: updateData, error: updateError } = await updateSimpleSubscription(subscriptionId, {
-            status: 'pending_approval',
-          });
-          if (updateError) {
-            throw new Error(`Renewal update error: ${updateError.message}`);
-          }
-          console.debug('[Checkout] Subscription marked for renewal confirmation:', subscriptionId, updateData);
+        const subscriptionId = item.product.subscription_id!;
+        const { error: updateError } = await renewExistingSubscription(subscriptionId);
+        if (updateError) {
+          throw new Error(`Renewal update error: ${updateError.message}`);
         }
       }
 

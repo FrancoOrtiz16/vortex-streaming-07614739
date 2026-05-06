@@ -145,6 +145,24 @@ export default function AdminSubscriptionsNew() {
     return () => { isMountedRef.current = false; };
   }, []);
 
+  // Realtime: refrescar la tabla cuando se inserte/actualice/borre cualquier suscripción.
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-subscriptions-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions' },
+        (payload) => {
+          console.debug('[AdminSubscriptionsNew] Realtime subscription change:', payload);
+          if (isMountedRef.current) fetchAll();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = rows;

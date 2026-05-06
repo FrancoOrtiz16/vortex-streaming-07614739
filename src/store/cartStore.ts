@@ -29,10 +29,26 @@ export function getCartItems() { return cartItems; }
 
 export function addToCart(product: CartProduct) {
   if (!product?.id) return;
-  const existing = cartItems.find(i => i.product.id === product.id);
+  // Renovaciones SÍ deduplican por subscription_id (no tiene sentido duplicarlas).
+  // Las compras nuevas SIEMPRE se agregan como instancia nueva — el usuario puede
+  // comprar el mismo servicio varias veces.
+  if (product.renewal && product.subscription_id) {
+    const existing = cartItems.find(i => i.product.subscription_id === product.subscription_id);
+    if (existing) {
+      notify();
+      return;
+    }
+    cartItems = [...cartItems, { product, quantity: 1 }];
+    notify();
+    return;
+  }
+
+  const existing = cartItems.find(i => i.product.id === product.id && !i.product.renewal);
   if (existing) {
     cartItems = cartItems.map(i =>
-      i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+      i.product.id === product.id && !i.product.renewal
+        ? { ...i, quantity: i.quantity + 1 }
+        : i
     );
   } else {
     cartItems = [...cartItems, { product, quantity: 1 }];
