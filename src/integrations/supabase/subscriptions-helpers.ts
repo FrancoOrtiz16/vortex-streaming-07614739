@@ -26,11 +26,13 @@ export interface SimpleSubscriptionPayload {
   pin?: string | null;
   status?: string;
   proxima_fecha?: string; // alias interno → next_renewal
+  duration_days?: number;
 }
 
 export interface SimpleSubscriptionUpdatePayload {
   status?: string;
   proxima_fecha?: string;
+  duration_days?: number;
   email_cuenta?: string | null;
   password_cuenta?: string | null;
   perfil?: string | null;
@@ -58,6 +60,7 @@ function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
   if (p.service_name !== undefined) real.service_name = p.service_name;
   if (p.status !== undefined) real.status = p.status;
   if (p.proxima_fecha !== undefined) real.next_renewal = p.proxima_fecha;
+  if (p.duration_days !== undefined) real.duration_days = p.duration_days;
   if (p.email_cuenta !== undefined) real.credential_email = p.email_cuenta;
   if (p.password_cuenta !== undefined) real.credential_password = p.password_cuenta;
   if (p.perfil !== undefined) real.profile_name = p.perfil;
@@ -65,7 +68,7 @@ function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
   return real;
 }
 
-const SELECT_ALL = 'id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, next_renewal, created_at';
+const SELECT_ALL = 'id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, duration_days, next_renewal, created_at';
 
 export async function createSimpleSubscription(payload: SimpleSubscriptionPayload) {
   try {

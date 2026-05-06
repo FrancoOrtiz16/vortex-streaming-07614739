@@ -11,6 +11,8 @@ export interface CartProduct {
   unique_service_id?: string;
   renewal_note?: string;
   expires_at?: string;
+  duration_days?: number;
+  cart_key?: string;
 }
 
 export interface CartItem {
@@ -30,8 +32,8 @@ export function getCartItems() { return cartItems; }
 export function addToCart(product: CartProduct) {
   if (!product?.id) return;
   // Renovaciones SÍ deduplican por subscription_id (no tiene sentido duplicarlas).
-  // Las compras nuevas SIEMPRE se agregan como instancia nueva — el usuario puede
-  // comprar el mismo servicio varias veces.
+  // Las compras nuevas pueden tener la misma identificación de producto pero
+  // una duración distinta, por lo que solo se agrupan si duración y clave coinciden.
   if (product.renewal && product.subscription_id) {
     const existing = cartItems.find(i => i.product.subscription_id === product.subscription_id);
     if (existing) {
@@ -43,10 +45,19 @@ export function addToCart(product: CartProduct) {
     return;
   }
 
-  const existing = cartItems.find(i => i.product.id === product.id && !i.product.renewal);
+  const existing = cartItems.find(i =>
+    i.product.id === product.id &&
+    i.product.duration_days === product.duration_days &&
+    (product.cart_key ? i.product.cart_key === product.cart_key : true) &&
+    !i.product.renewal
+  );
+
   if (existing) {
     cartItems = cartItems.map(i =>
-      i.product.id === product.id && !i.product.renewal
+      i.product.id === product.id &&
+      i.product.duration_days === product.duration_days &&
+      (product.cart_key ? i.product.cart_key === product.cart_key : true) &&
+      !i.product.renewal
         ? { ...i, quantity: i.quantity + 1 }
         : i
     );
@@ -56,8 +67,8 @@ export function addToCart(product: CartProduct) {
   notify();
 }
 
-export function removeFromCart(productId: string) {
-  cartItems = cartItems.filter(i => i.product.id !== productId);
+export function removeFromCart(key: string) {
+  cartItems = cartItems.filter(i => i.product.cart_key !== key && i.product.id !== key);
   notify();
 }
 

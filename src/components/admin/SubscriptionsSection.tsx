@@ -19,6 +19,7 @@ interface Subscription {
   user_id: string;
   service_name: string;
   status: string;
+  duration_days?: number;
   next_renewal?: string;
   created_at: string;
   updated_at: string;
@@ -61,6 +62,7 @@ export function SubscriptionsSection() {
   const [searchQuery, setSearchQuery] = useState('');
   const [credForm, setCredForm] = useState<CredentialForm>({ email: '', password: '', perfil: '', pin: '' });
   const [dateForm, setDateForm] = useState<string>('');
+  const [durationForm, setDurationForm] = useState<number>(30);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -168,6 +170,7 @@ export function SubscriptionsSection() {
         pin: sub.profile_pin || '',
       });
       setDateForm(sub.next_renewal ? getVETDateString(new Date(sub.next_renewal)) : '');
+      setDurationForm(sub.duration_days ?? 30);
     } catch (err) {
       console.error('[Admin] startEdit error:', err);
       toast.error('Error al cargar edición');
@@ -196,6 +199,7 @@ export function SubscriptionsSection() {
       if (credForm.perfil) payload.perfil = credForm.perfil;
       if (credForm.pin) payload.pin = credForm.pin;
       if (dateForm) payload.proxima_fecha = getVETDateInputISO(dateForm);
+      if (durationForm !== null) payload.duration_days = durationForm;
 
       // Si está procesando credenciales, activar a confirmado
       const sub = subs.find(s => s.id === subId);
@@ -285,11 +289,18 @@ export function SubscriptionsSection() {
     try {
       console.debug('[Admin] Creating manual subscription');
 
+      const startDate = new Date(form.startDate);
+      const expiryDate = new Date(form.expiryDate);
+      const durationDays = Number.isFinite(startDate.getTime()) && Number.isFinite(expiryDate.getTime())
+        ? Math.max(1, Math.round((expiryDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
+        : 30;
+
       const payload = {
         user_id: null, // Para clientes externos, no hay user_id
         service_name: form.serviceName,
         status: 'active',
-        next_renewal: new Date(form.expiryDate).toISOString(),
+        next_renewal: expiryDate.toISOString(),
+        duration_days: durationDays,
         credential_email: form.email || null,
         credential_password: form.password || null,
         profile_name: form.profile || null,
@@ -613,9 +624,13 @@ export function SubscriptionsSection() {
                                 <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Perfil</label>
                                 <input value={credForm.perfil} onChange={e => setCredForm(f => ({ ...f, perfil: e.target.value }))} placeholder="Nombre del perfil" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
                               </div>
-                              <div>
+                                <div>
                                 <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">PIN</label>
                                 <input value={credForm.pin} onChange={e => setCredForm(f => ({ ...f, pin: e.target.value }))} placeholder="PIN del perfil" className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
+                              </div>
+                              <div>
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Duración (días)</label>
+                                <input type="number" min={1} value={durationForm} onChange={e => setDurationForm(Number(e.target.value) || 1)} className="w-full px-3 py-2 rounded-lg bg-background text-sm border border-border" />
                               </div>
                               <div>
                                 <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Próxima Renovación</label>

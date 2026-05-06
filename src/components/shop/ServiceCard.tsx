@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Service } from '@/hooks/useServices';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
@@ -9,8 +10,15 @@ interface ServiceCardProps {
   index: number;
 }
 
+const durationOptions = [
+  { value: 30, label: '1 Mes' },
+  { value: 15, label: '15 Días' },
+  { value: 7, label: '1 Semana' },
+];
+
 const ServiceCard = ({ service, index }: ServiceCardProps) => {
   const { addItem } = useCart();
+  const [durationDays, setDurationDays] = useState<number>(30);
 
   const handleAdd = () => {
     addItem({
@@ -21,6 +29,8 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
       category: service.category as 'streaming' | 'gaming',
       image: service.image_url,
       badge: service.badge || undefined,
+      duration_days: durationDays,
+      cart_key: `${service.id}-${durationDays}`,
     });
     toast.success(`${service.name} añadido al carrito`);
   };
@@ -60,6 +70,22 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
         <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-4">
           {service.plan_type}
         </p>
+
+        <div className="relative mb-4">
+          <label className="sr-only">Duración</label>
+          <select
+            value={durationDays}
+            onChange={(e) => setDurationDays(Number(e.target.value))}
+            className="w-full appearance-none rounded-2xl border border-border bg-background px-3 py-2 pr-8 text-sm font-medium text-foreground outline-none transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            {durationOptions.map(option => (
+              <option key={option.value} value={option.value} className="bg-background text-foreground">
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
 
         <p className="text-xs text-muted-foreground mb-4 line-clamp-2 flex-1">
           {service.description}

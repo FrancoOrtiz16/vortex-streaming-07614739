@@ -12,6 +12,7 @@ export interface NewInstanceInput {
   userId: string;
   serviceName: string;
   status?: string;
+  durationDays?: number;
 }
 
 export function createVortexCode(serviceName: string) {
@@ -27,29 +28,30 @@ export function createVortexCode(serviceName: string) {
   return `VORTEX-${prefix}-${suffix}`;
 }
 
-export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval' }: NewInstanceInput) {
+export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval', durationDays = 30 }: NewInstanceInput) {
   if (!userId || !serviceName) {
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
   const nowVET = getVETStartOfDay();
-  const nextRenewal = addVETDays(nowVET, 30).toISOString();
+  const nextRenewal = addVETDays(nowVET, durationDays).toISOString();
   const subscription_code = createVortexCode(serviceName);
 
   const { data, error } = await supabase
     .from('subscriptions')
-    .insert([{
+    .insert([{ 
       user_id: userId,
       service_name: serviceName,
       subscription_code,
       status,
       last_renewal: nowVET.toISOString(),
       next_renewal: nextRenewal,
+      duration_days: durationDays,
       credential_email: null,
       credential_password: null,
       profile_name: null,
       profile_pin: null,
     }])
-    .select('id, user_id, service_name, subscription_code, status, next_renewal')
+    .select('id, user_id, service_name, subscription_code, status, next_renewal, duration_days')
     .single();
 
   if (error) {

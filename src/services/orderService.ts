@@ -2,6 +2,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
 import { addVETDays, getVETStartOfDay } from '@/lib/trafficLightUtils';
 
+const durationMatchers: [RegExp, number][] = [
+  [ /\b1\s*Semana\b/i, 7 ],
+  [ /\b15\s*D[íi]as\b/i, 15 ],
+  [ /\b1\s*Mes\b/i, 30 ],
+];
+
+function parseDurationDaysFromProductName(productName: string) {
+  for (const [pattern, days] of durationMatchers) {
+    if (pattern.test(productName)) return days;
+  }
+  return 30;
+}
+
 /**
  * orderService — Lógica aislada de pagos/órdenes (Sandboxing).
  * Maneja:
@@ -116,11 +129,13 @@ export async function syncOrderToSubscription(
     const cleanServiceName = order.product_name.replace(/\s*x\d+$/i, '').trim();
     let createdCount = 0;
 
+    const durationDays = parseDurationDaysFromProductName(order.product_name);
     for (let i = 0; i < quantity; i++) {
       const { error: createError } = await createNewSubscriptionInstance({
         userId,
         serviceName: cleanServiceName,
         status: 'pending_approval',
+        durationDays,
       });
       if (createError) {
         throw createError;
@@ -161,7 +176,7 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
 
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
-      .select('user_id, service_name, next_renewal')
+      .select('user_id, service_name, next_renewal, duration_days')
       .eq('id', subscriptionId)
       .maybeSingle();
 
@@ -173,7 +188,8 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
     const nowVET = getVETStartOfDay();
     const currentExpiryVET = subscription.next_renewal ? getVETStartOfDay(new Date(subscription.next_renewal)) : nowVET;
     const baseDate = currentExpiryVET.getTime() > nowVET.getTime() ? currentExpiryVET : nowVET;
-    const nextRenewal = addVETDays(baseDate, 30).toISOString();
+    const durationDays = subscription.duration_days || 30;
+    const nextRenewal = addVETDays(baseDate, durationDays).toISOString();
 
     const { data, error } = await supabase
       .from('subscriptions')

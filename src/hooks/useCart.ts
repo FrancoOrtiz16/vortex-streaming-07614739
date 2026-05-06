@@ -26,7 +26,7 @@ export function useCart() {
     subtotal,
     discount,
     addItem: (product: CartProduct) => addToCart(product),
-    removeItem: (id: string) => removeFromCart(id),
+    removeItem: (key: string) => removeFromCart(key),
     clear: () => clearCart(),
   };
 }

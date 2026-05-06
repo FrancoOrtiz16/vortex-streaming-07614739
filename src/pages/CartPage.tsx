@@ -8,6 +8,13 @@ import Footer from '@/components/Footer';
 import CheckoutDialog from '@/components/shop/CheckoutDialog';
 import { toast } from 'sonner';
 
+const formatDurationLabel = (days?: number) => {
+  if (days === 30) return '1 Mes';
+  if (days === 15) return '15 Días';
+  if (days === 7) return '1 Semana';
+  return days ? `${days} días` : '';
+};
+
 const CartPage = () => {
   const { items, total, subtotal, discount, removeItem, clear } = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -58,6 +65,11 @@ const CartPage = () => {
                           <p className="text-[11px] text-muted-foreground truncate">{item.product.description}</p>
                         )}
                         <p className="text-xs text-muted-foreground">Cant: {item.quantity}</p>
+                        {!!item.product.duration_days && !item.product.renewal && (
+                          <p className="text-[11px] text-primary mt-1">
+                            Duración: {formatDurationLabel(item.product.duration_days)}
+                          </p>
+                        )}
                         {item.product.renewal && (
                           <p className="text-[11px] text-primary mt-1">
                             Renovando servicio: {item.product.unique_service_id || item.product.subscription_id}
@@ -70,7 +82,7 @@ const CartPage = () => {
                         ${(item.product.price * item.quantity).toFixed(2)}
                       </span>
                       <button
-                        onClick={() => removeItem(item.product.id)}
+                        onClick={() => removeItem(item.product.cart_key || item.product.id)}
                         className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />

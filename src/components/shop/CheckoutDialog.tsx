@@ -108,10 +108,17 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       console.debug('[Checkout] Starting order creation');
       
       // Step 1: Create order
+      const formatDurationLabel = (days?: number) => {
+        if (days === 30) return '1 Mes';
+        if (days === 15) return '15 Días';
+        if (days === 7) return '1 Semana';
+        return days ? `${days} días` : '';
+      };
+
       const productNames = items
         .map(i => i.product.renewal
           ? `${i.product.name} (Renovación: ${i.product.unique_service_id || i.product.subscription_id}) x${i.quantity}`
-          : `${i.product.name} x${i.quantity}`
+          : `${i.product.name}${i.product.duration_days ? ` (${formatDurationLabel(i.product.duration_days)})` : ''} x${i.quantity}`
         )
         .join(', ');
       const { error: orderErr } = await supabase.from('orders').insert({
@@ -139,6 +146,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             userId: user.id,
             serviceName: item.product.name,
             status: 'pending_approval',
+            durationDays: item.product.duration_days ?? 30,
           });
           if (insertError) {
             throw new Error(`No se pudo crear la suscripción: ${insertError.message}`);
