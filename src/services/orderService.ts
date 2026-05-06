@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
-import { addVETDays, getVETMidnight } from '@/lib/trafficLightUtils';
+import { addVETDays, getVETStartOfDay } from '@/lib/trafficLightUtils';
 
 /**
  * orderService — Lógica aislada de pagos/órdenes (Sandboxing).
@@ -170,8 +170,8 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
       return { ok: false, error: 'Suscripción no encontrada' };
     }
 
-    const nowVET = getVETMidnight();
-    const currentExpiryVET = subscription.next_renewal ? getVETMidnight(new Date(subscription.next_renewal)) : nowVET;
+    const nowVET = getVETStartOfDay();
+    const currentExpiryVET = subscription.next_renewal ? getVETStartOfDay(new Date(subscription.next_renewal)) : nowVET;
     const baseDate = currentExpiryVET.getTime() > nowVET.getTime() ? currentExpiryVET : nowVET;
     const nextRenewal = addVETDays(baseDate, 30).toISOString();
 

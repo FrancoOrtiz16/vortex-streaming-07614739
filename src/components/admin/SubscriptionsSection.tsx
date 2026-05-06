@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
+import { getVETDateInputISO, getVETDateString } from '@/lib/trafficLightUtils';
 
 interface Subscription {
   id: string;
@@ -166,7 +167,7 @@ export function SubscriptionsSection() {
         perfil: sub.profile_name || '',
         pin: sub.profile_pin || '',
       });
-      setDateForm(sub.next_renewal ? new Date(sub.next_renewal).toISOString().split('T')[0] : '');
+      setDateForm(sub.next_renewal ? getVETDateString(new Date(sub.next_renewal)) : '');
     } catch (err) {
       console.error('[Admin] startEdit error:', err);
       toast.error('Error al cargar edición');
@@ -194,7 +195,7 @@ export function SubscriptionsSection() {
       if (credForm.password) payload.password_cuenta = credForm.password;
       if (credForm.perfil) payload.perfil = credForm.perfil;
       if (credForm.pin) payload.pin = credForm.pin;
-      if (dateForm) payload.proxima_fecha = new Date(dateForm).toISOString();
+      if (dateForm) payload.proxima_fecha = getVETDateInputISO(dateForm);
 
       // Si está procesando credenciales, activar a confirmado
       const sub = subs.find(s => s.id === subId);

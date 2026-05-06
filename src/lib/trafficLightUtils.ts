@@ -16,6 +16,8 @@ const DEFAULT_CONFIG: TrafficLightConfig = {
   yellowThreshold: 3,        // Amarillo: 1-3 días
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
  * Extrae la fecha local en Venezuela (sin hora) de un Date.
  */
@@ -40,20 +42,42 @@ export function getVETDateParts(date: Date): { year: number; month: number; day:
 }
 
 /**
- * Convierte una fecha a la medianoche del mismo día en hora de Venezuela.
+ * Devuelve el instante UTC que representa el inicio del día en Venezuela.
  */
-export function getVETMidnight(date: Date = new Date()): Date {
+export function getVETStartOfDay(date: Date = new Date()): Date {
   const { year, month, day } = getVETDateParts(date);
-  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  return new Date(Date.UTC(year, month - 1, day, 4, 0, 0, 0));
 }
 
 /**
- * Suma días a una fecha en la zona horaria de Venezuela y devuelve la fecha resultante a medianoche VET.
+ * Suma días completos a una fecha en la zona horaria de Venezuela.
  */
 export function addVETDays(date: Date, days: number): Date {
+  return new Date(getVETStartOfDay(date).getTime() + days * MS_PER_DAY);
+}
+
+/**
+ * Convierte un valor de input de tipo date (YYYY-MM-DD) a un ISO string fijado a medianoche en Venezuela.
+ */
+export function getVETDateInputISO(dateValue: string): string {
+  const [yearStr, monthStr, dayStr] = dateValue.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+
+  if (!year || !month || !day) {
+    throw new Error('Fecha inválida');
+  }
+
+  return new Date(Date.UTC(year, month - 1, day, 4, 0, 0, 0)).toISOString();
+}
+
+/**
+ * Devuelve una fecha en formato YYYY-MM-DD con base en la hora local de Venezuela.
+ */
+export function getVETDateString(date: Date = new Date()): string {
   const { year, month, day } = getVETDateParts(date);
-  const utcMidnight = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
-  return new Date(utcMidnight + days * 24 * 60 * 60 * 1000);
+  return [year, String(month).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
 }
 
 export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined): number {
@@ -62,15 +86,11 @@ export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined)
   const expiry = typeof expiryDate === 'string' ? new Date(expiryDate) : new Date(expiryDate.getTime());
   if (Number.isNaN(expiry.getTime())) return -999;
 
-  const today = new Date();
-  const vetExpiry = getVETDateParts(expiry);
-  const vetToday = getVETDateParts(today);
+  const todayStart = getVETStartOfDay();
+  const expiryStart = getVETStartOfDay(expiry);
 
-  const expiryUtcMidnight = Date.UTC(vetExpiry.year, vetExpiry.month - 1, vetExpiry.day, 0, 0, 0, 0);
-  const todayUtcMidnight = Date.UTC(vetToday.year, vetToday.month - 1, vetToday.day, 0, 0, 0, 0);
-
-  const diffTime = expiryUtcMidnight - todayUtcMidnight;
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffTime = expiryStart.getTime() - todayStart.getTime();
+  const diffDays = Math.ceil(diffTime / MS_PER_DAY);
 
   return diffDays;
 }

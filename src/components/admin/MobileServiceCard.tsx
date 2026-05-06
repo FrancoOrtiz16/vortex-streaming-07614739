@@ -9,6 +9,7 @@ import {
   getTrafficLightColor,
   getTrafficLightInfo,
   getDaysUntilExpiry,
+  getVETDateInputISO,
 } from '@/lib/trafficLightUtils';
 import type { ServiceRowData } from './ServiceRow';
 
@@ -70,7 +71,7 @@ const MobileServiceCard = ({ data, onChanged }: Props) => {
         profile_name: form.profile_name || null,
         profile_pin: form.profile_pin || null,
       };
-      if (form.next_renewal) payload.next_renewal = new Date(form.next_renewal).toISOString();
+      if (form.next_renewal) payload.next_renewal = getVETDateInputISO(form.next_renewal);
       const { error } = await supabase.from('subscriptions').update(payload).eq('id', data.id);
       if (error) throw error;
       toast.success('✅ Credenciales actualizadas');

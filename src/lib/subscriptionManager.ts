@@ -6,7 +6,7 @@
  * - renewExistingSubscription: actualiza una suscripción existente por su id.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { addVETDays, getVETMidnight } from '@/lib/trafficLightUtils';
+import { addVETDays, getVETStartOfDay } from '@/lib/trafficLightUtils';
 
 export interface NewInstanceInput {
   userId: string;
@@ -18,7 +18,7 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
   if (!userId || !serviceName) {
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
-  const nowVET = getVETMidnight();
+  const nowVET = getVETStartOfDay();
   const nextRenewal = addVETDays(nowVET, 30).toISOString();
 
   const { data, error } = await supabase

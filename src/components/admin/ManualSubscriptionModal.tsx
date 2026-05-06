@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getVETDateInputISO, getVETDateString } from '@/lib/trafficLightUtils';
 
 interface ManualSubscriptionModalProps {
   isOpen: boolean;
@@ -31,10 +32,8 @@ export function ManualSubscriptionModal({
     credentialPassword: '',
     profileName: '',
     profilePin: '',
-    startDate: new Date().toISOString().split('T')[0],
-    expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0],
+    startDate: getVETDateString(),
+    expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
   });
   const [linkedProfile, setLinkedProfile] = useState<LinkedProfile | null>(null);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'searching' | 'found' | 'not_found' | 'invalid'>('idle');
@@ -151,8 +150,8 @@ export function ManualSubscriptionModal({
         credential_password: form.credentialPassword || null,
         profile_name: form.profileName || null,
         profile_pin: form.profilePin || null,
-        next_renewal: new Date(form.expiryDate).toISOString(),
-        last_renewal: new Date(form.startDate).toISOString(),
+        next_renewal: getVETDateInputISO(form.expiryDate),
+        last_renewal: getVETDateInputISO(form.startDate),
       };
 
       const { error } = await supabase
@@ -172,10 +171,8 @@ export function ManualSubscriptionModal({
         credentialPassword: '',
         profileName: '',
         profilePin: '',
-        startDate: new Date().toISOString().split('T')[0],
-        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split('T')[0],
+        startDate: getVETDateString(),
+        expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
       });
       setLinkedProfile(null);
       setEmailStatus('idle');
