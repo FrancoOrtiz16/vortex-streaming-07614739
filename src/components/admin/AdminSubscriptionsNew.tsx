@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ServiceRow, { type ServiceRowData } from './ServiceRow';
+import MobileServiceCard from './MobileServiceCard';
 import { ManualSubscriptionModal } from './ManualSubscriptionModal';
 import { syncOrderToSubscription } from '@/services/orderService';
 
@@ -182,11 +183,11 @@ export default function AdminSubscriptionsNew() {
             Sincronización automática de ventas + Creación manual + Semáforo de vencimiento
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <button
             onClick={handleSyncOrders}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition"
             title="Sincronizar órdenes completadas con suscripciones"
           >
             {syncing ? (
@@ -198,7 +199,7 @@ export default function AdminSubscriptionsNew() {
           </button>
           <button
             onClick={() => setShowManualModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition"
             title="Crear una nueva suscripción manual"
           >
             <Plus className="w-4 h-4" />
@@ -207,7 +208,7 @@ export default function AdminSubscriptionsNew() {
         </div>
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full md:max-w-md">
         <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={search}
@@ -247,7 +248,8 @@ export default function AdminSubscriptionsNew() {
         </button>
       </div>
 
-      <div className="w-full overflow-x-auto rounded-3xl border border-white/10 bg-black/40">
+      {/* Vista Desktop: Tabla */}
+      <div className="hidden md:block w-full overflow-x-auto rounded-3xl border border-white/10 bg-black/40">
         <Table>
           <TableHeader>
             <TableRow>
@@ -269,6 +271,18 @@ export default function AdminSubscriptionsNew() {
         </Table>
         {filtered.length === 0 && (
           <div className="text-center py-8 text-sm text-muted-foreground">
+            No se encontraron suscripciones.
+          </div>
+        )}
+      </div>
+
+      {/* Vista Móvil: Cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((row) => (
+          <MobileServiceCard key={row.id} data={row} onChanged={fetchAll} />
+        ))}
+        {filtered.length === 0 && (
+          <div className="text-center py-8 text-sm text-muted-foreground rounded-2xl border border-white/10 bg-black/40">
             No se encontraron suscripciones.
           </div>
         )}

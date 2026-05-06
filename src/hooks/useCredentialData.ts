@@ -10,6 +10,7 @@ interface CredentialData {
   pin: string | null;
   user_id?: string;
   status?: string;
+  next_renewal?: string | null;
 }
 
 interface UseCredentialDataResult {
@@ -73,6 +74,7 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
         pin: d?.profile_pin ?? null,
         user_id: d?.user_id,
         status: d?.status,
+        next_renewal: d?.next_renewal ?? null,
       };
 
       setCredentials(validCredential);
