@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent, type FC } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, ChevronDown } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
@@ -15,16 +15,9 @@ const formatPrice = (value: number) => {
   return `$${value.toFixed(2).replace('.', ',')}`;
 };
 
-const durationOptions = [
-  { value: 30, label: '1 Mes' },
-  { value: 15, label: '15 Días' },
-  { value: 7, label: '1 Semana' },
-];
-
 const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
   const { addItem } = useCart();
   const [selected, setSelected] = useState<Product>(product);
-  const [durationDays, setDurationDays] = useState<number>(30);
   const hasVariants = !!variants && variants.length > 1;
   const exchangeRate = 700;
   const priceText = formatPrice(selected.price);
@@ -39,8 +32,8 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
       category: selected.category,
       image: selected.image,
       badge: selected.badge || undefined,
-      duration_days: durationDays,
-      cart_key: `${selected.id}-${durationDays}`,
+      duration_days: 30,
+      cart_key: `${selected.id}-30`,
     });
     toast.success(`${selected.name} añadido al carrito`);
   };
@@ -112,22 +105,6 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
             <p className="text-xs text-[hsl(var(--foreground)/0.6)] mb-4">{selected.plan_type}</p>
           )
         )}
-
-        <div className="relative mb-4">
-          <label className="sr-only">Duración</label>
-          <select
-            value={durationDays}
-            onChange={(e) => setDurationDays(Number(e.target.value))}
-            className="w-full appearance-none rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 pr-8 text-sm font-medium text-white outline-none transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
-          >
-            {durationOptions.map(option => (
-              <option key={option.value} value={option.value} className="bg-[#040617] text-white">
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        </div>
 
         <p className="text-sm text-[hsl(var(--foreground)/0.55)] mb-4 line-clamp-2 flex-1">
           {selected.description}

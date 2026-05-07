@@ -34,16 +34,13 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
   }
   const nowVET = getVETStartOfDay();
   const nextRenewal = addVETDays(nowVET, durationDays).toISOString();
-  const subscription_code = createVortexCode(serviceName);
 
   const { data, error } = await supabase
     .from('subscriptions')
     .insert([{ 
       user_id: userId,
       service_name: serviceName,
-      subscription_code,
       status,
-      last_renewal: nowVET.toISOString(),
       next_renewal: nextRenewal,
       duration_days: durationDays,
       credential_email: null,
@@ -51,7 +48,7 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       profile_name: null,
       profile_pin: null,
     }])
-    .select('id, user_id, service_name, subscription_code, status, next_renewal, duration_days')
+    .select('id, user_id, service_name, status, next_renewal, duration_days')
     .single();
 
   if (error) {

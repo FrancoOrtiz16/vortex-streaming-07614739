@@ -68,7 +68,7 @@ function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
   return real;
 }
 
-const SELECT_ALL = 'id, user_id, service_name, subscription_code, credential_email, credential_password, profile_name, profile_pin, status, duration_days, next_renewal, created_at';
+const SELECT_ALL = 'id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, duration_days, next_renewal, created_at, updated_at';
 
 export async function createSimpleSubscription(payload: SimpleSubscriptionPayload) {
   try {

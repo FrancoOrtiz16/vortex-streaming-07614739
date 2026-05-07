@@ -3,7 +3,6 @@ import { X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getVETDateInputISO, getVETDateString } from '@/lib/trafficLightUtils';
-import { createVortexCode } from '@/lib/subscriptionManager';
 
 interface ManualSubscriptionModalProps {
   isOpen: boolean;
@@ -146,14 +145,12 @@ export function ManualSubscriptionModal({
       const payload = {
         user_id: linkedProfile.user_id,
         service_name: form.serviceName,
-        subscription_code: createVortexCode(form.serviceName),
         status: 'active',
         credential_email: form.credentialEmail || null,
         credential_password: form.credentialPassword || null,
         profile_name: form.profileName || null,
         profile_pin: form.profilePin || null,
         next_renewal: getVETDateInputISO(form.expiryDate),
-        last_renewal: getVETDateInputISO(form.startDate),
       };
 
       const { error } = await supabase
