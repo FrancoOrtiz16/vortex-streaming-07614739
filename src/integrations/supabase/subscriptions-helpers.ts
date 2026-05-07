@@ -33,7 +33,6 @@ export interface SimpleSubscriptionUpdatePayload {
   status?: string;
   proxima_fecha?: string;
   duration_days?: number;
-  notified_at?: string;
   email_cuenta?: string | null;
   password_cuenta?: string | null;
   perfil?: string | null;
@@ -62,7 +61,6 @@ function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
   if (p.status !== undefined) real.status = p.status;
   if (p.proxima_fecha !== undefined) real.next_renewal = p.proxima_fecha;
   if (p.duration_days !== undefined) real.duration_days = p.duration_days;
-  if (p.notified_at !== undefined) real.notified_at = p.notified_at;
   if (p.email_cuenta !== undefined) real.credential_email = p.email_cuenta;
   if (p.password_cuenta !== undefined) real.credential_password = p.password_cuenta;
   if (p.perfil !== undefined) real.profile_name = p.perfil;
@@ -70,7 +68,7 @@ function toRealColumns(p: Partial<SimpleSubscriptionPayload>) {
   return real;
 }
 
-const SELECT_ALL = 'id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, duration_days, next_renewal, notified_at, created_at';
+const SELECT_ALL = 'id, user_id, service_name, subscription_code, credential_email, credential_password, profile_name, profile_pin, status, duration_days, next_renewal, created_at';
 
 export async function createSimpleSubscription(payload: SimpleSubscriptionPayload) {
   try {
@@ -255,78 +253,18 @@ export async function createNotification(payload: {
   subscription_id?: string;
   message: string;
 }) {
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert([
-        {
-          user_id: payload.user_id,
-          subscription_id: payload.subscription_id ?? null,
-          message: payload.message,
-        },
-      ])
-      .select('id');
-
-    if (error) {
-      console.error('[Notifications] Insert error:', error);
-      return { data: null, error };
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    console.error('[Notifications] createNotification catch:', err);
-    return { data: null, error: err };
-  }
+  console.debug('[Notifications] Skipped (table not available):', payload);
+  return { data: null, error: null };
 }
 
 export async function getUserNotifications(userId: string) {
-  try {
-    if (!userId) {
-      console.warn('[Notifications] Empty userId');
-      return { data: null, error: { message: 'No user ID' } };
-    }
-
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('id, subscription_id, message, is_read, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[Notifications] Fetch error:', error);
-      return { data: null, error };
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    console.error('[Notifications] getUserNotifications catch:', err);
-    return { data: null, error: err };
-  }
+  void userId;
+  return { data: [], error: null };
 }
 
 export async function markNotificationAsRead(notificationId: string) {
-  try {
-    if (!notificationId) {
-      console.warn('[Notifications] Empty notification ID');
-      return { data: null, error: { message: 'No notification ID' } };
-    }
-
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId)
-      .select('id');
-
-    if (error) {
-      console.error('[Notifications] Mark read error:', error);
-      return { data: null, error };
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    console.error('[Notifications] markNotificationAsRead catch:', err);
-    return { data: null, error: err };
-  }
+  void notificationId;
+  return { data: null, error: null };
 }
 
 export async function createSubscriptionExpirationNotification(
@@ -334,34 +272,8 @@ export async function createSubscriptionExpirationNotification(
   subscriptionId: string,
   serviceName: string,
 ) {
-  try {
-    const message = `Tu servicio ${serviceName} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
-    const notificationResult = await createNotification({
-      user_id: userId,
-      subscription_id: subscriptionId,
-      message,
-    });
-
-    if (notificationResult.error) {
-      return { data: null, error: notificationResult.error };
-    }
-
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .update({ notified_at: new Date().toISOString() })
-      .eq('id', subscriptionId)
-      .select('id, notified_at');
-
-    if (error) {
-      console.error('[Subscriptions] Update notified_at error:', error);
-      return { data: null, error };
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    console.error('[Subscriptions] createSubscriptionExpirationNotification catch:', err);
-    return { data: null, error: err };
-  }
+  console.debug('[Subscriptions] Expiration notification skipped:', { userId, subscriptionId, serviceName });
+  return { data: null, error: null };
 }
 
 /**
