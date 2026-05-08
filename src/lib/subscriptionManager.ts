@@ -59,15 +59,41 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
 
 export async function renewExistingSubscription(subscriptionId: string) {
   if (!subscriptionId) return { data: null, error: { message: 'subscriptionId requerido' } };
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .update({ status: 'pending_approval' })
-    .eq('id', subscriptionId)
-    .select('id, status')
-    .single();
+  
+  try {
+    // Primero, obtener la suscripción actual para conocer la duración
+    const { data: currentSub, error: fetchError } = await supabase
+      .from('subscriptions')
+      .select('duration_days, next_renewal')
+      .eq('id', subscriptionId)
+      .single();
 
-  if (error) {
-    console.error('[subscriptionManager] renewExistingSubscription error:', error);
+    if (fetchError || !currentSub) {
+      throw fetchError || new Error('Suscripción no encontrada');
+    }
+
+    // Calcular nueva fecha de renovación: agregar duration_days a la fecha actual
+    const durationDays = currentSub.duration_days || 30;
+    const nowVET = getVETStartOfDay();
+    const newNextRenewal = addVETDays(nowVET, durationDays).toISOString();
+
+    // Actualizar con la nueva fecha de renovación
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update({ 
+        status: 'pending_approval',
+        next_renewal: newNextRenewal,
+      })
+      .eq('id', subscriptionId)
+      .select('id, status, next_renewal, duration_days')
+      .single();
+
+    if (error) {
+      console.error('[subscriptionManager] renewExistingSubscription error:', error);
+    }
+    return { data, error };
+  } catch (err: any) {
+    console.error('[subscriptionManager] renewExistingSubscription catch:', err);
+    return { data: null, error: err };
   }
-  return { data, error };
 }

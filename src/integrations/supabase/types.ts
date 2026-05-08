@@ -200,13 +200,13 @@ export type Database = {
           id: string
           last_renewal: string
           next_renewal: string
+          notified_at: string | null
           profile_name: string | null
           profile_pin: string | null
           service_name: string
           status: string
-          subscription_code: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -216,13 +216,13 @@ export type Database = {
           id?: string
           last_renewal?: string
           next_renewal?: string
+          notified_at?: string | null
           profile_name?: string | null
           profile_pin?: string | null
           service_name: string
           status?: string
-          subscription_code?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -232,13 +232,13 @@ export type Database = {
           id?: string
           last_renewal?: string
           next_renewal?: string
+          notified_at?: string | null
           profile_name?: string | null
           profile_pin?: string | null
           service_name?: string
           status?: string
-          subscription_code?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

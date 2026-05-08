@@ -165,11 +165,28 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
   try {
     console.debug('[orderService] Aprobando pago de suscripción:', subscriptionId);
 
+    // Obtener la suscripción actual para conocer la duración
+    const { data: currentSub, error: fetchError } = await supabase
+      .from('subscriptions')
+      .select('duration_days')
+      .eq('id', subscriptionId)
+      .single();
+
+    if (fetchError || !currentSub) {
+      throw fetchError || new Error('Suscripción no encontrada');
+    }
+
+    // Calcular fecha de próxima renovación: now + duration_days
+    const durationDays = currentSub.duration_days || 30;
+    const now = new Date();
+    const nextRenewDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
     const { data, error } = await supabase
       .from('subscriptions')
       .update({
         status: 'active',
-        last_renewal: new Date().toISOString(),
+        last_renewal: now.toISOString(),
+        next_renewal: nextRenewDate.toISOString(),
       })
       .eq('id', subscriptionId)
       .select('user_id, service_name')

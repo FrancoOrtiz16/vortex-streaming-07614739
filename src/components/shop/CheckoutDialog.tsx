@@ -109,10 +109,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       
       // Step 1: Create order
       const formatDurationLabel = (days?: number) => {
-        if (days === 30) return '1 Mes';
-        if (days === 15) return '15 Días';
-        if (days === 7) return '1 Semana';
-        return days ? `${days} días` : '';
+        // Sistema estandarizado: todas las suscripciones son de 30 días
+        return days === 30 ? '1 Mes' : '';
       };
 
       const productNames = items

@@ -20,7 +20,11 @@ export const useAdminSubscriptions = (searchTerm: string = '', filterStatus: str
           profile_name,
           profile_pin,
           status,
-          next_renewal
+          duration_days,
+          last_renewal,
+          next_renewal,
+          notified_at,
+          created_at
         `);
 
       if (filterStatus) {
