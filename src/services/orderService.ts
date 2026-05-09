@@ -176,16 +176,20 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
       throw fetchError || new Error('Suscripción no encontrada');
     }
 
-    // Calcular fecha de próxima renovación: now + duration_days
+    // ⚠️ IMPORTANTE: Usar VET timezone para consistencia
+    const { getVETStartOfDay, addVETDays } = await import('@/lib/trafficLightUtils');
+    
+    // Calcular fecha de próxima renovación: now (VET) + duration_days
     const durationDays = currentSub.duration_days || 30;
-    const now = new Date();
-    const nextRenewDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    const nowVET = getVETStartOfDay();
+    const nextRenewDate = addVETDays(nowVET, durationDays);
 
+    // Usar el mismo timestamp para both last_renewal y como referencia
     const { data, error } = await supabase
       .from('subscriptions')
       .update({
         status: 'active',
-        last_renewal: now.toISOString(),
+        last_renewal: nowVET.toISOString(),
         next_renewal: nextRenewDate.toISOString(),
       })
       .eq('id', subscriptionId)
@@ -199,6 +203,8 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
     }
 
     console.debug('[orderService] Pago aprobado para:', subscriptionId);
+    console.debug('[orderService] Fecha de aprobación (VET):', nowVET.toISOString());
+    console.debug('[orderService] Próxima renovación:', nextRenewDate.toISOString());
     return { ok: true };
   } catch (err: any) {
     console.error('[orderService.approvePayment]', err);

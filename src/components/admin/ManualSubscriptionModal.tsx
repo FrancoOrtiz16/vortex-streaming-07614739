@@ -142,15 +142,17 @@ export function ManualSubscriptionModal({
         return;
       }
 
+      // ⚠️ IMPORTANTE: Al crear una suscripción manual, debe estar en 'pending_approval'
+      // y WITHOUT next_renewal. Solo el admin puede aprobar después.
       const payload = {
         user_id: linkedProfile.user_id,
         service_name: form.serviceName,
-        status: 'active',
+        status: 'pending_approval', // Cambiado: pendiente de aprobación
         credential_email: form.credentialEmail || null,
         credential_password: form.credentialPassword || null,
         profile_name: form.profileName || null,
         profile_pin: form.profilePin || null,
-        next_renewal: getVETDateInputISO(form.expiryDate),
+        next_renewal: null, // Cambiado: NULL hasta que admin apruebe
       };
 
       const { error } = await supabase

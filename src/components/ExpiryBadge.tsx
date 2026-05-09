@@ -2,11 +2,20 @@ import { cn } from '@/lib/utils';
 import { getDaysUntilExpiry } from '@/lib/trafficLightUtils';
 
 interface ExpiryBadgeProps {
-  nextRenewal: string;
+  nextRenewal: string | null | undefined;
   className?: string;
 }
 
 export function ExpiryBadge({ nextRenewal, className }: ExpiryBadgeProps) {
+  // ⚠️ Si no hay fecha de vencimiento, está pendiente de aprobación
+  if (!nextRenewal) {
+    return (
+      <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-500/20 text-slate-300', className)}>
+        Esperando Aprobación
+      </span>
+    );
+  }
+
   const daysLeft = getDaysUntilExpiry(nextRenewal);
 
   let color: string;

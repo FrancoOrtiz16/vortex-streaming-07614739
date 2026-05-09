@@ -298,8 +298,8 @@ export function SubscriptionsSection() {
       const payload = {
         user_id: null, // Para clientes externos, no hay user_id
         service_name: form.serviceName,
-        status: 'active',
-        next_renewal: expiryDate.toISOString(),
+        status: 'pending_approval', // Cambiado: pendiente de aprobación
+        next_renewal: null, // Cambiado: NULL hasta que admin apruebe
         duration_days: durationDays,
         credential_email: form.email || null,
         credential_password: form.password || null,

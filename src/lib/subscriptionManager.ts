@@ -32,16 +32,16 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
   if (!userId || !serviceName) {
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
-  const nowVET = getVETStartOfDay();
-  const nextRenewal = addVETDays(nowVET, durationDays).toISOString();
 
+  // ⚠️ IMPORTANTE: En la fase de CREACIÓN, next_renewal debe ser NULL
+  // Solo se asignará when admin approves (en approvePayment)
   const { data, error } = await supabase
     .from('subscriptions')
     .insert([{ 
       user_id: userId,
       service_name: serviceName,
-      status,
-      next_renewal: nextRenewal,
+      status, // Será 'pending_approval'
+      next_renewal: null, // NULL hasta que el admin apruebe
       duration_days: durationDays,
       credential_email: null,
       credential_password: null,
