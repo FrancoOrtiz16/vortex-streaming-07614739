@@ -6,12 +6,12 @@ UPDATE public.subscriptions
 SET duration_days = 30
 WHERE duration_days != 30;
 
--- Step 2: Recalculate next_renewal based on created_at + 30 days for pending subscriptions
--- For subscriptions that haven't been activated yet, recalculate their renewal date
-UPDATE public.subscriptions
-SET next_renewal = created_at + interval '30 days'
-WHERE status IN ('pending_approval', 'procesando_credenciales')
-  AND next_renewal IS NOT NULL;
+-- Step 2: Pendings no deben recibir next_renewal automático.
+-- El tiempo de servicio solo comienza cuando el admin aprueba manualmente.
+-- UPDATE public.subscriptions
+-- SET next_renewal = created_at + interval '30 days'
+-- WHERE status IN ('pending_approval', 'procesando_credenciales')
+--   AND next_renewal IS NOT NULL;
 
 -- Step 3: For active and confirmed subscriptions, keep their renewal dates but ensure they're reasonable
 -- (within 30-60 days from their last_renewal date)

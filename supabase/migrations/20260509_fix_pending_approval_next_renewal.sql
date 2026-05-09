@@ -5,6 +5,12 @@
 
 BEGIN;
 
+-- Ensure pending approval subscriptions can exist without an expiry date
+ALTER TABLE public.subscriptions ALTER COLUMN next_renewal DROP DEFAULT;
+ALTER TABLE public.subscriptions ALTER COLUMN next_renewal DROP NOT NULL;
+ALTER TABLE public.subscriptions ALTER COLUMN last_renewal DROP DEFAULT;
+ALTER TABLE public.subscriptions ALTER COLUMN last_renewal DROP NOT NULL;
+
 -- Clean all pending_approval subscriptions: set next_renewal to NULL
 -- These subscriptions are awaiting admin approval, so they should NOT have an expiry date
 UPDATE public.subscriptions

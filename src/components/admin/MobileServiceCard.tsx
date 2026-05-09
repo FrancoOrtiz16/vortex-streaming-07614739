@@ -57,12 +57,13 @@ const MobileServiceCard = ({ data, onChanged }: Props) => {
     next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
   });
 
-  const tlStatus = getTrafficLightStatus(data.next_renewal);
-  const tlColor = getTrafficLightColor(tlStatus);
-  const tlInfo = getTrafficLightInfo(tlStatus);
-  const daysRemaining = getDaysUntilExpiry(data.next_renewal);
-
   const isPending = data.status === 'pending_approval' || data.status === 'procesando_credenciales';
+  const tlStatus = isPending ? 'yellow' : getTrafficLightStatus(data.next_renewal);
+  const tlColor = isPending ? 'bg-amber-500/20 text-amber-100' : getTrafficLightColor(tlStatus);
+  const tlInfo = isPending
+    ? { icon: '🟡', label: 'Pendiente', tooltip: 'Suscripción aguardando aprobación administrativa' }
+    : getTrafficLightInfo(tlStatus);
+  const daysRemaining = !isPending && data.next_renewal ? getDaysUntilExpiry(data.next_renewal) : null;
 
   const handleSave = async () => {
     setBusy('save');
@@ -172,7 +173,7 @@ const MobileServiceCard = ({ data, onChanged }: Props) => {
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold ${tlColor}`}>
           <span>{tlInfo.icon}</span>
           <span>{tlInfo.label}</span>
-          {daysRemaining >= 0 && <span className="opacity-80">({daysRemaining}d)</span>}
+          {daysRemaining !== null && <span className="opacity-80">({daysRemaining}d)</span>}
         </div>
         <span className="text-muted-foreground">
           {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-ES') : 'Sin fecha'}

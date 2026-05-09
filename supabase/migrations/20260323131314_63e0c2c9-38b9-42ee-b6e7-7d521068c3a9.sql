@@ -3,9 +3,9 @@ CREATE TABLE public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   service_name text NOT NULL,
-  status text NOT NULL DEFAULT 'active',
-  last_renewal timestamp with time zone NOT NULL DEFAULT now(),
-  next_renewal timestamp with time zone NOT NULL DEFAULT (now() + interval '30 days'),
+  status text NOT NULL DEFAULT 'pending_approval',
+  last_renewal timestamp with time zone DEFAULT NULL,
+  next_renewal timestamp with time zone DEFAULT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );

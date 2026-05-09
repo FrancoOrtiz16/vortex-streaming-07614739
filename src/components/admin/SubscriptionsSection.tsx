@@ -563,7 +563,7 @@ export function SubscriptionsSection() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{s.next_renewal ? new Date(s.next_renewal).toLocaleDateString() : 'N/A'}</td>
-                        <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.next_renewal || s.created_at} /></td>
+                        <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.status === 'active' || s.status === 'confirmed' ? s.next_renewal : null} /></td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <button

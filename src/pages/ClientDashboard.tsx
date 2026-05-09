@@ -382,7 +382,7 @@ const ClientDashboard = () => {
                           <p className="text-xs text-muted-foreground">ID: VORTEX-{sub?.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</p>
                         </div>
                       </div>
-                      <ExpiryBadge nextRenewal={sub?.next_renewal || sub?.created_at || new Date().toISOString()} />
+                      <ExpiryBadge nextRenewal={sub.status === 'active' || sub.status === 'confirmed' ? sub.next_renewal : null} />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

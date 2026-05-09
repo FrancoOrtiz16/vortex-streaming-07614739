@@ -83,10 +83,13 @@ const ServiceRow = ({ data, onChanged }: Props) => {
   });
 
   // Calcular el estado del semáforo
-  const trafficLightStatus = getTrafficLightStatus(data.next_renewal);
-  const trafficLightColor = getTrafficLightColor(trafficLightStatus);
-  const trafficLightInfo = getTrafficLightInfo(trafficLightStatus);
-  const daysRemaining = getDaysUntilExpiry(data.next_renewal);
+  const isPendingApproval = data.status === 'pending_approval' || data.status === 'procesando_credenciales';
+  const trafficLightStatus = isPendingApproval ? 'yellow' : getTrafficLightStatus(data.next_renewal);
+  const trafficLightColor = isPendingApproval ? 'bg-amber-500/20 text-amber-100' : getTrafficLightColor(trafficLightStatus);
+  const trafficLightInfo = isPendingApproval
+    ? { icon: '🟡', label: 'Pendiente', tooltip: 'Suscripción aguardando aprobación administrativa' }
+    : getTrafficLightInfo(trafficLightStatus);
+  const daysRemaining = !isPendingApproval && data.next_renewal ? getDaysUntilExpiry(data.next_renewal) : null;
 
   const handleSave = async () => {
     setBusy('save');
@@ -205,7 +208,7 @@ const ServiceRow = ({ data, onChanged }: Props) => {
           >
             <span>{trafficLightInfo.icon}</span>
             <span>{trafficLightInfo.label}</span>
-            {daysRemaining >= 0 && (
+            {daysRemaining !== null && (
               <span className="text-xs opacity-80">({daysRemaining}d)</span>
             )}
           </div>

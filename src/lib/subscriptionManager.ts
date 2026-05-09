@@ -6,7 +6,6 @@
  * - renewExistingSubscription: actualiza una suscripción existente por su id.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { addVETDays, getVETStartOfDay } from '@/lib/trafficLightUtils';
 
 export interface NewInstanceInput {
   userId: string;
@@ -72,17 +71,13 @@ export async function renewExistingSubscription(subscriptionId: string) {
       throw fetchError || new Error('Suscripción no encontrada');
     }
 
-    // Calcular nueva fecha de renovación: agregar duration_days a la fecha actual
-    const durationDays = currentSub.duration_days || 30;
-    const nowVET = getVETStartOfDay();
-    const newNextRenewal = addVETDays(nowVET, durationDays).toISOString();
-
-    // Actualizar con la nueva fecha de renovación
+    // En la fase de renovación pendiente, no asignar expiry ni comenzar el conteo.
+    // Solo la acción manual de aprobación debe establecer next_renewal.
     const { data, error } = await supabase
       .from('subscriptions')
       .update({ 
         status: 'pending_approval',
-        next_renewal: newNextRenewal,
+        next_renewal: null,
       })
       .eq('id', subscriptionId)
       .select('id, status, next_renewal, duration_days')
