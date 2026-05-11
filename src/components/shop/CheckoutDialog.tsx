@@ -160,6 +160,9 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         }
       }
 
+      // Refresh Supabase session to recognize new permissions
+      await supabase.auth.refreshSession();
+
       // Step 3: Send WhatsApp & clear
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
       const methodText = selectedMethod ? ` usando ${selectedMethod.method_name}` : '';
