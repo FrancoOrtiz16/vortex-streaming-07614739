@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,16 +15,16 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [justLoggedIn, setJustLoggedIn] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (justLoggedIn && isAdmin !== undefined) {
-      navigate(isAdmin ? '/admin-access' : '/');
-      setJustLoggedIn(false);
+    if (!authLoading && user) {
+      setRedirecting(true);
+      navigate('/', { replace: true });
     }
-  }, [justLoggedIn, isAdmin, navigate]);
+  }, [authLoading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +63,20 @@ const AuthPage = () => {
       toast.error('Error al iniciar sesión con Google');
     }
   };
+
+  if (user && (authLoading || redirecting)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-[#030303] text-white">
+        <div className="w-full max-w-md glass rounded-2xl p-8 text-center">
+          <Loader2 className="mx-auto mb-4 w-12 h-12 text-primary animate-spin" />
+          <h1 className="text-2xl font-bold mb-2">Redirigiendo a la tienda...</h1>
+          <p className="text-sm text-muted-foreground">
+            Estamos preparando tu experiencia de compra. Un momento, por favor.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative">

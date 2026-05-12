@@ -107,9 +107,23 @@ export function useAuth() {
       setLoading(false);
     }, AUTH_READY_TIMEOUT_MS);
 
+    const redirectToStore = () => {
+      const storePath = '/';
+      if (window.location.pathname !== storePath) {
+        console.debug('[Auth] Redirecting to store after sign in');
+        window.location.replace(storePath);
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         console.debug('[Auth] Auth state changed:', { event: _event, hasSession: !!session });
+
+        if (_event === 'SIGNED_IN' && session?.user) {
+          redirectToStore();
+          return;
+        }
+
         applySession(session);
       }
     );
