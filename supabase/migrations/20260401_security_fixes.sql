@@ -19,8 +19,7 @@ ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users view own subscriptions"
   ON public.subscriptions FOR SELECT
   TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING (auth.uid() = user_id);
 
 -- Admins see all (hide password for safety, or full if trusted)
 CREATE POLICY "Admins view all subscriptions"

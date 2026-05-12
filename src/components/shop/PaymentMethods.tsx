@@ -11,34 +11,6 @@ export interface PaymentMethod {
   instructions: string | null;
 }
 
-// Manual fallback methods (used if Supabase is slow or fails).
-// Only amount + service name are required upstream.
-const FALLBACK_METHODS: PaymentMethod[] = [
-  {
-    id: 'fallback-pago-movil',
-    method_name: 'Pago Móvil',
-    method_type: 'pago móvil',
-    account_info: 'Banco: Banesco (0134)\nCédula: V-30.000.000\nTeléfono: 0424-1772003',
-    instructions: 'Envía el monto exacto en Bs. y sube el comprobante.',
-  },
-  {
-    id: 'fallback-zelle',
-    method_name: 'Zelle',
-    method_type: 'zelle',
-    account_info: 'Email: vortex.streaming@pago.com\nTitular: Vortex Streaming',
-    instructions: 'Envía el monto en USD y sube la captura de confirmación.',
-  },
-  {
-    id: 'fallback-binance',
-    method_name: 'Binance Pay',
-    method_type: 'crypto',
-    account_info: 'Binance ID: 784512309\nUSDT (red BSC / TRC20)',
-    instructions: 'Envía USDT y sube la captura del TXID.',
-  },
-];
-
-const FETCH_TIMEOUT_MS = 2500;
-
 interface Props {
   selectedId: string | null;
   onSelect: (method: PaymentMethod) => void;
@@ -47,42 +19,33 @@ interface Props {
 const PaymentMethods = ({ selectedId, onSelect }: Props) => {
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usedFallback, setUsedFallback] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let settled = false;
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      console.warn('[PaymentMethods] Timeout 2.5s — usando métodos manuales');
-      setMethods(FALLBACK_METHODS);
-      setUsedFallback(true);
-      setLoading(false);
-    }, FETCH_TIMEOUT_MS);
-
     supabase
       .from('payment_methods')
       .select('id, method_name, method_type, account_info, instructions')
       .eq('is_active', true)
       .order('sort_order')
       .then(({ data, error }) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        if (error || !data || data.length === 0) {
-          console.warn('[PaymentMethods] Fallback activado:', error?.message || 'sin métodos');
-          setMethods(FALLBACK_METHODS);
-          setUsedFallback(true);
+        if (error) {
+          console.error('[PaymentMethods] Error loading payment methods:', error.message);
+          setError(error.message || 'Error al cargar los métodos de pago.');
+          setMethods([]);
+        } else if (!data || data.length === 0) {
+          setError('No hay métodos de pago activos disponibles.');
+          setMethods([]);
         } else {
           setMethods(data as PaymentMethod[]);
         }
         setLoading(false);
+      })
+      .catch((err) => {
+        console.error('[PaymentMethods] Error fetching payment methods:', err);
+        setError(err.message || 'Error al cargar los métodos de pago.');
+        setMethods([]);
+        setLoading(false);
       });
-
-    return () => {
-      settled = true;
-      clearTimeout(timeout);
-    };
   }, []);
 
   if (loading) {
@@ -93,14 +56,25 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-rose-200">
+        {error}
+      </div>
+    );
+  }
+
+  if (!methods || methods.length === 0) {
+    return (
+      <div className="rounded-2xl border border-border bg-secondary/60 p-4 text-sm text-muted-foreground">
+        No hay métodos de pago disponibles en este momento. Intenta más tarde.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      {usedFallback && (
-        <p className="text-[10px] text-amber-400/80 mb-1">
-          Modo offline: mostrando métodos manuales.
-        </p>
-      )}
-      {(methods || []).map((m, i) => (
+      {methods.map((m, i) => (
         <motion.button
           key={m.id}
           initial={{ opacity: 0, y: 8 }}
@@ -125,4 +99,3 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
 };
 
 export default PaymentMethods;
-export { FALLBACK_METHODS };

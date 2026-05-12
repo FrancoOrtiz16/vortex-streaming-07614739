@@ -20,8 +20,8 @@ CREATE POLICY "Public can read products"
 CREATE POLICY "Authenticated can manage products"
   ON public.products FOR ALL
   TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'::text))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'::text));
+  USING (public.has_role(auth.uid(), 'admin'::public.app_role))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- Update the realtime publication
 ALTER PUBLICATION supabase_realtime DROP TABLE public.services;
