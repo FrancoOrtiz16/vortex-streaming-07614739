@@ -32,8 +32,8 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08 }}
-      whileHover={{ y: -6 }}
-      className="group relative rounded-2xl overflow-hidden flex flex-col"
+      layout={false}
+      className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full"
       style={{
         background: 'linear-gradient(180deg, hsl(215 25% 12%) 0%, hsl(220 20% 8%) 100%)',
         border: '1px solid hsla(210, 100%, 55%, 0.1)',
@@ -51,7 +51,8 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
         <img
           src={service.image_url}
           alt={`Logo de ${service.name} - ${service.plan_type} disponible en Vortex Streaming`}
-          className="max-h-24 max-w-[80%] object-contain drop-shadow-lg transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-auto max-h-24 object-contain drop-shadow-lg transition-transform duration-500"
+          style={{ maxWidth: '100%' }}
           loading="lazy"
         />
       </div>
@@ -73,20 +74,7 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
 
         <button
           onClick={handleAdd}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all duration-300"
-          style={{
-            background: 'hsla(210, 100%, 55%, 0.1)',
-            border: '1px solid hsla(210, 100%, 55%, 0.2)',
-            color: 'hsl(210, 100%, 65%)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'hsl(210, 100%, 55%)';
-            e.currentTarget.style.color = 'hsl(220, 20%, 4%)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'hsla(210, 100%, 55%, 0.1)';
-            e.currentTarget.style.color = 'hsl(210, 100%, 65%)';
-          }}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-colors duration-300 border border-[hsla(210,100%,55%,0.2)] bg-[hsla(210,100%,55%,0.1)] text-[hsl(210,100%,65%)] hover:bg-[hsl(210,100%,55%)] hover:text-[hsl(220,20%,4%)]"
         >
           <ShoppingCart className="w-3.5 h-3.5" />
           Añadir al Carrito

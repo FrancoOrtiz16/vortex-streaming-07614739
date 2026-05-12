@@ -57,6 +57,14 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    min-width: 100%;
+  }
+
   * {
     @apply border-border;
   }
@@ -71,6 +79,40 @@
     background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
+  }
+
+  body.reduce-motion {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
+  body.reduce-motion * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@layer utilities {
+  .reduce-motion .particle,
+  .reduce-motion .app-background-layer {
+    display: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce), (prefers-reduced-transparency: reduce) {
+    .particle,
+    .app-background-layer {
+      display: none !important;
+    }
+
+    .transition-all,
+    .transition-transform,
+    .animate-spin,
+    .group-hover\:scale-110 {
+      transition: none !important;
+      animation: none !important;
+    }
   }
 }
 
