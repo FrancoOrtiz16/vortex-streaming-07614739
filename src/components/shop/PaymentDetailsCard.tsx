@@ -126,37 +126,37 @@ const PaymentDetailsCard = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Header con nombre del método */}
-      <div className="rounded-2xl border border-slate-700/50 bg-slate-950/80 p-3">
-        <div className="flex items-center justify-between gap-3">
+      <div className="rounded-2xl border border-slate-700/50 bg-slate-950/80 p-2">
+        <div className="flex items-center justify-between gap-2">
           <div>
-            <h3 className="font-display font-semibold text-sm text-foreground">
+            <h3 className="font-display font-semibold text-xs text-foreground">
               {methodName}
             </h3>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.25em] mt-0.5">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-[0.25em] mt-0.5">
               {methodType}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-base font-bold">
+          <div className="w-8 h-8 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
             {methodName.charAt(0)}
           </div>
         </div>
       </div>
 
       {/* Detalles estructurados */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         {details.map((detail, idx) => (
           <div
             key={idx}
-            className="group rounded-2xl border border-slate-700/50 bg-slate-900/70 p-2 sm:p-3 transition-all duration-200"
+            className="group rounded-2xl border border-slate-700/50 bg-slate-900/70 p-1 sm:p-2 transition-all duration-200"
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.22em] mb-1">
+                <p className="text-[9px] font-medium text-slate-400 uppercase tracking-[0.22em] mb-0.5">
                   {detail.label}
                 </p>
-                <code className="block text-sm font-mono text-foreground break-all leading-snug">
+                <code className="block text-xs font-mono text-foreground break-all leading-tight">
                   {detail.value}
                 </code>
               </div>
@@ -164,7 +164,7 @@ const PaymentDetailsCard = ({
               {/* Botón de copiar adaptado a móvil */}
               <button
                 onClick={() => handleCopy(detail.value, idx)}
-                className="flex-shrink-0 inline-flex items-center justify-center rounded-2xl bg-slate-800/80 border border-slate-700/70 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 min-h-[44px] min-w-[44px] p-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="flex-shrink-0 inline-flex items-center justify-center rounded-2xl bg-slate-800/80 border border-slate-700/70 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 min-h-[44px] min-w-[44px] p-1.5 focus:outline-none focus:ring-2 focus:ring-primary/40"
                 title="Copiar valor"
                 aria-label={`Copiar ${detail.label}`}
               >
@@ -181,11 +181,11 @@ const PaymentDetailsCard = ({
 
       {/* Instrucciones adicionales (si existen) */}
       {instructions && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2 sm:p-3">
-          <p className="text-[10px] font-medium text-amber-200 uppercase tracking-[0.22em] mb-1">
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-1 sm:p-2">
+          <p className="text-[9px] font-medium text-amber-200 uppercase tracking-[0.22em] mb-0.5">
             📝 Instrucciones
           </p>
-          <p className="text-[11px] text-foreground/90 leading-snug break-all">
+          <p className="text-[10px] text-foreground/90 leading-tight break-all">
             {instructions}
           </p>
         </div>
