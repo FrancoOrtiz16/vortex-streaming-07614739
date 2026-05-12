@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Loader2, Copy, CheckCircle, ArrowLeft, CreditCard, Upload, ImageIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, CreditCard, Upload, ImageIcon, CheckCircle2 as CheckCircle, MessageCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
 import PaymentMethods, { PaymentMethod as PMType } from './PaymentMethods';
+import PaymentDetailsCard from './PaymentDetailsCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
@@ -29,7 +30,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { rate, convertToVES } = useExchangeRate();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
@@ -44,12 +44,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       setReceiptUrl(null);
     }
   }, [open]);
-
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -224,37 +218,12 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
               </button>
 
               {selected && (
-                <div className="rounded-xl bg-secondary/60 border border-primary/20 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-display font-semibold text-base">{selected.method_name}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-0.5 rounded-full bg-primary/10">
-                      {selected.method_type}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {selected.account_info.split('\n').filter(Boolean).map((line, idx) => (
-                      <div key={idx} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/30 last:border-0">
-                        <code className="text-sm text-foreground flex-1 break-all">{line}</code>
-                        <button
-                          onClick={() => handleCopy(line, `${selected.id}-${idx}`)}
-                          className="p-1.5 rounded-lg hover:bg-secondary transition-colors shrink-0"
-                          aria-label="Copiar"
-                        >
-                          {copiedId === `${selected.id}-${idx}` ? (
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  {selected.instructions && (
-                    <p className="text-[11px] text-muted-foreground mt-3 p-2 rounded-lg bg-background/50">
-                      {selected.instructions}
-                    </p>
-                  )}
-                </div>
+                <PaymentDetailsCard
+                  methodName={selected.method_name}
+                  methodType={selected.method_type}
+                  accountInfo={selected.account_info}
+                  instructions={selected.instructions}
+                />
               )}
 
               {/* Receipt upload */}
