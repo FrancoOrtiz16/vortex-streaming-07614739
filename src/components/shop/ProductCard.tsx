@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent, type FC } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';

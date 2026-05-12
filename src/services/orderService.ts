@@ -4,7 +4,6 @@ import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/
 function parseDurationDaysFromProductName(productName: string) {
   return 30;
 }
-}
 
 /**
  * orderService — Lógica aislada de pagos/órdenes (Sandboxing).
