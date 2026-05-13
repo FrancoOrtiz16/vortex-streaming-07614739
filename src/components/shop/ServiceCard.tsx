@@ -1,7 +1,8 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import { Service } from '@/hooks/useServices';
 import { useCart } from '@/hooks/useCart';
+import { useSafeMotion } from '@/hooks/useSafeMotion';
 import { toast } from 'sonner';
 
 interface ServiceCardProps {
@@ -27,13 +28,13 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
     toast.success(`${service.name} añadido al carrito`);
   };
 
-  const shouldReduceMotion = useReducedMotion();
+  const safeMotion = useSafeMotion();
 
   return (
     <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
+      initial={safeMotion ? false : { opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, delay: index * 0.08 }}
+      transition={safeMotion ? { duration: 0 } : { duration: 0.4, delay: index * 0.08 }}
       layout={false}
       className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full"
       style={{
@@ -49,11 +50,11 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
 
       {/* Logo area */}
       <div className="relative flex items-center justify-center h-40 p-6 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent md:group-hover:from-primary/5 transition-colors duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent" />
         <img
           src={service.image_url}
           alt={`Logo de ${service.name} - ${service.plan_type} disponible en Vortex Streaming`}
-          className="w-full h-auto max-h-24 object-contain drop-shadow-lg transition-transform duration-500"
+          className="w-full h-auto max-h-24 object-contain"
           style={{ maxWidth: '100%' }}
           loading="lazy"
         />

@@ -267,7 +267,7 @@ const StandaloneCatalog: React.FC = () => {
                 const toHookProduct = (p: Product) => ({ ...p, image: p.image_url });
                 return (
                   <ProductCard
-                    key={item.key}
+                    key={`${item.representative.id}-${item.key}`}
                     product={toHookProduct(item.representative) as any}
                     variants={item.variants.map(toHookProduct) as any}
                     index={i}

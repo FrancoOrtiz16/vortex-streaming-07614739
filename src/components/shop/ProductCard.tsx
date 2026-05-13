@@ -1,8 +1,9 @@
 import { useState, type ChangeEvent, type FC } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
+import { useSafeMotion } from '@/hooks/useSafeMotion';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -43,15 +44,15 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
     if (found) setSelected(found);
   };
 
-  const shouldReduceMotion = useReducedMotion();
+  const safeMotion = useSafeMotion();
 
   return (
     <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
+      initial={safeMotion ? false : { opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.35, delay: index * 0.05 }}
+      transition={safeMotion ? { duration: 0 } : { duration: 0.35, delay: index * 0.05 }}
       layout={false}
-      className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full transition-shadow duration-300 hover:shadow-[0_0_30px_hsl(var(--primary)/0.15)]"
+      className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full transition-shadow duration-300"
       style={{
         background: 'linear-gradient(180deg, hsl(var(--secondary)) 0%, hsl(var(--background)) 100%)',
         border: '1px solid hsl(var(--border))',
@@ -64,16 +65,14 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
       )}
 
       <div className="relative flex items-center justify-center h-40 p-6 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent md:group-hover:from-primary/5 transition-colors duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent" />
         <img
           src={selected.image}
           alt={selected.name}
-          className="w-full h-auto object-contain drop-shadow-lg transition-transform duration-500"
+          className="w-full h-auto object-contain"
           style={{
             maxHeight: '9rem',
             maxWidth: '100%',
-            transform: `scale(${scale})`,
-            transformOrigin: 'center',
           }}
           loading="lazy"
         />

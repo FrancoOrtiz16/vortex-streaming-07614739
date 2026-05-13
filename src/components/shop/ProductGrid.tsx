@@ -51,9 +51,9 @@ const ProductGrid = () => {
       });
     });
 
-    singles.forEach(p => {
+    singles.forEach((p, index) => {
       result.push({
-        key: p?.id || `single-${Math.random()}`,
+        key: p?.id || `single-${index}`,
         representative: p,
         variants: [p],
       });

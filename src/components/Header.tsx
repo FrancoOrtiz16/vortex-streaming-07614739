@@ -2,15 +2,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Search } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import UserMenu from '@/components/UserMenu';
+import { useSafeMotion } from '@/hooks/useSafeMotion';
 import { useAuth } from '@/hooks/useAuth';
 
 const Header = () => {
   const { count } = useCart();
   const { isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useSafeMotion();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border" style={{ background: 'hsla(220, 20%, 6%, 0.85)', backdropFilter: 'blur(20px)' }}>
