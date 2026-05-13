@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import { Service } from '@/hooks/useServices';
 import { useCart } from '@/hooks/useCart';
-import { useSafeMotion } from '@/hooks/useSafeMotion';
+import { useResponsive } from '@/hooks/useResponsive';
 import { toast } from 'sonner';
 
 interface ServiceCardProps {
@@ -28,13 +28,13 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
     toast.success(`${service.name} añadido al carrito`);
   };
 
-  const safeMotion = useSafeMotion();
+  const { shouldAnimateOnDevice } = useResponsive();
 
   return (
     <motion.div
-      initial={safeMotion ? false : { opacity: 0, y: 30 }}
+      initial={shouldAnimateOnDevice ? { opacity: 0, y: 30 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={safeMotion ? { duration: 0 } : { duration: 0.4, delay: index * 0.08 }}
+      transition={shouldAnimateOnDevice ? { duration: 0.4, delay: index * 0.08 } : { duration: 0 }}
       layout={false}
       className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full"
       style={{

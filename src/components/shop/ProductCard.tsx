@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
-import { useSafeMotion } from '@/hooks/useSafeMotion';
+import { useResponsive } from '@/hooks/useResponsive';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -44,13 +44,13 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
     if (found) setSelected(found);
   };
 
-  const safeMotion = useSafeMotion();
+  const { shouldAnimateOnDevice } = useResponsive();
 
   return (
     <motion.div
-      initial={safeMotion ? false : { opacity: 0, y: 30 }}
+      initial={shouldAnimateOnDevice ? { opacity: 0, y: 30 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={safeMotion ? { duration: 0 } : { duration: 0.35, delay: index * 0.05 }}
+      transition={shouldAnimateOnDevice ? { duration: 0.35, delay: index * 0.05 } : { duration: 0 }}
       layout={false}
       className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full transition-shadow duration-300"
       style={{
