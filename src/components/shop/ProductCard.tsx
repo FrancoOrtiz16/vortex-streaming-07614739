@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FC } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ShoppingCart, ChevronDown } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
@@ -43,11 +43,13 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
     if (found) setSelected(found);
   };
 
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.05 }}
+      transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.35, delay: index * 0.05 }}
       layout={false}
       className="group relative rounded-2xl overflow-hidden flex flex-col min-w-0 w-full transition-shadow duration-300 hover:shadow-[0_0_30px_hsl(var(--primary)/0.15)]"
       style={{
@@ -62,7 +64,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
       )}
 
       <div className="relative flex items-center justify-center h-40 p-6 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent group-hover:from-primary/5 transition-all duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent md:group-hover:from-primary/5 transition-colors duration-300" />
         <img
           src={selected.image}
           alt={selected.name}

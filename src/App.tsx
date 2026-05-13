@@ -24,11 +24,14 @@ const App = () => {
     const saveData = connection?.saveData;
     const slowNetwork = typeof connection?.effectiveType === 'string' && /2g|3g|slow-2g/.test(connection.effectiveType);
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.matchMedia?.('(max-width: 768px)').matches;
 
-    if (saveData || slowNetwork || prefersReducedMotion) {
+    if (saveData || slowNetwork || prefersReducedMotion || isMobile) {
       document.body.classList.add('reduce-motion');
+      document.body.classList.add('optimize-graphics');
     } else {
       document.body.classList.remove('reduce-motion');
+      document.body.classList.remove('optimize-graphics');
     }
 
     document.body.style.overflowX = 'hidden';

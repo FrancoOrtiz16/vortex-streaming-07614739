@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Search } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import UserMenu from '@/components/UserMenu';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -10,6 +10,7 @@ const Header = () => {
   const { count } = useCart();
   const { isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border" style={{ background: 'hsla(220, 20%, 6%, 0.85)', backdropFilter: 'blur(20px)' }}>
@@ -48,8 +49,9 @@ const Header = () => {
             <ShoppingCart className="w-5 h-5" />
             {count > 0 && (
               <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
+                initial={shouldReduceMotion ? undefined : { scale: 0 }}
+                animate={shouldReduceMotion ? undefined : { scale: 1 }}
+                transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }}
                 className="absolute -top-1 -right-1 w-5 h-5 rounded-full gradient-neon text-[10px] font-bold flex items-center justify-center text-primary-foreground"
               >
                 {count}
@@ -71,9 +73,10 @@ const Header = () => {
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={shouldReduceMotion ? false : { height: 0, opacity: 0 }}
+            animate={shouldReduceMotion ? { height: 'auto', opacity: 1 } : { height: 'auto', opacity: 1 }}
+            exit={shouldReduceMotion ? { height: 0, opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2 }}
             className="md:hidden border-t border-border overflow-hidden"
             style={{ background: 'hsla(220, 20%, 6%, 0.95)' }}
           >
