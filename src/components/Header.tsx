@@ -15,62 +15,65 @@ const Header = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border" style={{ background: 'hsla(220, 20%, 6%, 0.85)', backdropFilter: 'blur(20px)' }}>
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="font-display font-bold text-lg tracking-tight italic">
+      <div className="container mx-auto px-2 sm:px-3 md:px-4 h-14 sm:h-16 flex items-center justify-between">
+        {/* Logo responsivo */}
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <span className="font-display font-bold text-sm sm:text-base md:text-lg tracking-tight italic will-change-transform">
             <span className="text-foreground">VORTEX</span>
             <span className="neon-text"> STREAMING</span>
           </span>
         </Link>
 
         {/* Desktop actions */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2 lg:gap-3">
           <Link
             to="/#catalogo"
-            className="px-4 py-2 rounded-lg text-sm font-medium border border-border hover:border-primary/50 transition-colors"
+            className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium border border-border hover:border-primary/50 transition-colors will-change-transform"
           >
             Ver Tienda
           </Link>
           {isAdmin && (
             <Link
               to="/admin-access"
-              className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors will-change-transform"
             >
               Admin Original
             </Link>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right actions */}
+        <div className="flex items-center gap-1 sm:gap-2">
           <Link
             to="/cart"
             aria-label="Carrito de compras"
-            className="relative p-2 rounded-lg hover:bg-secondary transition-colors"
+            className="relative p-1.5 sm:p-2 rounded-lg hover:bg-secondary transition-colors will-change-transform active:scale-95"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
             {count > 0 && (
               <motion.span
-                initial={shouldAnimateOnDevice ? { scale: 0 } : undefined}
-                animate={shouldAnimateOnDevice ? { scale: 1 } : undefined}
-                transition={shouldAnimateOnDevice ? { duration: 0.2 } : { duration: 0 }}
-                className="absolute -top-1 -right-1 w-5 h-5 rounded-full gradient-neon text-[10px] font-bold flex items-center justify-center text-primary-foreground"
+                initial={shouldAnimateOnDevice ? { scale: 0 } : false}
+                animate={shouldAnimateOnDevice ? { scale: 1 } : false}
+                transition={shouldAnimateOnDevice ? { duration: 0.2, type: 'spring', stiffness: 300 } : { duration: 0 }}
+                className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full gradient-neon text-[0.5rem] sm:text-[10px] font-bold flex items-center justify-center text-primary-foreground"
               >
-                {count}
+                {count > 99 ? '99+' : count}
               </motion.span>
             )}
           </Link>
           <UserMenu />
+          {/* Mobile menu button */}
           <button
             aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-            className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+            className="md:hidden p-1.5 sm:p-2 rounded-lg hover:bg-secondary transition-colors will-change-transform"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {menuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - Responsivo */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -81,12 +84,12 @@ const Header = () => {
             className="md:hidden border-t border-border overflow-hidden"
             style={{ background: 'hsla(220, 20%, 6%, 0.95)' }}
           >
-            <nav className="flex flex-col p-4 gap-2">
-              <Link to="/#catalogo" onClick={() => setMenuOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <nav className="flex flex-col p-2 sm:p-4 gap-1 sm:gap-2">
+              <Link to="/#catalogo" onClick={() => setMenuOpen(false)} className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                 Ver Tienda
               </Link>
               {isAdmin && (
-                <Link to="/admin-access" onClick={() => setMenuOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                <Link to="/admin-access" onClick={() => setMenuOpen(false)} className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                   Admin Principal
                 </Link>
               )}

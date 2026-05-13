@@ -126,52 +126,52 @@ const PaymentDetailsCard = ({
   };
 
   return (
-    <div className="space-y-2">
-      {/* Header con nombre del método */}
-      <div className="rounded-2xl border border-slate-700/50 bg-slate-950/80 p-2">
+    <div className="space-y-1 sm:space-y-2">
+      {/* Header con nombre del método - Responsivo */}
+      <div className="rounded-xl sm:rounded-2xl border border-slate-700/50 bg-slate-950/80 p-2 sm:p-3 will-change-transform">
         <div className="flex items-center justify-between gap-2">
-          <div>
-            <h3 className="font-display font-semibold text-xs text-foreground">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display font-semibold text-xs sm:text-sm text-foreground truncate">
               {methodName}
             </h3>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-[0.25em] mt-0.5">
+            <p className="text-[0.625rem] sm:text-[0.75rem] text-muted-foreground uppercase tracking-[0.2em] sm:tracking-[0.25em] mt-0.5 truncate">
               {methodType}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+          <div className="w-7 sm:w-8 h-7 sm:h-8 rounded-lg sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-xs sm:text-sm font-bold flex-shrink-0">
             {methodName.charAt(0)}
           </div>
         </div>
       </div>
 
-      {/* Detalles estructurados */}
+      {/* Detalles estructurados - Responsivo */}
       <div className="space-y-1">
         {details.map((detail, idx) => (
           <div
             key={idx}
-            className="group rounded-2xl border border-slate-700/50 bg-slate-900/70 p-1 sm:p-2 transition-all duration-200"
+            className="group rounded-lg sm:rounded-2xl border border-slate-700/50 bg-slate-900/70 p-2 sm:p-3 transition-all duration-200 will-change-transform"
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-start sm:items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-medium text-slate-400 uppercase tracking-[0.22em] mb-0.5">
+                <p className="text-[0.625rem] sm:text-[0.75rem] font-medium text-slate-400 uppercase tracking-[0.18em] sm:tracking-[0.22em] mb-0.5 truncate">
                   {detail.label}
                 </p>
-                <code className="block text-xs font-mono text-foreground break-all leading-tight">
+                <code className="block text-xs sm:text-sm font-mono text-foreground break-all leading-tight word-break">
                   {detail.value}
                 </code>
               </div>
 
-              {/* Botón de copiar adaptado a móvil */}
+              {/* Botón de copiar adaptado a móvil - Touch-friendly */}
               <button
                 onClick={() => handleCopy(detail.value, idx)}
-                className="flex-shrink-0 inline-flex items-center justify-center rounded-2xl bg-slate-800/80 border border-slate-700/70 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 min-h-[44px] min-w-[44px] p-1.5 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="flex-shrink-0 inline-flex items-center justify-center rounded-lg sm:rounded-2xl bg-slate-800/80 border border-slate-700/70 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] p-1.5 focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95 will-change-transform"
                 title="Copiar valor"
                 aria-label={`Copiar ${detail.label}`}
               >
                 {copiedIndex === idx ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-400 flex-shrink-0" />
                 ) : (
-                  <Copy className="w-4 h-4 text-slate-300 hover:text-foreground transition-colors" />
+                  <Copy className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-300 hover:text-foreground transition-colors flex-shrink-0" />
                 )}
               </button>
             </div>
@@ -179,13 +179,13 @@ const PaymentDetailsCard = ({
         ))}
       </div>
 
-      {/* Instrucciones adicionales (si existen) */}
+      {/* Instrucciones adicionales (si existen) - Responsivo */}
       {instructions && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-1 sm:p-2">
-          <p className="text-[9px] font-medium text-amber-200 uppercase tracking-[0.22em] mb-0.5">
+        <div className="rounded-lg sm:rounded-xl border border-amber-500/20 bg-amber-500/5 p-2 sm:p-3 will-change-transform">
+          <p className="text-[0.625rem] sm:text-[0.75rem] font-medium text-amber-200 uppercase tracking-[0.18em] sm:tracking-[0.22em] mb-0.5 truncate">
             📝 Instrucciones
           </p>
-          <p className="text-[10px] text-foreground/90 leading-tight break-all">
+          <p className="text-[0.75rem] sm:text-[0.875rem] text-foreground/90 leading-tight break-words">
             {instructions}
           </p>
         </div>

@@ -12,6 +12,16 @@ export default {
         "2xl": "1400px",
       },
     },
+    screens: {
+      /* Breakpoints optimizados para mobile-first */
+      '2xs': '320px',   /* Dispositivos muy pequeños */
+      'xs': '375px',    /* iPhone SE, pequeños */
+      'sm': '640px',    /* Tabletas pequeñas */
+      'md': '768px',    /* Tabletas */
+      'lg': '1024px',   /* Desktops */
+      'xl': '1280px',   /* Desktops grandes */
+      '2xl': '1536px',  /* Desktops muy grandes */
+    },
     extend: {
       fontFamily: {
         display: ['"Space Grotesk"', 'sans-serif'],
@@ -75,6 +85,26 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      spacing: {
+        /* Espaciado relativo para responsividad */
+        'xs': 'clamp(0.25rem, 1vw, 0.5rem)',
+        'sm': 'clamp(0.5rem, 2vw, 1rem)',
+        'md': 'clamp(1rem, 3vw, 1.5rem)',
+        'lg': 'clamp(1.5rem, 4vw, 2rem)',
+        'xl': 'clamp(2rem, 5vw, 2.5rem)',
+      },
+      fontSize: {
+        /* Tamaños de fuente escalables */
+        'xs': 'clamp(0.625rem, 1.5vw, 0.75rem)',
+        'sm': 'clamp(0.75rem, 2vw, 0.875rem)',
+        'base': 'clamp(0.875rem, 2.5vw, 1rem)',
+        'lg': 'clamp(1rem, 3vw, 1.25rem)',
+        'xl': 'clamp(1.25rem, 4vw, 1.5rem)',
+        '2xl': 'clamp(1.5rem, 5vw, 1.875rem)',
+        '3xl': 'clamp(1.875rem, 6vw, 2.25rem)',
+        '4xl': 'clamp(2.25rem, 7vw, 2.75rem)',
+        '5xl': 'clamp(2.75rem, 8vw, 3.75rem)',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -92,12 +122,39 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
+        "drift": {
+          "0%": { transform: "translate(0, 0)" },
+          "25%": { transform: "translate(8px, -6px)" },
+          "50%": { transform: "translate(-6px, 10px)" },
+          "75%": { transform: "translate(4px, -8px)" },
+          "100%": { transform: "translate(-2px, 6px)" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "0% 0%" },
+          "100%": { backgroundPosition: "100% 0%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "float": "float 3s ease-in-out infinite",
         "pulse-neon": "pulse-neon 2s ease-in-out infinite",
+        "drift": "drift 28s ease-in-out infinite alternate",
+        "shimmer": "shimmer 2s linear infinite",
+      },
+      transitionDuration: {
+        'fast': '150ms',
+        'base': '300ms',
+        'smooth': '500ms',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'bounce': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+      },
+    },
+  },
+  plugins: [],
+} satisfies Config;
       },
     },
   },
