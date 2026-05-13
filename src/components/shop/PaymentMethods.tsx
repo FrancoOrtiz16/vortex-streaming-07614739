@@ -106,27 +106,42 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {methods.map((m, i) => (
         <motion.button
           key={m.id}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.04 }}
+          transition={{ delay: i * 0.05 }}
           onClick={() => onSelect(m)}
-          className={`w-full rounded-xl bg-secondary/60 border p-4 text-left transition-all flex items-center gap-3 ${
-            selectedId === m.id ? 'border-primary' : 'border-border hover:border-primary/50'
+          className={`w-full rounded-2xl border-2 p-5 text-left transition-all duration-200 flex items-center gap-4 group ${
+            selectedId === m.id
+              ? 'bg-gradient-to-r from-primary/20 to-primary/10 border-primary shadow-lg shadow-primary/20'
+              : 'bg-secondary/40 border-border/50 hover:border-primary/40 hover:bg-secondary/60'
           }`}
         >
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
+          <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg transition-all duration-200 ${
+            selectedId === m.id
+              ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
+              : 'bg-secondary/80 text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary'
+          }`}>
             {m.method_name.charAt(0)}
           </div>
-          <div>
-            <p className="font-display font-semibold text-sm">{m.method_name}</p>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+          <div className="flex-1">
+            <p className="font-display font-semibold text-base leading-tight">{m.method_name}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">
               {normalizeMethodType(m.method_type)}
             </p>
           </div>
+          {selectedId === m.id && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+            >
+              <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+            </motion.div>
+          )}
         </motion.button>
       ))}
     </div>

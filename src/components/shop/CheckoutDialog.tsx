@@ -283,7 +283,7 @@ const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil
                     <span className="font-display font-bold text-lg text-primary">{(total * rate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</span>
                   </div>
                   <div className="text-xs text-muted-foreground text-right">
-                    <span>(Equivalente a $${total.toFixed(2)})</span>
+                    <span>(Equivalente a ${total.toFixed(2)})</span>
                   </div>
                 </>
               ) : (
