@@ -9,7 +9,28 @@ export interface PaymentMethod {
   method_type: string;
   account_info: string;
   instructions: string | null;
+  sort_order?: number | null;
 }
+
+const PREFERRED_METHOD_ORDER = [
+  'Pago Móvil',
+  'Transferencia',
+  'Zelle',
+  'Binance',
+  'Zinli',
+  'PayPal',
+];
+
+const normalizeMethodType = (value: string) =>
+  value.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+const getMethodRank = (method: PaymentMethod) => {
+  const normalized = normalizeMethodType(method.method_type).toLowerCase();
+  const preferredIndex = PREFERRED_METHOD_ORDER.findIndex(
+    (item) => item.toLowerCase() === normalized
+  );
+  return preferredIndex >= 0 ? preferredIndex : PREFERRED_METHOD_ORDER.length;
+};
 
 interface Props {
   selectedId: string | null;
@@ -24,7 +45,7 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
   useEffect(() => {
     supabase
       .from('payment_methods')
-      .select('id, method_name, method_type, account_info, instructions')
+      .select('id, method_name, method_type, account_info, instructions, sort_order')
       .eq('is_active', true)
       .order('sort_order')
       .then(({ data, error }) => {
@@ -36,7 +57,19 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
           setError('No hay métodos de pago activos disponibles.');
           setMethods([]);
         } else {
-          setMethods(data as PaymentMethod[]);
+          const fetchedMethods = data as PaymentMethod[];
+          const orderedMethods = fetchedMethods.slice().sort((a, b) => {
+            const orderA = a.sort_order ?? 999;
+            const orderB = b.sort_order ?? 999;
+            if (orderA !== orderB) return orderA - orderB;
+
+            const rankA = getMethodRank(a);
+            const rankB = getMethodRank(b);
+            if (rankA !== rankB) return rankA - rankB;
+
+            return normalizeMethodType(a.method_type).localeCompare(normalizeMethodType(b.method_type));
+          });
+          setMethods(orderedMethods);
         }
         setLoading(false);
       })
@@ -90,7 +123,9 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
           </div>
           <div>
             <p className="font-display font-semibold text-sm">{m.method_name}</p>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{m.method_type}</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+              {normalizeMethodType(m.method_type)}
+            </p>
           </div>
         </motion.button>
       ))}
