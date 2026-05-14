@@ -198,8 +198,8 @@ export type Database = {
           credential_password: string | null
           duration_days: number
           id: string
-          last_renewal: string
-          next_renewal: string
+          last_renewal: string | null
+          next_renewal: string | null
           notified_at: string | null
           profile_name: string | null
           profile_pin: string | null
@@ -214,8 +214,8 @@ export type Database = {
           credential_password?: string | null
           duration_days?: number
           id?: string
-          last_renewal?: string
-          next_renewal?: string
+          last_renewal?: string | null
+          next_renewal?: string | null
           notified_at?: string | null
           profile_name?: string | null
           profile_pin?: string | null
@@ -230,8 +230,8 @@ export type Database = {
           credential_password?: string | null
           duration_days?: number
           id?: string
-          last_renewal?: string
-          next_renewal?: string
+          last_renewal?: string | null
+          next_renewal?: string | null
           notified_at?: string | null
           profile_name?: string | null
           profile_pin?: string | null
