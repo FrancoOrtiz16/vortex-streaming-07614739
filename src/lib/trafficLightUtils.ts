@@ -86,6 +86,13 @@ export function getDaysUntilExpiry(expiryDate: string | Date | null | undefined)
   const expiry = typeof expiryDate === 'string' ? new Date(expiryDate) : new Date(expiryDate.getTime());
   if (Number.isNaN(expiry.getTime())) return -999;
 
+  // Si la fecha es más de 50 años en el futuro, es un marcador "pendiente"
+  // Retorna Infinity para indicar "esperando aprobación"
+  const yearDiff = expiry.getFullYear() - new Date().getFullYear();
+  if (yearDiff > 50) {
+    return Infinity;
+  }
+
   const todayStart = getVETStartOfDay();
   const expiryStart = getVETStartOfDay(expiry);
 

@@ -32,15 +32,21 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
 
-  // ⚠️ IMPORTANTE: En la fase de CREACIÓN, next_renewal debe ser NULL
-  // Solo se asignará when admin approves (en approvePayment)
+  // ⚠️ IMPORTANTE: En BD actual, next_renewal NO permite NULL
+  // Por eso, usamos una fecha muy lejana como "marcador de pendiente"
+  // Cuando el admin aprueba, se actualiza a ahora + durationDays
+  
+  // Fecha lejana (100 años en el futuro) = "En espera de aprobación"
+  const pendingDate = new Date();
+  pendingDate.setFullYear(pendingDate.getFullYear() + 100);
+  
   const { data, error } = await supabase
     .from('subscriptions')
     .insert([{ 
       user_id: userId,
       service_name: serviceName,
       status, // Será 'pending_approval'
-      next_renewal: null, // NULL hasta que el admin apruebe
+      next_renewal: pendingDate.toISOString(), // Fecha lejana = pendiente
       duration_days: durationDays,
       credential_email: null,
       credential_password: null,
@@ -71,13 +77,16 @@ export async function renewExistingSubscription(subscriptionId: string) {
       throw fetchError || new Error('Suscripción no encontrada');
     }
 
-    // En la fase de renovación pendiente, no asignar expiry ni comenzar el conteo.
-    // Solo la acción manual de aprobación debe establecer next_renewal.
+    // En la fase de renovación pendiente, mantener fecha lejana
+    // Solo la acción manual de aprobación debe establecer fecha real
+    const pendingDate = new Date();
+    pendingDate.setFullYear(pendingDate.getFullYear() + 100);
+    
     const { data, error } = await supabase
       .from('subscriptions')
       .update({ 
         status: 'pending_approval',
-        next_renewal: null,
+        next_renewal: pendingDate.toISOString(), // Fecha lejana = aún pendiente
       })
       .eq('id', subscriptionId)
       .select('id, status, next_renewal, duration_days')

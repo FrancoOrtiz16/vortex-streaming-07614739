@@ -18,6 +18,15 @@ export function ExpiryBadge({ nextRenewal, className }: ExpiryBadgeProps) {
 
   const daysLeft = getDaysUntilExpiry(nextRenewal);
 
+  // Si daysLeft es Infinity, significa que es una fecha lejana (marcador de pendiente)
+  if (daysLeft === Infinity) {
+    return (
+      <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-500/20 text-slate-300', className)}>
+        Esperando Aprobación
+      </span>
+    );
+  }
+
   let color: string;
   let label: string;
 

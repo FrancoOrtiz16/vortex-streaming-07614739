@@ -295,11 +295,15 @@ export function SubscriptionsSection() {
         ? Math.max(1, Math.round((expiryDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
         : 30;
 
+      // Usar fecha lejana en lugar de NULL (BD no permite NULL)
+      const pendingDate = new Date();
+      pendingDate.setFullYear(pendingDate.getFullYear() + 100);
+
       const payload = {
         user_id: null, // Para clientes externos, no hay user_id
         service_name: form.serviceName,
         status: 'pending_approval', // Cambiado: pendiente de aprobación
-        next_renewal: null, // Cambiado: NULL hasta que admin apruebe
+        next_renewal: pendingDate.toISOString(), // Fecha lejana = marcador de "pendiente"
         duration_days: durationDays,
         credential_email: form.email || null,
         credential_password: form.password || null,
