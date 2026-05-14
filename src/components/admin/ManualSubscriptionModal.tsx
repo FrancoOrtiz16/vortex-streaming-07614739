@@ -158,8 +158,6 @@ export function ManualSubscriptionModal({
         duration_days: 30,
         next_renewal: pendingDate.toISOString(), // Fecha lejana = marcador de "pendiente"
       };
-        next_renewal: null, // Cambiado: NULL hasta que admin apruebe
-      };
 
       const { error } = await supabase
         .from('subscriptions')
