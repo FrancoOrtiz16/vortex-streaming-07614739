@@ -30,7 +30,6 @@ export interface ServiceRowData {
   status: string | null;
   next_renewal: string | null;
   last_renewal: string | null;
-  notified_at?: string | null;
   credential_email: string | null;
   credential_password: string | null;
   profile_name: string | null;
@@ -195,9 +194,6 @@ const ServiceRow = ({ data, onChanged }: Props) => {
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
-        </TableCell>
-        <TableCell className="text-xs text-muted-foreground">
-          {data.notified_at ? new Date(data.notified_at).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'Nunca'}
         </TableCell>
 
         {/* SEMÁFORO - Traffic Light */}

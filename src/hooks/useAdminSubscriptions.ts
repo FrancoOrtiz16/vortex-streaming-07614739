@@ -23,7 +23,6 @@ export const useAdminSubscriptions = (searchTerm: string = '', filterStatus: str
           duration_days,
           last_renewal,
           next_renewal,
-          notified_at,
           created_at
         `);
 
