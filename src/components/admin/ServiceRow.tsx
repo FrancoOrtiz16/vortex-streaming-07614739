@@ -34,6 +34,7 @@ export interface ServiceRowData {
   credential_password: string | null;
   profile_name: string | null;
   profile_pin: string | null;
+  phone?: string | null;
   profile_phone?: string | null;
   client_label: string;
   order_id?: string | null;
@@ -151,9 +152,10 @@ const ServiceRow = ({ data, onChanged }: Props) => {
 
       toast.success('✅ Notificación creada y fecha de recordatorio actualizada');
 
-      if (data.profile_phone) {
+      const whatsappPhone = data.phone || data.profile_phone;
+      if (whatsappPhone) {
         const message = `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
-        window.open(getWhatsAppUrl(message, data.profile_phone), '_blank');
+        window.open(getWhatsAppUrl(message, whatsappPhone), '_blank');
       }
 
       onChanged();

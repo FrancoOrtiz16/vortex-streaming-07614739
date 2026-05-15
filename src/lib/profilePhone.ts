@@ -34,7 +34,7 @@ export async function fetchProfileWhatsAppPhone(userId: string) {
     return null;
   }
 
-  return data.phone || data.profile_phone || null;
+  return data.phone ?? data.profile_phone ?? null;
 }
 
 export async function saveProfileWhatsAppPhone(userId: string, phoneValue: string) {
