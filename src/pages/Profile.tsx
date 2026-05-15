@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { fetchProfileWhatsAppPhone, saveProfileWhatsAppPhone } from '@/lib/profilePhone';
+import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -10,6 +12,7 @@ const ProfilePage = () => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -27,6 +30,37 @@ const ProfilePage = () => {
       }
     };
     load();
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`profiles-${user.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        const updatedProfile: any = payload.new;
+        const newPhone = updatedProfile.phone ?? updatedProfile.profile_phone ?? null;
+        if (newPhone) setPhone(newPhone);
+
+        // Si el admin marca como verificado, redirigir al home
+        if (updatedProfile.is_verified) {
+          navigate('/');
+        }
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   const handleSave = async () => {

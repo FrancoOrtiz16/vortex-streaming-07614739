@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, Shield, KeyRound, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 type Profile = Tables<'profiles'>;
 
@@ -37,6 +38,7 @@ export function UsersSection() {
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
+  const channelsRef = useRef<RealtimeChannel[]>([]);
 
   const fetchData = async () => {
     const [profilesRes, ordersRes] = await Promise.all([
@@ -49,7 +51,43 @@ export function UsersSection() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    return () => {
+      channelsRef.current.forEach(channel => supabase.removeChannel(channel));
+      channelsRef.current = [];
+    };
+  }, []);
+
+  useEffect(() => {
+    if (profiles.length === 0) return;
+
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setProfiles(prev => prev.map(p => p.id === (payload.new as Profile).id ? (payload.new as Profile) : p));
+        } else if (payload.eventType === 'INSERT') {
+          setProfiles(prev => [(payload.new as Profile), ...prev]);
+        } else if (payload.eventType === 'DELETE') {
+          setProfiles(prev => prev.filter(p => p.id !== (payload.old as Profile).id));
+        }
+      })
+      .subscribe();
+
+    const ordersChannel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+        setOrders(prev => prev.map(o => o.user_id === (payload.new as OrderInfo).user_id ? (payload.new as OrderInfo) : o));
+      })
+      .subscribe();
+
+    channelsRef.current = [profilesChannel, ordersChannel];
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(ordersChannel);
+    };
+  }, []);
 
   const toggleVerified = async (profile: Profile) => {
     const { error } = await supabase.from('profiles').update({ is_verified: !profile.is_verified }).eq('id', profile.id);
@@ -148,6 +186,7 @@ export function UsersSection() {
                 <th className="text-left px-4 py-3 text-muted-foreground font-medium">Registro</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Servicio</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Estado</th>
+                <th className="text-center px-4 py-3 text-muted-foreground font-medium">WhatsApp</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Verificado</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acciones</th>
               </tr>
@@ -180,6 +219,13 @@ export function UsersSection() {
                       >
                         {p.is_active ? 'Activo' : 'Baneado'}
                       </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {p.phone ? (
+                        <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-muted-foreground mx-auto" />
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button onClick={() => toggleVerified(p)} aria-label={p.is_verified ? 'Quitar verificación' : 'Verificar usuario'}>
