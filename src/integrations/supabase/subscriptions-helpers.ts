@@ -15,6 +15,7 @@
  */
 
 import { supabase } from './client';
+import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 
 // Simple type: only the fields that actually exist
 export interface SimpleSubscriptionPayload {
@@ -87,14 +88,7 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
       return { data: null, error: { message: 'Usuario inválido para crear suscripción' } };
     }
 
-    const { data: profile, error: profileErr } = await supabase
-      .from('profiles')
-      .select('phone, profile_phone')
-      .eq('user_id', currentUserId)
-      .limit(1)
-      .single();
-
-    const phone = (profile && (profile.phone || profile.profile_phone)) || null;
+    const phone = await fetchProfileWhatsAppPhone(currentUserId);
     if (!phone) {
       return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
     }
@@ -144,14 +138,7 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       return { data: null, error: { message: 'Todos los payloads deben pertenecer al usuario autenticado' } };
     }
 
-    const { data: profile, error: profileErr } = await supabase
-      .from('profiles')
-      .select('phone, profile_phone')
-      .eq('user_id', currentUserId)
-      .limit(1)
-      .single();
-
-    const phone = (profile && (profile.phone || profile.profile_phone)) || null;
+    const phone = await fetchProfileWhatsAppPhone(currentUserId);
     if (!phone) {
       return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
     }

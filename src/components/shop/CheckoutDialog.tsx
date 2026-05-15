@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
+import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import PaymentMethods, { PaymentMethod as PMType } from './PaymentMethods';
 import PaymentDetailsCard from './PaymentDetailsCard';
 import { useAuth } from '@/hooks/useAuth';
@@ -53,8 +54,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       if (!open || !user) return;
       setPhoneLoading(true);
       try {
-        const { data } = await supabase.from('profiles').select('phone, profile_phone').eq('user_id', user.id).limit(1).single();
-        const phone = data && (data.phone || data.profile_phone) ? (data.phone || data.profile_phone) : null;
+        const phone = await fetchProfileWhatsAppPhone(user.id);
         setProfilePhone(phone);
       } catch (err) {
         console.warn('[Checkout] Error fetching profile phone', err);

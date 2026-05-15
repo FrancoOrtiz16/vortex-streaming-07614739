@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import { useAuth } from '@/hooks/useAuth';
 import type { ProductCategory } from '@/data/products';
 import ProductCard from './ProductCard';
@@ -133,20 +134,23 @@ const StandaloneCatalog: React.FC = () => {
     const loadProfile = async () => {
       if (!user?.id) return;
       try {
-        const { data, error } = await supabase.from('profiles').select('profile_phone, phone, created_at').eq('user_id', user.id).limit(1).single();
-        if (!error && data) {
-          const phone = (data.profile_phone || data.phone) || null;
-          setProfilePhone(phone);
-          setProfileCreatedAt(data.created_at || null);
+        const { data } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('user_id', user.id)
+          .limit(1)
+          .single();
 
-          // Si no tiene teléfono y la cuenta es reciente (<= 10 minutos), mostrar modal
-          if (!phone && data.created_at) {
-            const created = new Date(data.created_at).getTime();
-            const now = Date.now();
-            const tenMinutes = 10 * 60 * 1000;
-            if (now - created <= tenMinutes) {
-              setShowWhatsAppModal(true);
-            }
+        const phone = await fetchProfileWhatsAppPhone(user.id);
+        setProfilePhone(phone);
+        setProfileCreatedAt(data?.created_at || null);
+
+        if (!phone && data?.created_at) {
+          const created = new Date(data.created_at).getTime();
+          const now = Date.now();
+          const tenMinutes = 10 * 60 * 1000;
+          if (now - created <= tenMinutes) {
+            setShowWhatsAppModal(true);
           }
         }
       } catch (err) {

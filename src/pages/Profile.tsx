@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { fetchProfileWhatsAppPhone, saveProfileWhatsAppPhone } from '@/lib/profilePhone';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -18,12 +18,8 @@ const ProfilePage = () => {
         return;
       }
       try {
-        const { data, error } = await supabase.from('profiles').select('profile_phone, phone, display_name, email').eq('user_id', user.id).limit(1).single();
-        if (error) {
-          console.warn('[Profile] Error loading profile', error);
-        } else if (data) {
-          setPhone((data.profile_phone || data.phone || '') as string);
-        }
+        const phoneValue = await fetchProfileWhatsAppPhone(user.id);
+        setPhone(phoneValue || '');
       } catch (err) {
         console.error('[Profile] Exception', err);
       } finally {
@@ -37,8 +33,7 @@ const ProfilePage = () => {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const payload: any = { profile_phone: phone };
-      const { error } = await supabase.from('profiles').update(payload).eq('user_id', user.id);
+      const { error } = await saveProfileWhatsAppPhone(user.id, phone);
       if (error) throw error;
       toast.success('Número guardado');
       navigate('/catalog');

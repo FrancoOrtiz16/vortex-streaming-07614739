@@ -6,6 +6,7 @@
  * - renewExistingSubscription: actualiza una suscripción existente por su id.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 
 export interface NewInstanceInput {
   userId: string;
@@ -44,19 +45,7 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       return { data: null, error: { message: 'El usuario autenticado no coincide con userId proporcionado' } };
     }
 
-    // Comprobar si el perfil tiene número de contacto (phone / profile_phone)
-    const { data: profileRows, error: profileErr } = await supabase
-      .from('profiles')
-      .select('phone, profile_phone')
-      .eq('user_id', currentUserId)
-      .limit(1)
-      .single();
-
-    if (profileErr) {
-      console.warn('[subscriptionManager] No se pudo leer profile:', profileErr.message || profileErr);
-    }
-
-    const phone = (profileRows && (profileRows.phone || profileRows.profile_phone)) || null;
+    const phone = await fetchProfileWhatsAppPhone(currentUserId);
     if (!phone) {
       return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
     }

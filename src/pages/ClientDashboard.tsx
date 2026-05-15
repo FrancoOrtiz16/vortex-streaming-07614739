@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import CredentialService from '@/components/services/CredentialService';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserSubscriptions } from '@/integrations/supabase/subscriptions-helpers';
+import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -178,8 +179,7 @@ const ClientDashboard = () => {
     const loadPhone = async () => {
       if (!user?.id) return;
       try {
-        const { data } = await supabase.from('profiles').select('phone, profile_phone').eq('user_id', user.id).limit(1).single();
-        const phone = data && (data.phone || data.profile_phone) ? (data.phone || data.profile_phone) : null;
+        const phone = await fetchProfileWhatsAppPhone(user.id);
         setProfilePhone(phone);
       } catch (err) {
         console.warn('[ClientDashboard] Error fetching profile phone', err);
