@@ -10,10 +10,10 @@ function isSchemaCacheMissingColumnError(error: any) {
   );
 }
 
-async function fetchProfileRecord(userId: string, columns: string) {
+async function fetchProfileRecord(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select(columns)
+    .select('*')
     .eq('user_id', userId)
     .limit(1)
     .single();
@@ -24,39 +24,17 @@ async function fetchProfileRecord(userId: string, columns: string) {
 export async function fetchProfileWhatsAppPhone(userId: string) {
   if (!userId) return null;
 
-  const { data, error } = await fetchProfileRecord(userId, 'phone');
+  const { data, error } = await fetchProfileRecord(userId);
   if (error) {
-    if (!isSchemaCacheMissingColumnError(error)) {
-      console.warn('[profilePhone] Unexpected profile query error', error);
-      return null;
-    }
-
-    const { data: fallbackData, error: fallbackError } = await fetchProfileRecord(userId, 'profile_phone');
-    if (!fallbackError && fallbackData) {
-      return fallbackData.profile_phone || null;
-    }
-    if (!isSchemaCacheMissingColumnError(fallbackError)) {
-      console.warn('[profilePhone] Unexpected profile query error', fallbackError);
-    }
-
+    console.warn('[profilePhone] Error fetching profile record', error);
     return null;
   }
 
-  if (data) {
-    if (data.phone) {
-      return data.phone;
-    }
-
-    const { data: fallbackData, error: fallbackError } = await fetchProfileRecord(userId, 'profile_phone');
-    if (!fallbackError && fallbackData) {
-      return fallbackData.profile_phone || null;
-    }
-    if (!isSchemaCacheMissingColumnError(fallbackError)) {
-      console.warn('[profilePhone] Unexpected profile query error', fallbackError);
-    }
+  if (!data) {
+    return null;
   }
 
-  return null;
+  return data.phone || data.profile_phone || null;
 }
 
 export async function saveProfileWhatsAppPhone(userId: string, phoneValue: string) {
