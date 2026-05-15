@@ -14,6 +14,7 @@ const AdminAccess = lazy(() => import("./pages/AdminAccess"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const CartPage = lazy(() => import("./pages/CartPage"));
 const Catalog = lazy(() => import("./pages/Catalog"));
+const ProfilePage = lazy(() => import("./pages/Profile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -96,6 +97,11 @@ const App = () => {
                     <Route path="/dashboard" element={
                       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
                         <ClientDashboard />
+                      </Suspense>
+                    } />
+                    <Route path="/profile" element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando perfil...</div>}>
+                        <ProfilePage />
                       </Suspense>
                     } />
                     <Route path="/admin-access/*" element={

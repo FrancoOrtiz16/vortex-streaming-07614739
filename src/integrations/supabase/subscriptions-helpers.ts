@@ -77,6 +77,27 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
       service_name: payload.service_name,
       status: payload.status || 'pending_approval'
     });
+    // Validar sesión y perfil: asegurar que el usuario autenticado coincide y tiene teléfono
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getUser();
+    if (sessionErr || !sessionData || !sessionData.user) {
+      return { data: null, error: { message: 'Sesión no detectada. Inicia sesión para continuar.' } };
+    }
+    const currentUserId = sessionData.user.id;
+    if (!payload.user_id || currentUserId !== payload.user_id) {
+      return { data: null, error: { message: 'Usuario inválido para crear suscripción' } };
+    }
+
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('phone, profile_phone')
+      .eq('user_id', currentUserId)
+      .limit(1)
+      .single();
+
+    const phone = (profile && (profile.phone || profile.profile_phone)) || null;
+    if (!phone) {
+      return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+    }
 
     const row = toRealColumns({ ...payload, status: payload.status || 'pending_approval' });
     const { data, error } = await supabase
@@ -110,6 +131,30 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
     }
 
     console.debug('[Subscriptions] Creating bulk subscriptions:', payloads.length);
+    // Validar sesión y perfil antes de crear en bulk
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getUser();
+    if (sessionErr || !sessionData || !sessionData.user) {
+      return { data: null, error: { message: 'Sesión no detectada. Inicia sesión para continuar.' } };
+    }
+    const currentUserId = sessionData.user.id;
+
+    // Asegurar que todos los payloads pertenezcan al usuario autenticado
+    const invalid = payloads.find(p => !p.user_id || p.user_id !== currentUserId);
+    if (invalid) {
+      return { data: null, error: { message: 'Todos los payloads deben pertenecer al usuario autenticado' } };
+    }
+
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('phone, profile_phone')
+      .eq('user_id', currentUserId)
+      .limit(1)
+      .single();
+
+    const phone = (profile && (profile.phone || profile.profile_phone)) || null;
+    if (!phone) {
+      return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+    }
 
     const cleanedPayloads = payloads.map(p => toRealColumns({ ...p, status: p.status || 'pending_approval' }));
     const { data, error } = await supabase

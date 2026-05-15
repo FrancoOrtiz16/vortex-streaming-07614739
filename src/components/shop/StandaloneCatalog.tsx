@@ -31,12 +31,15 @@ interface GroupedItem {
 
 const StandaloneCatalog: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
+  const [profilePhone, setProfilePhone] = useState<string | null>(null);
+  const [profileCreatedAt, setProfileCreatedAt] = useState<string | null>(null);
 
   // Detectar si estamos en modo previsualización admin
   const isAdminPreview = searchParams.get('preview') === 'admin' && isAdmin;
@@ -124,6 +127,35 @@ const StandaloneCatalog: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, [isAdminPreview]);
+
+  // Cargar perfil para validar WhatsApp y detectar cuentas recientes
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user?.id) return;
+      try {
+        const { data, error } = await supabase.from('profiles').select('profile_phone, phone, created_at').eq('user_id', user.id).limit(1).single();
+        if (!error && data) {
+          const phone = (data.profile_phone || data.phone) || null;
+          setProfilePhone(phone);
+          setProfileCreatedAt(data.created_at || null);
+
+          // Si no tiene teléfono y la cuenta es reciente (<= 10 minutos), mostrar modal
+          if (!phone && data.created_at) {
+            const created = new Date(data.created_at).getTime();
+            const now = Date.now();
+            const tenMinutes = 10 * 60 * 1000;
+            if (now - created <= tenMinutes) {
+              setShowWhatsAppModal(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[StandaloneCatalog] Error loading profile', err);
+      }
+    };
+
+    loadProfile();
+  }, [user?.id]);
 
   const catParam = searchParams.get('cat');
   useEffect(() => {
@@ -213,6 +245,30 @@ const StandaloneCatalog: React.FC = () => {
   return (
     <>
       {isAdminPreview && <AdminPreviewBar onReturnToPanel={handleReturnToPanel} />}
+
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="max-w-md w-full glass rounded-2xl p-6 text-center">
+            <h3 className="font-display text-lg font-bold mb-2">Te falta añadir un número de WhatsApp</h3>
+            <p className="text-sm text-muted-foreground mb-4">Para procesar compras y recibir soporte necesitamos tu número de WhatsApp. Añádelo en tu perfil para continuar.</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => { window.location.href = '/profile'; }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold"
+              >
+                Ir a mi perfil
+              </button>
+              <button
+                onClick={() => setShowWhatsAppModal(false)}
+                className="px-4 py-2 rounded-xl bg-secondary text-secondary-foreground"
+              >
+                Recordármelo luego
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section id="catalogo" className="py-16 bg-transparent">
         <div className="mx-auto max-w-[1480px] px-4">
           <div className="mb-10 rounded-3xl bg-[#111111] px-8 py-8">

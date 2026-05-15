@@ -56,6 +56,7 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
 const ClientDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [profilePhone, setProfilePhone] = useState<string | null>(null);
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,6 +173,21 @@ const ClientDashboard = () => {
       supabase.removeChannel(channel);
     };
   }, [user?.id, loadDashboardData]);
+
+  useEffect(() => {
+    const loadPhone = async () => {
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase.from('profiles').select('phone, profile_phone').eq('user_id', user.id).limit(1).single();
+        const phone = data && (data.phone || data.profile_phone) ? (data.phone || data.profile_phone) : null;
+        setProfilePhone(phone);
+      } catch (err) {
+        console.warn('[ClientDashboard] Error fetching profile phone', err);
+        setProfilePhone(null);
+      }
+    };
+    loadPhone();
+  }, [user?.id]);
 
   const normalizeServicePrefix = (name: string) => {
     const cleaned = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -318,7 +334,31 @@ const ClientDashboard = () => {
             Inicio
           </Link>
 
-          <h1 className="font-display font-bold text-2xl mb-1">Mi Panel</h1>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h1 className="font-display font-bold text-2xl">Mi Panel</h1>
+            {user && profilePhone && (
+              <div className="flex items-center gap-1 text-emerald-400 text-sm">
+                <CheckCircle className="w-4 h-4" />
+                <span className="uppercase text-xs">Verificado</span>
+              </div>
+            )}
+            {user && !profilePhone && (
+              <div className="flex items-center gap-1 text-amber-400 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span className="uppercase text-xs">Añade WhatsApp</span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            {user && (
+              <button
+                onClick={() => navigate('/profile')}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition"
+              >
+                {profilePhone ? 'Editar WhatsApp' : 'Añadir WhatsApp'}
+              </button>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mb-8">Servicios activos.</p>
 
           {/* Historial de Pedidos */}

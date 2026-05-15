@@ -32,6 +32,39 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
 
+  // Seguridad: verificar sesión actual y perfil con teléfono/WhatsApp
+  try {
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getUser();
+    if (sessionErr || !sessionData || !sessionData.user) {
+      return { data: null, error: { message: 'Sesión no detectada. Inicia sesión para continuar.' } };
+    }
+
+    const currentUserId = sessionData.user.id;
+    if (currentUserId !== userId) {
+      return { data: null, error: { message: 'El usuario autenticado no coincide con userId proporcionado' } };
+    }
+
+    // Comprobar si el perfil tiene número de contacto (phone / profile_phone)
+    const { data: profileRows, error: profileErr } = await supabase
+      .from('profiles')
+      .select('phone, profile_phone')
+      .eq('user_id', currentUserId)
+      .limit(1)
+      .single();
+
+    if (profileErr) {
+      console.warn('[subscriptionManager] No se pudo leer profile:', profileErr.message || profileErr);
+    }
+
+    const phone = (profileRows && (profileRows.phone || profileRows.profile_phone)) || null;
+    if (!phone) {
+      return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+    }
+  } catch (err: any) {
+    console.error('[subscriptionManager] Error validando sesión/perfil:', err);
+    return { data: null, error: { message: 'Error validando sesión/perfil' } };
+  }
+
   // ⚠️ IMPORTANTE: En BD actual, next_renewal NO permite NULL
   // Por eso, usamos una fecha muy lejana como "marcador de pendiente"
   // Cuando el admin aprueba, se actualiza a ahora + durationDays

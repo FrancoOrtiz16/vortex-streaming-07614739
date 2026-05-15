@@ -35,6 +35,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [profilePhone, setProfilePhone] = useState<string | null>(null);
+  const [phoneLoading, setPhoneLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -44,6 +46,25 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       setReceiptUrl(null);
     }
   }, [open]);
+
+  useEffect(() => {
+    // Cargar teléfono del perfil cuando se abre el dialog
+    const loadPhone = async () => {
+      if (!open || !user) return;
+      setPhoneLoading(true);
+      try {
+        const { data } = await supabase.from('profiles').select('phone, profile_phone').eq('user_id', user.id).limit(1).single();
+        const phone = data && (data.phone || data.profile_phone) ? (data.phone || data.profile_phone) : null;
+        setProfilePhone(phone);
+      } catch (err) {
+        console.warn('[Checkout] Error fetching profile phone', err);
+        setProfilePhone(null);
+      } finally {
+        setPhoneLoading(false);
+      }
+    };
+    loadPhone();
+  }, [open, user]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,7 +200,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
   const selected = selectedMethod;
   // Botón habilitado en cuanto hay método seleccionado; recordamos al usuario subir comprobante.
-  const canSubmit = !!selectedMethod && !!receiptUrl && !submitting && !uploading;
+  const hasPhone = !!profilePhone;
+  const canSubmit = !!selectedMethod && !!receiptUrl && !submitting && !uploading && hasPhone;
   const canPick = !!selectedMethod && !submitting;
 
   return (
@@ -322,8 +344,13 @@ const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil
           ) : (
             <MessageCircle className="w-4 h-4" />
           )}
-          {receiptUrl ? 'Confirmar y enviar por WhatsApp' : 'Sube el comprobante para continuar'}
+          {phoneLoading ? 'Comprobando contacto...' : (
+            hasPhone ? (receiptUrl ? 'Confirmar y enviar por WhatsApp' : 'Sube el comprobante para continuar') : 'Añade tu WhatsApp en el perfil para continuar'
+          )}
         </button>
+        {!hasPhone && !phoneLoading && (
+          <div className="mt-2 text-xs text-amber-300 text-center">Para procesar tu compra, por favor añade tu número de WhatsApp para soporte y entrega.</div>
+        )}
       </DialogContent>
     </Dialog>
   );
