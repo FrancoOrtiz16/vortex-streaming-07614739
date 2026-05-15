@@ -40,21 +40,22 @@ const ProfilePage = () => {
 
     const channel = supabase
       .channel(`profiles-${user.id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'profiles',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        const updatedProfile: any = payload.new;
-        const newPhone = updatedProfile.phone ?? updatedProfile.profile_phone ?? null;
-        if (newPhone) setPhone(newPhone);
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          const updatedProfile: any = payload.new;
+          const oldProfile: any = payload.old;
+          const newPhone = updatedProfile.phone ?? updatedProfile.profile_phone ?? null;
+          if (newPhone) setPhone(newPhone);
 
-        // Si el admin marca como verificado, redirigir al home
-        if (updatedProfile.is_verified) {
-          navigate('/');
-        }
-      })
+          // Redirigir solo en transición de no verificado -> verificado
+          if (!oldProfile?.is_verified && updatedProfile.is_verified) {
+            navigate('/');
+          }
+        })
       .subscribe();
 
     channelRef.current = channel;

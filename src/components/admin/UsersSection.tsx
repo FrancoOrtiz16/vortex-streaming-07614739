@@ -39,6 +39,7 @@ export function UsersSection() {
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
   const channelsRef = useRef<RealtimeChannel[]>([]);
+  const scrollKey = 'usersSectionScrollY';
 
   const fetchData = async () => {
     const [profilesRes, ordersRes] = await Promise.all([
@@ -53,9 +54,28 @@ export function UsersSection() {
 
   useEffect(() => {
     fetchData();
+
+    // Restore scroll position if admin reloaded page
+    try {
+      const stored = sessionStorage.getItem(scrollKey);
+      if (stored) {
+        const y = parseInt(stored, 10);
+        setTimeout(() => window.scrollTo(0, y), 0);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+
+    const handleBeforeUnload = () => {
+      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       channelsRef.current.forEach(channel => supabase.removeChannel(channel));
       channelsRef.current = [];
+      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { }
     };
   }, []);
 
