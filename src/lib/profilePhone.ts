@@ -24,16 +24,35 @@ async function fetchProfileRecord(userId: string, columns: string) {
 export async function fetchProfileWhatsAppPhone(userId: string) {
   if (!userId) return null;
 
-  const tryColumns = ['phone', 'profile_phone'];
-
-  for (const columns of tryColumns) {
-    const { data, error } = await fetchProfileRecord(userId, columns);
-    if (!error && data) {
-      return data.phone || data.profile_phone || null;
-    }
+  const { data, error } = await fetchProfileRecord(userId, 'phone');
+  if (error) {
     if (!isSchemaCacheMissingColumnError(error)) {
       console.warn('[profilePhone] Unexpected profile query error', error);
       return null;
+    }
+
+    const { data: fallbackData, error: fallbackError } = await fetchProfileRecord(userId, 'profile_phone');
+    if (!fallbackError && fallbackData) {
+      return fallbackData.profile_phone || null;
+    }
+    if (!isSchemaCacheMissingColumnError(fallbackError)) {
+      console.warn('[profilePhone] Unexpected profile query error', fallbackError);
+    }
+
+    return null;
+  }
+
+  if (data) {
+    if (data.phone) {
+      return data.phone;
+    }
+
+    const { data: fallbackData, error: fallbackError } = await fetchProfileRecord(userId, 'profile_phone');
+    if (!fallbackError && fallbackData) {
+      return fallbackData.profile_phone || null;
+    }
+    if (!isSchemaCacheMissingColumnError(fallbackError)) {
+      console.warn('[profilePhone] Unexpected profile query error', fallbackError);
     }
   }
 
