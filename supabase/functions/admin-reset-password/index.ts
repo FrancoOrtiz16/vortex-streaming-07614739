@@ -20,9 +20,9 @@ Deno.serve(async (req) => {
       })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!
+    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY')!
+    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY')!
 
     // Verify caller is admin using their JWT
     const callerClient = createClient(supabaseUrl, anonKey, {

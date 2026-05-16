@@ -15,19 +15,30 @@ export interface CartProduct {
   cart_key?: string;
 }
 
+import { loadCartItemsFromStorage, saveCartItemsToStorage, subscribeCartStorage } from '@/lib/cartPersistence';
+
 export interface CartItem {
   product: CartProduct;
   quantity: number;
 }
 
 let listeners: (() => void)[] = [];
-let cartItems: CartItem[] = [];
+let cartItems: CartItem[] = loadCartItemsFromStorage();
 
 function notify() {
   listeners.forEach(l => l());
 }
 
+subscribeCartStorage((items: CartItem[]) => {
+  cartItems = items;
+  notify();
+});
+
 export function getCartItems() { return cartItems; }
+
+function persistCart() {
+  saveCartItemsToStorage(cartItems);
+}
 
 export function addToCart(product: CartProduct) {
   if (!product?.id) return;
@@ -41,6 +52,7 @@ export function addToCart(product: CartProduct) {
       return;
     }
     cartItems = [...cartItems, { product, quantity: 1 }];
+    persistCart();
     notify();
     return;
   }
@@ -64,16 +76,20 @@ export function addToCart(product: CartProduct) {
   } else {
     cartItems = [...cartItems, { product, quantity: 1 }];
   }
+
+  persistCart();
   notify();
 }
 
 export function removeFromCart(key: string) {
   cartItems = cartItems.filter(i => i.product.cart_key !== key && i.product.id !== key);
+  persistCart();
   notify();
 }
 
 export function clearCart() {
   cartItems = [];
+  persistCart();
   notify();
 }
 

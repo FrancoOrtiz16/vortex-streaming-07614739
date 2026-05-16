@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, ElementType } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
@@ -44,7 +44,7 @@ interface Service {
   is_available: boolean;
 }
 
-const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
+const statusConfig: Record<string, { label: string; icon: ElementType; className: string }> = {
   pending: { label: 'Pendiente', icon: Clock, className: 'text-amber-400' },
   completed: { label: 'Completado', icon: CheckCircle, className: 'text-emerald-400' },
   paid: { label: 'Pagado', icon: CheckCircle, className: 'text-primary' },
@@ -65,11 +65,13 @@ const ClientDashboard = () => {
   const { addItem } = useCart();
 
   const [renewing, setRenewing] = useState<string | null>(null);
+  const lastLoadedAtRef = useRef<number>(0);
 
   const loadDashboardData = useCallback(async () => {
     if (!user?.id || !isMountedRef.current) return;
 
     setLoading(true);
+    lastLoadedAtRef.current = Date.now();
     // CORRECCIÓN 1: Timeout AGRESIVO de 2 segundos en lugar de 8 para NO bloquear la UI
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current) {
@@ -127,10 +129,19 @@ const ClientDashboard = () => {
 
     if (user && user.id) {
       loadDashboardData();
-      window.addEventListener('focus', loadDashboardData);
+      const handleFocus = () => {
+        const elapsed = Date.now() - lastLoadedAtRef.current;
+        if (elapsed < 15000) {
+          console.debug('[ClientDashboard] Saltando refresco en foco porque los datos están recientes', { elapsed });
+          return;
+        }
+        loadDashboardData();
+      };
+
+      window.addEventListener('focus', handleFocus);
       return () => {
         isMountedRef.current = false;
-        window.removeEventListener('focus', loadDashboardData);
+        window.removeEventListener('focus', handleFocus);
       };
     }
 
@@ -231,6 +242,15 @@ const ClientDashboard = () => {
     }
   };
 
+  interface SupabaseServiceRow {
+    id: string;
+    name: string;
+    price: number | string | null;
+    image_url?: string | null;
+    plan_type?: string | null;
+    is_available: boolean;
+  }
+
   const fetchServiceByName = async (serviceName: string): Promise<Service | null> => {
     if (!serviceName) return null;
 
@@ -246,7 +266,7 @@ const ClientDashboard = () => {
       return null;
     }
 
-    const serviceRow = (data as any[])[0];
+    const serviceRow = (data as SupabaseServiceRow[] | null)?.[0];
     if (!serviceRow) return null;
 
     return {
@@ -254,7 +274,7 @@ const ClientDashboard = () => {
       name: serviceRow.name,
       price: Number(serviceRow.price ?? 0),
       image_url: serviceRow.image_url ?? '/logo192.png',
-      plan_type: serviceRow.plan_type,
+      plan_type: serviceRow.plan_type ?? null,
       is_available: serviceRow.is_available,
     };
   };
@@ -294,9 +314,10 @@ const ClientDashboard = () => {
       addItem(renewalProduct);
       toast.success('Servicio añadido al carrito para renovación.');
       navigate('/cart');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('[ClientDashboard] Renew to cart error:', err);
-      toast.error(err.message || 'Error agregando renovación al carrito');
+      toast.error(errorMessage || 'Error agregando renovación al carrito');
     } finally {
       setRenewing(null);
     }
