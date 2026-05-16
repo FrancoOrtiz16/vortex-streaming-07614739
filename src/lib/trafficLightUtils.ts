@@ -109,8 +109,19 @@ export function getTrafficLightStatus(
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
   const daysLeft = getDaysUntilExpiry(expiryDate);
 
-  if (daysLeft <= 0) {
-    return 'red'; // Vencido: la fecha actual es igual o mayor a la fecha próxima
+  // Logic:
+  // - If daysLeft < 0 => red (more than 0 days have passed since expiry)
+  // - If daysLeft === 0 => yellow (vuelve amarillo el día del vencimiento)
+  // - If daysLeft >= mergedConfig.greenThreshold => green
+  // - If daysLeft >= 1 => yellow
+  // - fallback red
+
+  if (daysLeft < 0) {
+    return 'red'; // Vencido: pasado al menos un día desde la fecha
+  }
+
+  if (daysLeft === 0) {
+    return 'yellow'; // Vence hoy -> mostrar amarillo
   }
 
   if (daysLeft >= mergedConfig.greenThreshold) {

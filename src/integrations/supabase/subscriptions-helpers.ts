@@ -304,8 +304,36 @@ export async function createSubscriptionExpirationNotification(
   subscriptionId: string,
   serviceName: string,
 ) {
-  console.debug('[Subscriptions] Expiration notification skipped:', { userId, subscriptionId, serviceName });
-  return { data: null, error: null };
+  try {
+    // Fetch phone (client or profile)
+    const phone = await fetchProfileWhatsAppPhone(userId);
+
+    // Call Supabase Edge Function to send WhatsApp (requires admin auth)
+    const { data: sessionData } = await supabase.auth.getUser();
+    const accessToken = sessionData?.user?.id ? (await supabase.auth.getSession()).data.session?.access_token : null;
+
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-expiration`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken || ''}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({ user_id: userId, subscription_id: subscriptionId, service_name: serviceName, phone, message: `Hola, tu servicio ${serviceName} está por vencer.` }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { data: null, error: err || { message: 'Error invoking notify-expiration' } };
+    }
+
+    const result = await res.json().catch(() => null);
+    return { data: result, error: null };
+  } catch (err: any) {
+    console.error('[Subscriptions] createSubscriptionExpirationNotification error', err);
+    return { data: null, error: err };
+  }
 }
 
 /**
