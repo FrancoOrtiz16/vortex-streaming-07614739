@@ -8,6 +8,19 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 
+async function isUserAdmin(userId: string | null) {
+  if (!userId) return false;
+  try {
+    const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId);
+    if (error) return false;
+    const roles = (data || []).map((r: any) => r.role);
+    return roles.includes('admin');
+  } catch (err) {
+    console.error('[subscriptionManager] isUserAdmin error:', err);
+    return false;
+  }
+}
+
 export interface NewInstanceInput {
   userId: string;
   serviceName: string;
@@ -46,9 +59,15 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       return { data: null, error: { message: 'El usuario autenticado no coincide con userId proporcionado' } };
     }
 
-    const phone = await fetchProfileWhatsAppPhone(currentUserId);
-    if (!phone) {
-      return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+    // Eximir administradores de la comprobación del teléfono
+    const admin = await isUserAdmin(currentUserId);
+    if (!admin) {
+      const phone = await fetchProfileWhatsAppPhone(currentUserId);
+      if (!phone) {
+        return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+      }
+    } else {
+      console.debug('[subscriptionManager] Admin detected - saltando verificación de WhatsApp');
     }
   } catch (err: any) {
     console.error('[subscriptionManager] Error validando sesión/perfil:', err);

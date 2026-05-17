@@ -50,6 +50,18 @@ const OBSOLETE_COLUMNS = ['combo_id', 'subscription_code'];
  * Compara versiones y limpia solo si es necesario
  */
 export function initializeCacheControl(): void {
+  // Evitar ejecutar limpieza automática en rutas de administración para prevenir bucles
+  try {
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    if (pathname.includes('/admin')) {
+      console.debug('[CacheControl] ⚠️ Saltando inicialización en ruta admin:', pathname);
+      sessionStorage.setItem('cache_control_initialized', APP_VERSION);
+      return;
+    }
+  } catch (err) {
+    console.warn('[CacheControl] Error comprobando pathname:', err);
+  }
+
   if (sessionStorage.getItem('cache_control_initialized') === APP_VERSION) {
     return;
   }

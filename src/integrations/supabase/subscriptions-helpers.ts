@@ -17,6 +17,19 @@
 import { supabase } from './client';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 
+async function isUserAdmin(userId: string | null) {
+  if (!userId) return false;
+  try {
+    const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId);
+    if (error) return false;
+    const roles = (data || []).map((r: any) => r.role);
+    return roles.includes('admin');
+  } catch (err) {
+    console.error('[Subscriptions] isUserAdmin error:', err);
+    return false;
+  }
+}
+
 // Simple type: only the fields that actually exist
 export interface SimpleSubscriptionPayload {
   user_id: string;
@@ -88,9 +101,15 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
       return { data: null, error: { message: 'Usuario inválido para crear suscripción' } };
     }
 
-    const phone = await fetchProfileWhatsAppPhone(currentUserId);
-    if (!phone) {
-      return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+    // Eximir administradores de la comprobación del teléfono
+    const admin = await isUserAdmin(currentUserId);
+    if (!admin) {
+      const phone = await fetchProfileWhatsAppPhone(currentUserId);
+      if (!phone) {
+        return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+      }
+    } else {
+      console.debug('[Subscriptions] Admin detected - saltando verificación de WhatsApp');
     }
 
     const row = toRealColumns({ ...payload, user_id: currentUserId, status: payload.status || 'pending_approval' });
@@ -138,9 +157,15 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       return { data: null, error: { message: 'Todos los payloads deben pertenecer al usuario autenticado' } };
     }
 
-    const phone = await fetchProfileWhatsAppPhone(currentUserId);
-    if (!phone) {
-      return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+    // Eximir administradores de la comprobación del teléfono
+    const admin = await isUserAdmin(currentUserId);
+    if (!admin) {
+      const phone = await fetchProfileWhatsAppPhone(currentUserId);
+      if (!phone) {
+        return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
+      }
+    } else {
+      console.debug('[Subscriptions] Admin detected - saltando verificación de WhatsApp (bulk)');
     }
 
     const cleanedPayloads = payloads.map(p => toRealColumns({ ...p, user_id: currentUserId, status: p.status || 'pending_approval' }));

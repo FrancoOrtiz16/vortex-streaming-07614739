@@ -19,6 +19,8 @@ interface VersionCheckConfig {
   onUpdateAvailable?: () => void;
   onUpdateReady?: () => void;
   verbose?: boolean;
+  // Paths donde no se debe forzar recarga automática (ej. panel de administración)
+  ignorePaths?: string[];
 }
 
 interface VersionInfo {
@@ -144,6 +146,7 @@ export function useVersionUpdate(config: VersionCheckConfig = {}) {
     onUpdateAvailable,
     onUpdateReady,
     verbose = false,
+    ignorePaths = ['/admin', '/admin-access'],
   } = config;
 
   const updateQueuedRef = useRef(false);
@@ -174,7 +177,7 @@ export function useVersionUpdate(config: VersionCheckConfig = {}) {
       }
 
       // Iniciar chequeo periódico
-      startVersionCheck(checkInterval, autoUpdate, onUpdateAvailable, onUpdateReady, verbose);
+      startVersionCheck(checkInterval, autoUpdate, onUpdateAvailable, onUpdateReady, verbose, ignorePaths);
     })();
 
     return () => {
@@ -235,7 +238,8 @@ function startVersionCheck(
   autoUpdate: boolean,
   onUpdateAvailable: (() => void) | undefined,
   onUpdateReady: (() => void) | undefined,
-  verbose: boolean
+  verbose: boolean,
+  ignorePaths: string[] = []
 ) {
   if (updateCheckTimer) {
     clearInterval(updateCheckTimer);
@@ -265,7 +269,16 @@ function startVersionCheck(
           }
         }
 
+        // Notificar disponible
         onUpdateAvailable?.();
+
+        // Si la ruta actual está en ignorePaths, no forzar recarga automática
+        const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+        const shouldSkip = ignorePaths.some(p => pathname.includes(p));
+        if (shouldSkip) {
+          console.log('[VersionCheck] Auto-update SKIPPED for path:', pathname);
+          return; // salir de esta comprobación y esperar al siguiente intervalo
+        }
 
         if (autoUpdate) {
           console.log('[VersionCheck] Actualizando automáticamente...');
