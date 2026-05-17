@@ -79,27 +79,24 @@ Ve a tu dashboard de Supabase:
 En Supabase SQL Editor, ejecuta:
 ```sql
 -- Create storage bucket for payment receipts (si no existe)
-INSERT INTO storage.buckets (id, name, public) 
+INSERT INTO storage.buckets (id, name, public)
 VALUES ('receipts', 'receipts', true)
 ON CONFLICT DO NOTHING;
 
--- Allow authenticated users to upload receipts
+DROP POLICY IF EXISTS "Authenticated users can upload receipts" ON storage.objects;
 CREATE POLICY "Authenticated users can upload receipts"
 ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'receipts')
-ON CONFLICT DO NOTHING;
+WITH CHECK (bucket_id = 'receipts');
 
--- Allow anyone to view receipts  
+DROP POLICY IF EXISTS "Anyone can view receipts" ON storage.objects;
 CREATE POLICY "Anyone can view receipts"
 ON storage.objects FOR SELECT TO public
-USING (bucket_id = 'receipts')
-ON CONFLICT DO NOTHING;
+USING (bucket_id = 'receipts');
 
--- Allow admins to delete receipts
+DROP POLICY IF EXISTS "Admins can delete receipts" ON storage.objects;
 CREATE POLICY "Admins can delete receipts"
 ON storage.objects FOR DELETE TO authenticated
-USING (bucket_id = 'receipts' AND public.has_role(auth.uid(), 'admin'::app_role))
-ON CONFLICT DO NOTHING;
+USING (bucket_id = 'receipts' AND public.has_role(auth.uid(), 'admin'::app_role));
 ```
 
 ### **Paso 3: Prueba Manual**
