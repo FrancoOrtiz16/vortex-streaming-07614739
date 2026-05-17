@@ -18,6 +18,7 @@ import type { ServiceRowData } from './ServiceRow';
 interface Props {
   data: ServiceRowData;
   onChanged: () => void;
+  highlight?: boolean;
 }
 
 const statusLabel = (status?: string | null) => {
@@ -46,7 +47,7 @@ const statusColor = (status?: string | null) => {
   }
 };
 
-const MobileServiceCard = ({ data, onChanged }: Props) => {
+const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
   const [form, setForm] = useState({
@@ -151,7 +152,7 @@ const MobileServiceCard = ({ data, onChanged }: Props) => {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
+    <div className={`rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3 shadow-[0_0_15px_rgba(59,130,246,0.05)] transition-all ${highlight ? 'animate-pulse ring-2 ring-emerald-400/30' : ''}`}>
       {/* Header: Cliente + Servicio */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">

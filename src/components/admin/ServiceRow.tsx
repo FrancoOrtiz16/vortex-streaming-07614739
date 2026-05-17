@@ -43,6 +43,7 @@ export interface ServiceRowData {
 interface Props {
   data: ServiceRowData;
   onChanged: () => void;
+  highlight?: boolean;
 }
 
 const statusVariant = (status?: string | null) => {
@@ -71,7 +72,7 @@ const statusLabel = (status?: string | null) => {
   }
 };
 
-const ServiceRow = ({ data, onChanged }: Props) => {
+const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
   const [form, setForm] = useState({
@@ -183,7 +184,7 @@ const ServiceRow = ({ data, onChanged }: Props) => {
 
   return (
     <>
-      <TableRow className="hover:bg-secondary/40 border-b border-border/40">
+      <TableRow className={`hover:bg-secondary/40 border-b border-border/40 transition-colors ${highlight ? 'animate-pulse bg-emerald-500/10' : ''}`}>
         <TableCell className="font-medium text-white text-sm">{data.client_label}</TableCell>
         <TableCell className="font-bold text-white text-sm">{data.service_name}</TableCell>
         <TableCell>
