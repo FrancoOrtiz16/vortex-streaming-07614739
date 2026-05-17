@@ -106,8 +106,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   // Helper: detect whether a payment method should use VES (Pago Móvil / Transferencia)
   const isVESMethod = (m: PMType | null | undefined) => {
     if (!m) return false;
-    const t = (m.method_type || m.method_name || '').toLowerCase();
-    return /Pago móvil|Pagomovil|Pago movil|transferencia/.test(t);
+    const raw = (m.method_type || m.method_name || '').toString();
+    // Normalizar: quitar acentos y pasar a minúsculas para comparaciones robustas
+    const t = raw.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+    return /(pago movil|pagomovil|pagomovil|transferencia)/.test(t);
   };
   const handleConfirm = async () => {
     // Quick validation
