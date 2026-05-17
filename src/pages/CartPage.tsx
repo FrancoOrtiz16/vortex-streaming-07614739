@@ -18,6 +18,7 @@ const formatDurationLabel = (days?: number) => {
 const CartPage = () => {
   const { items, total, subtotal, discount, removeItem, clear } = useCart();
   const { currency, rate, formatMoney } = useCurrency();
+  const exchangeRate = typeof rate === 'number' && !Number.isNaN(rate) ? rate : 40;
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const renewalItems = items.filter(item => item.product.renewal);
 
@@ -81,7 +82,7 @@ const CartPage = () => {
                     <div className="flex items-center gap-3 justify-between">
                       <span className="font-display font-bold gold-text text-sm whitespace-nowrap">
                         {currency === 'VES'
-                          ? formatMoney(item.product.price * item.quantity * rate, 'VES')
+                          ? formatMoney(item.product.price * item.quantity * exchangeRate, 'VES')
                           : formatMoney(item.product.price * item.quantity, 'USD')}
                       </span>
                       <button
@@ -99,7 +100,7 @@ const CartPage = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Subtotal</span>
                   <span className="font-display font-semibold text-sm">
-                    {currency === 'VES' ? formatMoney(subtotal * rate, 'VES') : formatMoney(subtotal, 'USD')}
+                    {currency === 'VES' ? formatMoney(subtotal * exchangeRate, 'VES') : formatMoney(subtotal, 'USD')}
                   </span>
                 </div>
                 {discount > 0 && (
@@ -107,7 +108,7 @@ const CartPage = () => {
                     <span className="text-sm">Descuento 10% (2+ productos)</span>
                     <span className="font-display font-semibold text-sm">
                       {currency === 'VES'
-                        ? `-${formatMoney(discount * rate, 'VES')}`
+                        ? `-${formatMoney(discount * exchangeRate, 'VES')}`
                         : `-${formatMoney(discount, 'USD')}`}
                     </span>
                   </div>
@@ -115,7 +116,7 @@ const CartPage = () => {
                 <div className="border-t border-border pt-2 flex items-center justify-between">
                   <span className="text-sm font-medium">Total</span>
                   <span className="font-display font-bold text-xl gold-text">
-                    {currency === 'VES' ? formatMoney(total * rate, 'VES') : formatMoney(total, 'USD')}
+                    {currency === 'VES' ? formatMoney(total * exchangeRate, 'VES') : formatMoney(total, 'USD')}
                   </span>
                 </div>
               </div>

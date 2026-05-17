@@ -31,6 +31,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { items, total, subtotal, discount, clear } = useCart();
   const { rate, convertToVES } = useExchangeRate();
   const { setCurrency } = useCurrency();
+  const exchangeRate = typeof rate === 'number' && !Number.isNaN(rate) ? rate : 40;
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
@@ -180,13 +181,13 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         const notes = JSON.stringify({
           payment_currency: isVES ? 'VES' : 'USD',
           total_usd: total,
-          total_ves: isVES ? parseFloat((total * rate).toFixed(2)) : null,
-          exchange_rate: isVES ? rate : null,
+          total_ves: isVES ? parseFloat((total * exchangeRate).toFixed(2)) : null,
+          exchange_rate: isVES ? exchangeRate : null,
         });
         const { error: phErr } = await supabase.from('payment_history').insert({
           subscription_id: null,
           user_id: user.id,
-          amount: isVES ? parseFloat((total * rate).toFixed(2)) : total,
+          amount: isVES ? parseFloat((total * exchangeRate).toFixed(2)) : total,
           receipt_url: receiptUrl,
           method: selectedMethod?.method_name || null,
           notes,
@@ -331,7 +332,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Monto a pagar:</span>
-                    <span className="font-display font-bold text-lg text-primary">{(total * rate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</span>
+                    <span className="font-display font-bold text-lg text-primary">{(total * exchangeRate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</span>
                   </div>
                   <div className="text-xs text-muted-foreground text-right">
                     <span>(Equivalente a ${total.toFixed(2)})</span>

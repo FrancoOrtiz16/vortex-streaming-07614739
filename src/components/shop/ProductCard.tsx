@@ -33,7 +33,8 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
   const [selected, setSelected] = useState<Product>(product);
   const hasVariants = !!variants && variants.length > 1;
   const { currency, rate } = useCurrency();
-  const priceText = formatPrice(selected.price, currency, rate);
+  const exchangeRate = typeof rate === 'number' && !Number.isNaN(rate) ? rate : 40;
+  const priceText = formatPrice(selected.price, currency, exchangeRate);
   const scale = (selected.image_scale ?? 100) / 100;
 
   const handleAdd = () => {
@@ -113,7 +114,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
             >
               {variants!.map(v => (
                 <option key={v.id} value={v.id} className="bg-[#040617] text-white">
-                  {v.plan_type || v.name} — {formatPrice(v.price)}
+                  {v.plan_type || v.name} — {formatPrice(v.price, currency, exchangeRate)}
                 </option>
               ))}
             </select>
