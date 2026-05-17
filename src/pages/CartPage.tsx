@@ -6,6 +6,7 @@ import { useCart } from '@/hooks/useCart';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CheckoutDialog from '@/components/shop/CheckoutDialog';
+import { CheckoutErrorBoundary } from '@/components/shop/CheckoutErrorBoundary';
 import { toast } from 'sonner';
 
 const formatDurationLabel = (days?: number) => {
@@ -126,7 +127,9 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
-      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
+      <CheckoutErrorBoundary key={checkoutOpen ? 'checkout-open' : 'checkout-closed'} onReset={() => setCheckoutOpen(false)}>
+        <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
+      </CheckoutErrorBoundary>
     </div>
   );
 };

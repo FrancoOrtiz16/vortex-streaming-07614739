@@ -169,10 +169,13 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
       .from('subscriptions')
       .select('duration_days')
       .eq('id', subscriptionId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !currentSub) {
-      throw fetchError || new Error('Suscripción no encontrada');
+    if (fetchError) {
+      throw fetchError;
+    }
+    if (!currentSub) {
+      return { ok: false, error: 'Suscripción no encontrada o no accesible para el usuario actual' };
     }
 
     // ⚠️ IMPORTANTE: Usar VET timezone para consistencia
@@ -193,11 +196,16 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
       })
       .eq('id', subscriptionId)
       .select('user_id, service_name')
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+    if (!data) {
+      return { ok: false, error: 'No se pudo aprobar el pago: suscripción no encontrada o RLS bloquea el acceso' };
+    }
 
-    if (data?.user_id && data?.service_name) {
+    if (data.user_id && data.service_name) {
       await markOrderCompletedForSubscription(data.user_id, data.service_name);
     }
 

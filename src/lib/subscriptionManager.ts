@@ -93,10 +93,13 @@ export async function renewExistingSubscription(subscriptionId: string) {
       .from('subscriptions')
       .select('duration_days, next_renewal')
       .eq('id', subscriptionId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !currentSub) {
-      throw fetchError || new Error('Suscripción no encontrada');
+    if (fetchError) {
+      throw fetchError;
+    }
+    if (!currentSub) {
+      return { data: null, error: { message: 'Suscripción no encontrada o no accesible para el usuario actual' } };
     }
 
     // En la fase de renovación pendiente, mantener fecha lejana
@@ -112,12 +115,16 @@ export async function renewExistingSubscription(subscriptionId: string) {
       })
       .eq('id', subscriptionId)
       .select('id, status, next_renewal, duration_days')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('[subscriptionManager] renewExistingSubscription error:', error);
+      return { data: null, error };
     }
-    return { data, error };
+    if (!data) {
+      return { data: null, error: { message: 'No se pudo actualizar la renovación: suscripción no encontrada o RLS bloquea el acceso' } };
+    }
+    return { data, error: null };
   } catch (err: any) {
     console.error('[subscriptionManager] renewExistingSubscription catch:', err);
     return { data: null, error: err };

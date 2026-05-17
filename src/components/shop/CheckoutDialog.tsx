@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ArrowLeft, CreditCard, Upload, ImageIcon, CheckCircle2 as CheckCircle, MessageCircle } from 'lucide-react';
 import {
@@ -223,7 +223,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass border-border sm:rounded-2xl max-w-md">
+      <DialogContent suppressHydrationWarning className="glass border-border sm:rounded-2xl max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-lg flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-primary" />

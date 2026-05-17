@@ -148,7 +148,7 @@ const PaymentDetailsCard = ({
       <div className="space-y-1">
         {details.map((detail, idx) => (
           <div
-            key={idx}
+            key={`${detail.label}-${detail.value}`}
             className="group rounded-lg sm:rounded-2xl border border-slate-700/50 bg-slate-900/70 p-2 sm:p-3 transition-all duration-200 will-change-transform"
           >
             <div className="flex items-start sm:items-center justify-between gap-2">
