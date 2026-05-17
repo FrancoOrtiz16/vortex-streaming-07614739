@@ -416,6 +416,7 @@ export default function AdminSubscriptionsNew() {
               <TableHead>Última</TableHead>
               <TableHead>Próxima</TableHead>
               <TableHead>Semáforo</TableHead>
+              <TableHead>Verificación</TableHead>
               <TableHead>Contraseña</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>

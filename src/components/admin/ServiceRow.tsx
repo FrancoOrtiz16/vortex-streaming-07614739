@@ -1,11 +1,12 @@
-import { useState, memo } from 'react';
-import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell } from 'lucide-react';
+import { useState, memo, useEffect } from 'react';
+import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
+import { verifyCustomer } from '@/services/adminVerificationService';
 import PasswordViewer from './PasswordViewer';
 import { createSubscriptionExpirationNotification } from '@/integrations/supabase/subscriptions-helpers';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
@@ -74,7 +75,8 @@ const statusLabel = (status?: string | null) => {
 
 const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | 'verify' | null>(null);
+  const [verificado, setVerificado] = useState(false);
   const [form, setForm] = useState({
     credential_email: data.credential_email || '',
     profile_name: data.profile_name || '',
@@ -82,6 +84,28 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
     credential_password: data.credential_password || '', // Para edición
     next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
   });
+
+  // Cargar el estado de verificación del cliente
+  useEffect(() => {
+    const loadVerificationStatus = async () => {
+      if (!data.user_id) return;
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('verificado')
+          .eq('user_id', data.user_id)
+          .single();
+
+        if (!error && profile) {
+          setVerificado(profile.verificado ?? false);
+        }
+      } catch (err) {
+        console.warn('[ServiceRow] Error loading verification status:', err);
+      }
+    };
+
+    loadVerificationStatus();
+  }, [data.user_id]);
 
   // Calcular el estado del semáforo
   const isPendingApproval = data.status === 'pending_approval' || data.status === 'procesando_credenciales';
@@ -182,6 +206,45 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
     }
   };
 
+  /**
+   * Verificar/desverificar cliente
+   */
+  const handleVerifyCustomer = async () => {
+    if (!data.user_id) {
+      toast.error('No se encontró el usuario asociado');
+      return;
+    }
+
+    setBusy('verify');
+    try {
+      if (verificado) {
+        // Desverificar
+        const { error } = await supabase
+          .from('profiles')
+          .update({ verificado: false, updated_at: new Date().toISOString() })
+          .eq('user_id', data.user_id);
+
+        if (error) throw error;
+        setVerificado(false);
+        toast.success('✅ Cliente desverificado');
+      } else {
+        // Verificar
+        const result = await verifyCustomer(data.user_id, data.id);
+        if (result.success) {
+          setVerificado(true);
+          toast.success('✅ Cliente verificado - Suscripción activada');
+          onChanged();
+        } else {
+          throw new Error(result.error || 'Error al verificar cliente');
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Error actualizando verificación');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <>
       <TableRow className={`hover:bg-secondary/40 border-b border-border/40 transition-colors ${highlight ? 'animate-pulse bg-emerald-500/10' : ''}`}>
@@ -211,6 +274,34 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
               <span className="text-xs opacity-80">({daysRemaining}d)</span>
             )}
           </div>
+        </TableCell>
+
+        {/* VERIFICACIÓN - Admin Approval Status */}
+        <TableCell>
+          <button
+            onClick={handleVerifyCustomer}
+            disabled={busy === 'verify'}
+            title={verificado ? 'Click para desverificar cliente' : 'Click para verificar cliente'}
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              verificado
+                ? 'bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30'
+                : 'bg-slate-500/20 text-slate-300 hover:bg-slate-500/30'
+            } disabled:opacity-50`}
+          >
+            {busy === 'verify' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : verificado ? (
+              <>
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Verificado</span>
+              </>
+            ) : (
+              <>
+                <ShieldAlert className="h-3.5 w-3.5" />
+                <span>Sin Verificar</span>
+              </>
+            )}
+          </button>
         </TableCell>
 
         {/* Contraseña */}

@@ -116,6 +116,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_verified: boolean | null
+          verificado: boolean
           updated_at: string
           user_id: string
         }
@@ -127,6 +128,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
+          verificado?: boolean
           updated_at?: string
           user_id: string
         }
@@ -138,6 +140,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
+          verificado?: boolean
           updated_at?: string
           user_id?: string
         }
