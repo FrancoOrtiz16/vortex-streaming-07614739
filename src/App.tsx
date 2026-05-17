@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
 import Index from "./pages/Index";
 import BannedGuard from "./components/BannedGuard";
+import VersionUpdateNotification from "./components/VersionUpdateNotification";
 
 // Lazy load heavy components
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
@@ -54,6 +55,11 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <VersionUpdateNotification 
+            autoUpdate={true}
+            checkInterval={10000}
+            position="top"
+          />
           <div className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
             <div className="absolute inset-0 app-background-layer" />
             <div className="absolute inset-0 pointer-events-none">

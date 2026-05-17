@@ -131,36 +131,88 @@
 
   <body>
     <div id="root"></div>
+    <!-- 🚀 SERVICE WORKER REGISTRATION & UPDATE DETECTION -->
     <script>
+      /**
+       * Script de registro y monitoreo del Service Worker
+       * Compatible con cache busting y actualización inmediata
+       */
       (function () {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations()
-            .then((registrations) => {
-              registrations.forEach((registration) => {
-                registration.unregister()
-                  .then((success) => {
-                    console.info('[SW Hard Reset] Service worker unregistered:', registration.scope, success);
-                  })
-                  .catch((error) => {
-                    console.warn('[SW Hard Reset] Service worker unregister failed:', registration.scope, error);
-                  });
-              });
+        // Solo en navegadores que soportan Service Worker
+        if (!('serviceWorker' in navigator)) {
+          console.info('[SW Registry] Service Worker no soportado');
+          return;
+        }
+
+        // Variables globales para monitoreo
+        window.__SW_REGISTRATION__ = null;
+        window.__SW_UPDATE_AVAILABLE__ = false;
+
+        // Función para detectar cuando hay una actualización disponible
+        function checkForUpdates() {
+          console.log('[SW Registry] 🔍 Chequeando actualizaciones del Service Worker...');
+          
+          if (!window.__SW_REGISTRATION__) {
+            return;
+          }
+
+          window.__SW_REGISTRATION__.update()
+            .then(() => {
+              console.log('[SW Registry] ✅ Update check completado');
             })
             .catch((error) => {
-              console.warn('[SW Hard Reset] Could not read service worker registrations:', error);
+              console.warn('[SW Registry] Error chequeando actualizaciones:', error);
             });
-
-          if ('caches' in window) {
-            caches.keys()
-              .then((cacheNames) => Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName))))
-              .then((results) => {
-                console.info('[SW Hard Reset] Cache storage cleanup completed:', results);
-              })
-              .catch((error) => {
-                console.warn('[SW Hard Reset] Cache cleanup failed:', error);
-              });
-          }
         }
+
+        // Listener para actualizaciones del Service Worker
+        function setupUpdateListener(registration) {
+          if (registration.waiting) {
+            // Ya hay un nuevo SW esperando
+            console.log('[SW Registry] ⏳ Nuevo Service Worker esperando activación');
+            window.__SW_UPDATE_AVAILABLE__ = true;
+          }
+
+          registration.addEventListener('updatefound', () => {
+            console.log('[SW Registry] 📢 Actualización de Service Worker encontrada!');
+            
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // Nuevo SW instalado y listo, pero esperando activación
+                console.log('[SW Registry] 📦 Nuevo Service Worker instalado');
+                window.__SW_UPDATE_AVAILABLE__ = true;
+                
+                // Disparar evento personalizado para que lo detecte el React hook
+                window.dispatchEvent(new CustomEvent('sw-update-available'));
+              }
+            });
+          });
+        }
+
+        // Registrar Service Worker
+        navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+          updateViaCache: 'none', // IMPORTANTE: Nunca cachear sw.js
+        })
+          .then((registration) => {
+            console.log('[SW Registry] ✅ Service Worker registrado exitosamente');
+            window.__SW_REGISTRATION__ = registration;
+
+            // Configurar listeners para detectar actualizaciones
+            setupUpdateListener(registration);
+
+            // Chequear actualizaciones cada 10 segundos
+            setInterval(checkForUpdates, 10000);
+
+            // Chequeo inicial inmediato
+            setTimeout(checkForUpdates, 1000);
+          })
+          .catch((error) => {
+            console.error('[SW Registry] ❌ Error registrando Service Worker:', error);
+          });
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
