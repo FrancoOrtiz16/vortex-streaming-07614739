@@ -93,7 +93,7 @@ export async function createSimpleSubscription(payload: SimpleSubscriptionPayloa
       return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
     }
 
-    const row = toRealColumns({ ...payload, status: payload.status || 'pending_approval' });
+    const row = toRealColumns({ ...payload, user_id: currentUserId, status: payload.status || 'pending_approval' });
     const { data, error } = await supabase
       .from('subscriptions')
       .insert([row as any])
@@ -143,7 +143,7 @@ export async function createSimpleBulkSubscriptions(payloads: SimpleSubscription
       return { data: null, error: { message: 'Para procesar la compra añade tu número de WhatsApp en el perfil.' } };
     }
 
-    const cleanedPayloads = payloads.map(p => toRealColumns({ ...p, status: p.status || 'pending_approval' }));
+    const cleanedPayloads = payloads.map(p => toRealColumns({ ...p, user_id: currentUserId, status: p.status || 'pending_approval' }));
     const { data, error } = await supabase
       .from('subscriptions')
       .insert(cleanedPayloads as any)

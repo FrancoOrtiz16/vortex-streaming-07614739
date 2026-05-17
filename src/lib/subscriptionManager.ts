@@ -34,13 +34,14 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
   }
 
   // Seguridad: verificar sesión actual y perfil con teléfono/WhatsApp
+  let currentUserId: string | null = null;
   try {
     const { data: sessionData, error: sessionErr } = await supabase.auth.getUser();
     if (sessionErr || !sessionData || !sessionData.user) {
       return { data: null, error: { message: 'Sesión no detectada. Inicia sesión para continuar.' } };
     }
 
-    const currentUserId = sessionData.user.id;
+    currentUserId = sessionData.user.id;
     if (currentUserId !== userId) {
       return { data: null, error: { message: 'El usuario autenticado no coincide con userId proporcionado' } };
     }
@@ -65,10 +66,10 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
   const { data, error } = await supabase
     .from('subscriptions')
     .insert([{ 
-      user_id: userId,
+      user_id: currentUserId as string,
       service_name: serviceName,
-      status, // Será 'pending_approval'
-      next_renewal: pendingDate.toISOString(), // Fecha lejana = pendiente
+      status,
+      next_renewal: pendingDate.toISOString(),
       duration_days: durationDays,
       credential_email: null,
       credential_password: null,

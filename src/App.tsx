@@ -4,6 +4,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
 import Index from "./pages/Index";
 import BannedGuard from "./components/BannedGuard";
@@ -51,6 +52,7 @@ const App = () => {
 
   return (
     <EmergencyErrorBoundary level="page">
+      <CurrencyProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -127,6 +129,7 @@ const App = () => {
           </div>
         </TooltipProvider>
       </QueryClientProvider>
+      </CurrencyProvider>
     </EmergencyErrorBoundary>
   );
 };

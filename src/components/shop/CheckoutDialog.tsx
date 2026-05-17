@@ -18,6 +18,7 @@ import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useCurrency } from '@/context/CurrencyContext';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
 
 interface CheckoutDialogProps {
@@ -29,6 +30,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
   const { items, total, subtotal, discount, clear } = useCart();
   const { rate, convertToVES } = useExchangeRate();
+  const { setCurrency } = useCurrency();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
@@ -99,24 +101,13 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     setUploading(false);
     toast.success('Comprobante cargado');
   };
-      // More detailed error messages for debugging
-      if (error) {
-        console.error('[Checkout] Receipt upload error:', error);
-      
-        // Check if it's a bucket not found error
-        if (error.message?.includes('not found') || error.message?.includes('404')) {
-          toast.error('⚠️ El almacenamiento de comprobantes no está disponible. Contacta con soporte.');
-        } else if (error.message?.includes('permission') || error.message?.includes('policy')) {
-          toast.error('No tienes permisos para subir comprobantes. Inicia sesión nuevamente.');
-        } else {
-          toast.error(`Error subiendo comprobante: ${error.message || 'Error desconocido'}`);
-        }
-      
-        setReceiptFile(null);
-        setReceiptPreview(null);
-        setUploading(false);
-        return;
-      }
+
+  // Helper: detect whether a payment method should use VES (Pago Móvil / Transferencia)
+  const isVESMethod = (m: PMType | null | undefined) => {
+    if (!m) return false;
+    const t = (m.method_type || m.method_name || '').toLowerCase();
+    return /Pago móvil|Pagomovil|Pago movil|transferencia/.test(t);
+  };
   const handleConfirm = async () => {
     // Quick validation
     if (!user || !user.id) {
@@ -184,6 +175,28 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         }
       }
 
+      // Create a payment_history entry to record receipt, method and exchange metadata
+      try {
+        const notes = JSON.stringify({
+          payment_currency: isVES ? 'VES' : 'USD',
+          total_usd: total,
+          total_ves: isVES ? parseFloat((total * rate).toFixed(2)) : null,
+          exchange_rate: isVES ? rate : null,
+        });
+        const { error: phErr } = await supabase.from('payment_history').insert({
+          subscription_id: null,
+          user_id: user.id,
+          amount: isVES ? parseFloat((total * rate).toFixed(2)) : total,
+          receipt_url: receiptUrl,
+          method: selectedMethod?.method_name || null,
+          notes,
+          status: 'pending_approval',
+        });
+        if (phErr) console.warn('[Checkout] payment_history insert warning:', phErr.message);
+      } catch (phErr) {
+        console.warn('[Checkout] payment_history insert failed:', phErr);
+      }
+
       for (const item of renewalItems) {
         const subscriptionId = item.product.subscription_id!;
         const { error: updateError } = await renewExistingSubscription(subscriptionId);
@@ -237,7 +250,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         {!selectedMethod ? (
           <PaymentMethods
             selectedId={null}
-            onSelect={(m) => setSelectedMethod(m)}
+            onSelect={(m) => {
+              setSelectedMethod(m);
+              setCurrency(isVESMethod(m) ? 'VES' : 'USD');
+            }}
           />
         ) : (
           <AnimatePresence mode="wait">
@@ -249,7 +265,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
               className="space-y-4"
             >
               <button
-                onClick={() => { setSelectedMethod(null); setReceiptFile(null); setReceiptPreview(null); setReceiptUrl(null); }}
+                onClick={() => { setSelectedMethod(null); setReceiptFile(null); setReceiptPreview(null); setReceiptUrl(null); setCurrency('USD'); }}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="w-3 h-3" />
@@ -298,11 +314,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         )}
 
         {(() => {
-const isVES = selected && ['Pago Móvil', 'Transferencia Bancaria', 'pago móvil', 'transferencia bancaria'].some(name => 
-  name === selected.method_name || 
-  selected.method_type.toLowerCase().includes('pago móvil') || 
-  selected.method_type.toLowerCase().includes('transferencia')
-);
+      const isVES = selected && isVESMethod(selected);
           return (
             <div className="pt-2 border-t border-border space-y-1">
               {isVES ? (

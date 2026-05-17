@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
+import { useCurrency } from '@/context/CurrencyContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CheckoutDialog from '@/components/shop/CheckoutDialog';
@@ -16,6 +17,7 @@ const formatDurationLabel = (days?: number) => {
 
 const CartPage = () => {
   const { items, total, subtotal, discount, removeItem, clear } = useCart();
+  const { currency, rate, formatMoney } = useCurrency();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const renewalItems = items.filter(item => item.product.renewal);
 
@@ -78,7 +80,9 @@ const CartPage = () => {
                     </div>
                     <div className="flex items-center gap-3 justify-between">
                       <span className="font-display font-bold gold-text text-sm whitespace-nowrap">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {currency === 'VES'
+                          ? formatMoney(item.product.price * item.quantity * rate, 'VES')
+                          : formatMoney(item.product.price * item.quantity, 'USD')}
                       </span>
                       <button
                         onClick={() => removeItem(item.product.cart_key || item.product.id)}
@@ -94,17 +98,25 @@ const CartPage = () => {
               <div className="glass rounded-xl p-4 space-y-2 mb-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Subtotal</span>
-                  <span className="font-display font-semibold text-sm">${subtotal.toFixed(2)}</span>
+                  <span className="font-display font-semibold text-sm">
+                    {currency === 'VES' ? formatMoney(subtotal * rate, 'VES') : formatMoney(subtotal, 'USD')}
+                  </span>
                 </div>
                 {discount > 0 && (
                   <div className="flex items-center justify-between text-green-400">
                     <span className="text-sm">Descuento 10% (2+ productos)</span>
-                    <span className="font-display font-semibold text-sm">-${discount.toFixed(2)}</span>
+                    <span className="font-display font-semibold text-sm">
+                      {currency === 'VES'
+                        ? `-${formatMoney(discount * rate, 'VES')}`
+                        : `-${formatMoney(discount, 'USD')}`}
+                    </span>
                   </div>
                 )}
                 <div className="border-t border-border pt-2 flex items-center justify-between">
                   <span className="text-sm font-medium">Total</span>
-                  <span className="font-display font-bold text-xl gold-text">${total.toFixed(2)}</span>
+                  <span className="font-display font-bold text-xl gold-text">
+                    {currency === 'VES' ? formatMoney(total * rate, 'VES') : formatMoney(total, 'USD')}
+                  </span>
                 </div>
               </div>
 

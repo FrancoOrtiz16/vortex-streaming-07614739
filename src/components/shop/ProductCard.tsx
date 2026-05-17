@@ -6,6 +6,7 @@ import { useCart } from '@/hooks/useCart';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useOptimizedMotion, useWillChange } from '@/hooks/useOptimizedMotion';
 import { toast } from 'sonner';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface ProductCardProps {
   product: Product;
@@ -13,16 +14,26 @@ interface ProductCardProps {
   index: number;
 }
 
-const formatPrice = (value: number) => {
-  return `$${value.toFixed(2).replace('.', ',')}`;
+const formatPrice = (value: number, currency: 'USD' | 'VES', rate: number) => {
+  if (currency === 'VES') {
+    return `${(value * rate).toLocaleString('es-VE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} Bs.`;
+  }
+
+  return `$${value.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 };
 
 const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
   const { addItem } = useCart();
   const [selected, setSelected] = useState<Product>(product);
   const hasVariants = !!variants && variants.length > 1;
-  const exchangeRate = 700;
-  const priceText = formatPrice(selected.price);
+  const { currency, rate } = useCurrency();
+  const priceText = formatPrice(selected.price, currency, rate);
   const scale = (selected.image_scale ?? 100) / 100;
 
   const handleAdd = () => {
