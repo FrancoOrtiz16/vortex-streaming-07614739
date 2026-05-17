@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Plus, Save, Trash2, X } from 'lucide-react';
+import { CreditCard, Plus, Save, Trash2, X, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -184,9 +184,11 @@ export function PaymentsSection() {
               <div className="flex gap-1">
                 <button
                   onClick={() => setEditing(m)}
+                  title="Editar método"
+                  aria-label={`Editar ${m.method_name}`}
                   className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors"
                 >
-                  <Save className="w-3.5 h-3.5" />
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(m.id)}
