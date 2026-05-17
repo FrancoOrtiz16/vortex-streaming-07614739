@@ -99,7 +99,24 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     setUploading(false);
     toast.success('Comprobante cargado');
   };
-
+      // More detailed error messages for debugging
+      if (error) {
+        console.error('[Checkout] Receipt upload error:', error);
+      
+        // Check if it's a bucket not found error
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          toast.error('⚠️ El almacenamiento de comprobantes no está disponible. Contacta con soporte.');
+        } else if (error.message?.includes('permission') || error.message?.includes('policy')) {
+          toast.error('No tienes permisos para subir comprobantes. Inicia sesión nuevamente.');
+        } else {
+          toast.error(`Error subiendo comprobante: ${error.message || 'Error desconocido'}`);
+        }
+      
+        setReceiptFile(null);
+        setReceiptPreview(null);
+        setUploading(false);
+        return;
+      }
   const handleConfirm = async () => {
     // Quick validation
     if (!user || !user.id) {
