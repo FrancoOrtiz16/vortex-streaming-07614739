@@ -52,13 +52,8 @@ export default defineConfig(({ mode }) => ({
 
     // Target y compatibilidad
     target: 'esnext',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: mode === 'production',
-      },
-    },
-
+    minify: 'terser', // Requiere: npm install terser --save-dev
+    
     // Tamaño de chunks
     chunkSizeWarningLimit: 1000,
   },
