@@ -110,7 +110,7 @@ const CartPage = () => {
                   <div className="flex items-center justify-between text-green-400">
                     <span className="text-sm">Descuento 10% (2+ productos)</span>
                     <span className="font-display font-semibold text-sm">
-                      {currency === 'VES'
+                      {isVESMode
                         ? `-${formatConvertedAmount(discount, conversionMethod, exchangeRate)}`
                         : `-${formatMoney(discount, 'USD')}`}
                     </span>

@@ -6,7 +6,6 @@ import { useCart } from '@/hooks/useCart';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useOptimizedMotion, useWillChange } from '@/hooks/useOptimizedMotion';
 import { toast } from 'sonner';
-import { useCurrency } from '@/context/CurrencyContext';
 
 interface ProductCardProps {
   product: Product;
@@ -14,14 +13,7 @@ interface ProductCardProps {
   index: number;
 }
 
-const formatPrice = (value: number, currency: 'USD' | 'VES', rate: number) => {
-  if (currency === 'VES') {
-    return `${(value * rate).toLocaleString('es-VE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })} Bs.`;
-  }
-
+const formatPrice = (value: number) => {
   return `$${value.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -32,9 +24,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
   const { addItem } = useCart();
   const [selected, setSelected] = useState<Product>(product);
   const hasVariants = !!variants && variants.length > 1;
-  const { currency, rate } = useCurrency();
-  const exchangeRate = typeof rate === 'number' && !Number.isNaN(rate) ? rate : 40;
-  const priceText = formatPrice(selected.price, currency, exchangeRate);
+  const priceText = formatPrice(selected.price);
   const scale = (selected.image_scale ?? 100) / 100;
 
   const handleAdd = () => {
@@ -114,7 +104,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
             >
               {variants!.map(v => (
                 <option key={v.id} value={v.id} className="bg-[#040617] text-white">
-                  {v.plan_type || v.name} — {formatPrice(v.price, currency, exchangeRate)}
+                  {v.plan_type || v.name} — {formatPrice(v.price)}
                 </option>
               ))}
             </select>
@@ -134,7 +124,6 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
         {/* Precio responsivo */}
         <div className="font-display font-bold text-2xl sm:text-2.5xl md:text-3xl mb-2 sm:mb-4 neon-text">
           <span
-            title={`Tasa de cambio ${exchangeRate} Bs/USD`}
             style={{
               textShadow: '0 0 15px hsl(var(--primary)/0.8)',
               color: 'hsl(var(--primary))',
