@@ -18,10 +18,6 @@ SET service_id = (
 ) 
 WHERE s.service_id IS NULL AND s.service_name IS NOT NULL;
 
--- Add unique constraint (ignore existing dups for now, or handle)
-ALTER TABLE public.subscriptions 
-ADD CONSTRAINT unique_user_service UNIQUE (user_id, service_id);
-
 -- Create payment_history table
 CREATE TABLE IF NOT EXISTS public.payment_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

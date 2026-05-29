@@ -17,7 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useCurrencyConverter, formatConvertedAmount, shouldUseVES } from '@/hooks/useCurrencyConverter';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
 
@@ -29,9 +29,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
   const { items, total, subtotal, discount, clear } = useCart();
-  const { rate, convertToVES } = useExchangeRate();
   const { setCurrency } = useCurrency();
-  const exchangeRate = typeof rate === 'number' && !Number.isNaN(rate) ? rate : 40;
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
@@ -41,6 +39,8 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [profilePhone, setProfilePhone] = useState<string | null>(null);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const { amount: totalConvertedAmount, formatted: totalConvertedFormatted, isVES, exchangeRate: safeExchangeRate } = useCurrencyConverter(total, selectedMethod);
+  const subtotalDisplay = formatConvertedAmount(subtotal, undefined, safeExchangeRate);
 
   useEffect(() => {
     if (open) {
@@ -103,14 +103,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     toast.success('Comprobante cargado');
   };
 
-  // Helper: detect whether a payment method should use VES (Pago Móvil / Transferencia)
-  const isVESMethod = (m: PMType | null | undefined) => {
-    if (!m) return false;
-    const raw = (m.method_type || m.method_name || '').toString();
-    // Normalizar: quitar acentos y pasar a minúsculas para comparaciones robustas
-    const t = raw.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-    return /(pago movil|pagomovil|pagomovil|transferencia)/.test(t);
-  };
   const handleConfirm = async () => {
     // Quick validation
     if (!user || !user.id) {
@@ -183,13 +175,13 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         const notes = JSON.stringify({
           payment_currency: isVES ? 'VES' : 'USD',
           total_usd: total,
-          total_ves: isVES ? parseFloat((total * exchangeRate).toFixed(2)) : null,
-          exchange_rate: isVES ? exchangeRate : null,
+          total_ves: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : null,
+          exchange_rate: isVES ? safeExchangeRate : null,
         });
         const { error: phErr } = await supabase.from('payment_history').insert({
           subscription_id: null,
           user_id: user.id,
-          amount: isVES ? parseFloat((total * exchangeRate).toFixed(2)) : total,
+          amount: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : total,
           receipt_url: receiptUrl,
           method: selectedMethod?.method_name || null,
           notes,
@@ -255,7 +247,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             selectedId={null}
             onSelect={(m) => {
               setSelectedMethod(m);
-              setCurrency(isVESMethod(m) ? 'VES' : 'USD');
+              setCurrency(shouldUseVES(m) ? 'VES' : 'USD');
             }}
           />
         ) : (
@@ -317,24 +309,24 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         )}
 
         {(() => {
-      const isVES = selected && isVESMethod(selected);
+      const isVESLocal = selected && shouldUseVES(selected);
           return (
             <div className="pt-2 border-t border-border space-y-1">
-              {isVES ? (
+              {isVESLocal ? (
                 <>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Subtotal:</span>
-                    <span className="text-sm">${subtotal.toFixed(2)}</span>
+                    <span className="text-sm">{subtotalDisplay}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-green-600">Descuento (10%):</span>
-                      <span className="text-sm text-green-600">-${discount.toFixed(2)}</span>
+                      <span className="text-sm text-green-600">-{formatConvertedAmount(discount, undefined, safeExchangeRate)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Monto a pagar:</span>
-                    <span className="font-display font-bold text-lg text-primary">{(total * exchangeRate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</span>
+                    <span className="font-display font-bold text-lg text-primary">{totalConvertedFormatted}</span>
                   </div>
                   <div className="text-xs text-muted-foreground text-right">
                     <span>(Equivalente a ${total.toFixed(2)})</span>
@@ -344,12 +336,12 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                 <>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Subtotal:</span>
-                    <span className="text-sm">${subtotal.toFixed(2)}</span>
+                    <span className="text-sm">{subtotalDisplay}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-green-600">Descuento (10%):</span>
-                      <span className="text-sm text-green-600">-${discount.toFixed(2)}</span>
+                      <span className="text-sm text-green-600">-{formatConvertedAmount(discount, undefined, safeExchangeRate)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">

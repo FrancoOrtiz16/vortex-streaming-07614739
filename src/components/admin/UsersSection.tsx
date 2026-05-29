@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Shield, KeyRound, X } from 'lucide-react';
+import { CheckCircle, XCircle, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -35,47 +35,61 @@ export function UsersSection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [orders, setOrders] = useState<OrderInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [resetTarget, setResetTarget] = useState<Profile | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [resetting, setResetting] = useState(false);
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const scrollKey = 'usersSectionScrollY';
 
   const fetchData = async () => {
-    const [profilesRes, ordersRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('orders').select('user_id, expiry_date, status'),
-    ]);
-    if (profilesRes.error) { toast.error('Error cargando usuarios'); return; }
-    setProfiles((profilesRes.data as any) || []);
-    setOrders((ordersRes.data as OrderInfo[]) || []);
-    setLoading(false);
+    try {
+      const [profilesRes, ordersRes] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('orders').select('user_id, expiry_date, status'),
+      ]);
+
+      if (profilesRes.error) {
+        throw new Error('Error cargando usuarios');
+      }
+
+      if (ordersRes.error) {
+        throw new Error('Error cargando órdenes');
+      }
+
+      setProfiles((profilesRes.data as Profile[]) ?? []);
+      setOrders((ordersRes.data as OrderInfo[]) ?? []);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchData();
+    let isMounted = true;
+
+    void fetchData();
 
     // Restore scroll position if admin reloaded page
     try {
       const stored = sessionStorage.getItem(scrollKey);
-      if (stored) {
+      if (stored && isMounted) {
         const y = parseInt(stored, 10);
         setTimeout(() => window.scrollTo(0, y), 0);
       }
     } catch (e) {
-      /* ignore */
+      console.warn('[UsersSection] scroll restore failed', e);
     }
 
     const handleBeforeUnload = () => {
-      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { }
+      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { console.warn('[UsersSection] save scroll failed', e); }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('beforeunload', handleBeforeUnload);
       channelsRef.current.forEach(channel => supabase.removeChannel(channel));
       channelsRef.current = [];
-      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { }
+      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { console.warn('[UsersSection] save scroll failed', e); }
     };
   }, []);
 
@@ -107,51 +121,31 @@ export function UsersSection() {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(ordersChannel);
     };
-  }, []);
+  }, [profiles.length]);
 
   const toggleVerified = async (profile: Profile) => {
-    const { error } = await supabase.from('profiles').update({ is_verified: !profile.is_verified }).eq('id', profile.id);
-    if (error) { toast.error('Error actualizando'); return; }
-    toast.success(profile.is_verified ? 'Verificación removida' : 'Usuario verificado');
-    fetchData();
+    try {
+      const { error } = await supabase.from('profiles').update({ is_verified: !profile.is_verified }).eq('id', profile.id);
+      if (error) {
+        throw new Error('Error actualizando');
+      }
+      toast.success(profile.is_verified ? 'Verificación removida' : 'Usuario verificado');
+      await fetchData();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Error desconocido');
+    }
   };
 
   const toggleActive = async (profile: Profile) => {
-    const { error } = await supabase.from('profiles').update({ is_active: !profile.is_active }).eq('id', profile.id);
-    if (error) { toast.error('Error actualizando'); return; }
-    toast.success(profile.is_active ? 'Usuario desactivado (baneado)' : 'Usuario activado');
-    fetchData();
-  };
-
-  const handleResetPassword = async () => {
-    if (!resetTarget || !newPassword || newPassword.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    setResetting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ target_user_id: resetTarget.user_id, new_password: newPassword }),
-        }
-      );
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Error');
-      toast.success(`Contraseña de ${resetTarget.display_name || resetTarget.email} actualizada`);
-      setResetTarget(null);
-      setNewPassword('');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setResetting(false);
+      const { error } = await supabase.from('profiles').update({ is_active: !profile.is_active }).eq('id', profile.id);
+      if (error) {
+        throw new Error('Error actualizando');
+      }
+      toast.success(profile.is_active ? 'Usuario desactivado (baneado)' : 'Usuario activado');
+      await fetchData();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Error desconocido');
     }
   };
 
@@ -163,38 +157,6 @@ export function UsersSection() {
         <Shield className="w-5 h-5 text-primary" />
         <h2 className="font-display font-bold text-xl">User Control Center</h2>
       </div>
-
-      {resetTarget && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm"
-        >
-          <div className="glass rounded-2xl p-6 w-full max-w-sm mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display font-semibold text-sm">Resetear Contraseña</h3>
-              <button onClick={() => { setResetTarget(null); setNewPassword(''); }} className="p-1 rounded-lg hover:bg-secondary" aria-label="Cerrar"><X className="w-4 h-4" /></button>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Usuario: <strong>{resetTarget.display_name || resetTarget.email}</strong>
-            </p>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder="Nueva contraseña (min 6 chars)"
-              className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors mb-4"
-            />
-            <button
-              onClick={handleResetPassword}
-              disabled={resetting}
-              className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
-            >
-              {resetting ? 'Actualizando...' : 'Confirmar Reset'}
-            </button>
-          </div>
-        </motion.div>
-      )}
 
       <div className="glass rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -256,21 +218,12 @@ export function UsersSection() {
                         )}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => setResetTarget(p)}
-                        className="p-1.5 rounded-lg hover:bg-primary/20 text-primary transition-colors mx-auto"
-                        title="Resetear contraseña"
-                        aria-label="Resetear contraseña"
-                      >
-                        <KeyRound className="w-4 h-4" />
-                      </button>
-                    </td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">—</td>
                   </motion.tr>
                 );
               })}
               {profiles.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No hay usuarios registrados</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No hay usuarios registrados</td></tr>
               )}
             </tbody>
           </table>
