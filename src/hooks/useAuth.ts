@@ -75,6 +75,7 @@ export function useAuth() {
   useEffect(() => {
     console.debug('[Auth] Initializing auth state...');
     let isActive = true;
+    let isInitialSessionApplied = false;
 
     const applySession = (nextSession: Session | null) => {
       if (!isActive) return;
@@ -119,7 +120,8 @@ export function useAuth() {
       (_event, session) => {
         console.debug('[Auth] Auth state changed:', { event: _event, hasSession: !!session });
 
-        if (_event === 'SIGNED_IN' && session?.user) {
+        // Only redirect to store on new sign-in, not on session recovery
+        if (_event === 'SIGNED_IN' && session?.user && isInitialSessionApplied) {
           redirectToStore();
           return;
         }
@@ -132,10 +134,12 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.debug('[Auth] Initial session check:', { hasSession: !!session });
       applySession(session);
+      isInitialSessionApplied = true;
     }).catch((err) => {
       if (!isActive) return;
       console.error('[Auth] getSession error:', err);
       setLoading(false);
+      isInitialSessionApplied = true;
     }).finally(() => {
       window.clearTimeout(readyTimeout);
     });
