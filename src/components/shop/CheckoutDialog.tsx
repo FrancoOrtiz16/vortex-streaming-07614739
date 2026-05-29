@@ -13,6 +13,7 @@ import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import PaymentMethods, { PaymentMethod as PMType } from './PaymentMethods';
 import PaymentDetailsCard from './PaymentDetailsCard';
+import { canSubmitCheckout, getCheckoutActionLabel } from './checkoutFlow';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
@@ -48,8 +49,11 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       setReceiptFile(null);
       setReceiptPreview(null);
       setReceiptUrl(null);
+      setProfilePhone(null);
+      setPhoneLoading(false);
+      setCurrency('USD');
     }
-  }, [open]);
+  }, [open, setCurrency]);
 
   useEffect(() => {
     // Cargar teléfono del perfil cuando se abre el dialog
@@ -224,10 +228,9 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   };
 
   const selected = selectedMethod;
-  // Botón habilitado en cuanto hay método seleccionado; recordamos al usuario subir comprobante.
-  const hasPhone = !!profilePhone;
-  const canSubmit = !!selectedMethod && !!receiptUrl && !submitting && !uploading && hasPhone;
-  const canPick = !!selectedMethod && !submitting;
+  const hasPhone = Boolean(profilePhone);
+  const canSubmit = canSubmitCheckout({ selectedMethod, submitting, uploading });
+  const confirmLabel = getCheckoutActionLabel({ phoneLoading, hasPhone, receiptUrl });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -368,12 +371,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           ) : (
             <MessageCircle className="w-4 h-4" />
           )}
-          {phoneLoading ? 'Comprobando contacto...' : (
-            hasPhone ? (receiptUrl ? 'Confirmar y enviar por WhatsApp' : 'Sube el comprobante para continuar') : 'Añade tu WhatsApp en el perfil para continuar'
-          )}
+          {confirmLabel}
         </button>
         {!hasPhone && !phoneLoading && (
-          <div className="mt-2 text-xs text-amber-300 text-center">Para procesar tu compra, por favor añade tu número de WhatsApp para soporte y entrega.</div>
+          <div className="mt-2 text-xs text-amber-300 text-center">El contacto del perfil no está disponible en este momento, pero puedes continuar con el pago igualmente.</div>
         )}
       </DialogContent>
     </Dialog>

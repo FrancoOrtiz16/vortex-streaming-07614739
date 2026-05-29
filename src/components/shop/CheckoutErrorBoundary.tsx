@@ -2,7 +2,6 @@ import * as React from 'react';
 
 interface CheckoutErrorBoundaryProps {
   children: React.ReactNode;
-  onReset: () => void;
 }
 
 interface CheckoutErrorBoundaryState {
@@ -24,7 +23,6 @@ export class CheckoutErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[CheckoutErrorBoundary] Captured error:', error, errorInfo);
-    this.props.onReset();
   }
 
   componentDidUpdate(prevProps: CheckoutErrorBoundaryProps) {
@@ -34,10 +32,6 @@ export class CheckoutErrorBoundary extends React.Component<
   }
 
   render() {
-    if (this.state.hasError) {
-      return null;
-    }
-
     return this.props.children;
   }
 }

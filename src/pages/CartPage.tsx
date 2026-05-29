@@ -143,7 +143,7 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
-      <CheckoutErrorBoundary key={checkoutOpen ? 'checkout-open' : 'checkout-closed'} onReset={() => setCheckoutOpen(false)}>
+      <CheckoutErrorBoundary key={checkoutOpen ? 'checkout-open' : 'checkout-closed'}>
         <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
       </CheckoutErrorBoundary>
     </div>
