@@ -192,7 +192,7 @@ export function useOptimizedMotion() {
       whileHover: {
         scale: 1.03,
         y: -5,
-        transition: { duration: 0.2, type: 'spring', stiffness: 400 },
+        transition: { duration: 0.2, type: 'spring' as const, stiffness: 400 },
       },
       whileTap: {
         scale: 0.97,
