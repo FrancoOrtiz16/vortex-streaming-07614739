@@ -129,6 +129,7 @@ export const ReceiptImageViewer = memo(function ReceiptImageViewer({
             </p>
             {shouldShowFallback && (
               <button
+                type="button"
                 onClick={handleRetry}
                 className="mt-2 flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
               >

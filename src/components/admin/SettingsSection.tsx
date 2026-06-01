@@ -59,6 +59,7 @@ export function SettingsSection() {
             </div>
           </div>
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving}
             className="self-end flex items-center gap-1.5 px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold disabled:opacity-50"

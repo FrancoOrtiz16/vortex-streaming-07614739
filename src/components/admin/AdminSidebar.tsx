@@ -87,6 +87,7 @@ export function AdminSidebar({ onSignOut }: AdminSidebarProps) {
       {/* Store Preview Button in Sidebar */}
       <div className="p-3 border-t border-border">
         <button
+        type="button"
           onClick={handleViewStore}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium text-sm"
           title="Ver Tienda en Nueva Pestaña"

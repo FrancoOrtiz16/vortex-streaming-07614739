@@ -75,6 +75,7 @@ export function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setShowDropdown(!showDropdown)}
         className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
         title="Notificaciones"

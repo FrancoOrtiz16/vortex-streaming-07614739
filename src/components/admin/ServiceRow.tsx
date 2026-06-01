@@ -279,6 +279,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
         {/* VERIFICACIÓN - Admin Approval Status */}
         <TableCell>
           <button
+            type="button"
             onClick={handleVerifyCustomer}
             disabled={busy === 'verify'}
             title={verificado ? 'Click para desverificar cliente' : 'Click para verificar cliente'}
@@ -314,6 +315,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
           <div className="flex gap-1 flex-wrap">
             {/* Botón Editar/Cancelar */}
             <button
+              type="button"
               onClick={() => setEditing((v) => !v)}
               title={editing ? 'Cancelar edición' : 'Editar credenciales'}
               className="p-1 text-primary hover:bg-primary/10 rounded transition"
@@ -324,6 +326,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
             {/* Botón Aprobar Pago - Solo si está pendiente */}
             {(data.status === 'pending_approval' || data.status === 'procesando_credenciales') && (
               <button
+                type="button"
                 onClick={handleApprovePendingPayment}
                 disabled={busy === 'pay'}
                 title="Aprobar pago y activar suscripción"
@@ -341,6 +344,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
             {/* Botón Notificar Vencimiento - Solo si quedan 3 días o menos */}
             {daysRemaining <= 3 && daysRemaining >= 0 && (
               <button
+                type="button"
                 onClick={handleNotifyExpiration}
                 disabled={busy === 'notify'}
                 title="Notificar al cliente sobre el vencimiento"
@@ -357,6 +361,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
 
             {/* Botón Eliminar */}
             <button
+              type="button"
               onClick={handleDelete}
               disabled={busy === 'delete'}
               title="Eliminar suscripción"
@@ -426,6 +431,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
               </div>
               <div className="flex gap-2 mt-3">
                 <button
+                  type="button"
                   onClick={handleSave}
                   disabled={busy === 'save'}
                   className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center gap-2 hover:bg-primary/90 transition"
@@ -438,6 +444,7 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
                   Guardar
                 </button>
                 <button
+                  type="button"
                   onClick={() => setEditing(false)}
                   className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 transition"
                 >

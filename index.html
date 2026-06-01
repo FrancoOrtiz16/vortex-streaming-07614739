@@ -220,18 +220,64 @@
       (function () {
         const ORIGIN = window.location.origin;
         const TELEMETRY_PATH = '/__l5e/trackevents';
-        const originalFetch = window.fetch;
+        const originalFetch = window.fetch.bind(window);
+        const originalSendBeacon = navigator.sendBeacon && navigator.sendBeacon.bind(navigator);
+
+        const normalizeUrl = (input) => {
+          if (typeof input === 'string') return input;
+          if (input && typeof input === 'object' && 'url' in input) return input.url;
+          return String(input);
+        };
+
+        const isTelemetryUrl = (url) => {
+          const normalized = normalizeUrl(url);
+          return normalized === ORIGIN + TELEMETRY_PATH || normalized.endsWith(TELEMETRY_PATH);
+        };
+
+        const safeTelemetryFetch = async (url, body) => {
+          try {
+            await originalFetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                // Añade aquí cabeceras de origen o credenciales necesarias si el entorno de producción lo requiere
+              },
+              body,
+              keepalive: true,
+            });
+          } catch (err) {
+            console.warn('Telemetry event skipped:', err?.message || err);
+          }
+        };
+
+        if (originalSendBeacon) {
+          navigator.sendBeacon = function (url, data) {
+            if (isTelemetryUrl(url)) {
+              let body = data;
+              if (data instanceof Blob) {
+                try {
+                  body = new TextDecoder().decode(data);
+                } catch (_err) {
+                  body = null;
+                }
+              }
+              safeTelemetryFetch(url, body);
+              return true;
+            }
+            return originalSendBeacon(url, data);
+          };
+        }
 
         window.fetch = async function (input, init) {
-          const url = typeof input === 'string' ? input : (input && input.url) ? input.url : String(input);
-          const isTelemetry = url === ORIGIN + TELEMETRY_PATH || url.endsWith(TELEMETRY_PATH);
+          const url = normalizeUrl(input);
+          const isTelemetry = isTelemetryUrl(url);
 
           if (!isTelemetry) {
-            return originalFetch.apply(this, arguments);
+            return originalFetch(input, init);
           }
 
           try {
-            const response = await originalFetch.apply(this, arguments);
+            const response = await originalFetch(input, init);
             if (response.status === 403) {
               console.warn('[Telemetry] 403 Forbidden caught silently — app continues normally');
               return new Response(JSON.stringify({ caught: true }), {

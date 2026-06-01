@@ -128,6 +128,7 @@ export function InventorySection() {
           <h2 className="font-display font-bold text-xl">Inventario ({services.length})</h2>
         </div>
         <button
+          type="button"
           onClick={() => setEditing({ ...emptyService })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
         >
@@ -146,7 +147,7 @@ export function InventorySection() {
             <h3 className="font-display font-semibold text-sm">
               {editing.id ? 'Editar Servicio' : 'Nuevo Servicio'}
             </h3>
-            <button onClick={() => setEditing(null)} className="p-1 rounded-lg hover:bg-secondary transition-colors">
+            <button type="button" onClick={() => setEditing(null)} className="p-1 rounded-lg hover:bg-secondary transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -279,6 +280,7 @@ export function InventorySection() {
           </div>
 
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
@@ -307,13 +309,13 @@ export function InventorySection() {
             </div>
             <span className="font-display font-bold text-sm gold-text">${s.price.toFixed(2)}</span>
             <div className="flex gap-1">
-              <button onClick={() => toggleAvailability(s)} className="p-2 rounded-lg hover:bg-secondary transition-colors" title={s.is_available ? 'Ocultar' : 'Mostrar'}>
+              <button type="button" onClick={() => toggleAvailability(s)} className="p-2 rounded-lg hover:bg-secondary transition-colors" title={s.is_available ? 'Ocultar' : 'Mostrar'}>
                 {s.is_available ? <Eye className="w-3.5 h-3.5 text-emerald-400" /> : <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />}
               </button>
-              <button onClick={() => setEditing(s)} className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors">
+              <button type="button" onClick={() => setEditing(s)} className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => handleDelete(s.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+              <button type="button" onClick={() => handleDelete(s.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>

@@ -34,6 +34,7 @@ export function ProductsSection() {
           <h2 className="font-display font-bold text-xl">Catálogo ({catalog.length})</h2>
         </div>
         <button
+          type="button"
           onClick={() =>
             setEditing({ id: '', name: '', description: '', price: 0, category: 'streaming', image: '' })
           }
@@ -64,10 +65,10 @@ export function ProductsSection() {
             </div>
             <span className="font-display font-bold text-sm gold-text">${p.price.toFixed(2)}</span>
             <div className="flex gap-1">
-              <button onClick={() => setEditing(p)} className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors">
+              <button type="button" onClick={() => setEditing(p)} className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+              <button type="button" onClick={() => handleDelete(p.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -107,7 +108,7 @@ function ProductForm({
         <h3 className="font-display font-semibold text-sm">
           {product.id ? 'Editar Producto' : 'Nuevo Producto'}
         </h3>
-        <button onClick={onCancel} className="p-1 rounded-lg hover:bg-secondary transition-colors">
+        <button type="button" onClick={onCancel} className="p-1 rounded-lg hover:bg-secondary transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -169,6 +170,7 @@ function ProductForm({
       )}
 
       <button
+        type="button"
         onClick={() => onSave(form)}
         className="flex items-center gap-1.5 px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
       >

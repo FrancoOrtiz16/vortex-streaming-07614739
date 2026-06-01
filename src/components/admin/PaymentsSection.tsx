@@ -77,6 +77,7 @@ export function PaymentsSection() {
           <h2 className="font-display font-bold text-xl">Ajustes de Pago</h2>
         </div>
         <button
+          type="button"
           onClick={() => setEditing({ method_name: '', method_type: 'Zelle', account_info: '', instructions: '', is_active: true })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
         >
@@ -95,7 +96,7 @@ export function PaymentsSection() {
             <h3 className="font-display font-semibold text-sm">
               {editing.id ? 'Editar Método' : 'Nuevo Método de Pago'}
             </h3>
-            <button onClick={() => setEditing(null)} className="p-1 rounded-lg hover:bg-secondary">
+            <button type="button" onClick={() => setEditing(null)} className="p-1 rounded-lg hover:bg-secondary">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -144,6 +145,7 @@ export function PaymentsSection() {
             </div>
           </div>
           <button
+            type="button"
             onClick={handleSave}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
           >
@@ -183,6 +185,7 @@ export function PaymentsSection() {
               </span>
               <div className="flex gap-1">
                 <button
+                  type="button"
                   onClick={() => setEditing(m)}
                   title="Editar método"
                   aria-label={`Editar ${m.method_name}`}
@@ -191,6 +194,7 @@ export function PaymentsSection() {
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(m.id)}
                   className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                 >

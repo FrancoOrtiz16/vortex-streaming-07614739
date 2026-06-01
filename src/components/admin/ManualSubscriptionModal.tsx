@@ -198,6 +198,7 @@ export function ManualSubscriptionModal({
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white">Nueva Suscripción Manual</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 hover:bg-white/10 rounded-lg transition"
           >

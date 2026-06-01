@@ -342,6 +342,7 @@ export default function AdminSubscriptionsNew() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <button
+          type='button'
             onClick={handleSyncOrders}
             disabled={syncing}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition"
@@ -355,6 +356,7 @@ export default function AdminSubscriptionsNew() {
             {syncing ? 'Sincronizando...' : 'Sincronizar Órdenes'}
           </button>
           <button
+            type='button'
             onClick={() => setShowManualModal(true)}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition"
             title="Crear una nueva suscripción manual"
@@ -379,6 +381,7 @@ export default function AdminSubscriptionsNew() {
 
       <div className="flex flex-wrap gap-2">
         <button
+          type="button"
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all ${
             filter === 'all'
@@ -389,6 +392,7 @@ export default function AdminSubscriptionsNew() {
           Todas ({rows.length})
         </button>
         <button
+          type="button"
           onClick={() => setFilter('pending')}
           className={`px-4 py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
             filter === 'pending'

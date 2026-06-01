@@ -192,6 +192,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
       <div className="flex flex-col gap-2">
         {isPending && (
           <button
+            type="button"
             onClick={handleApprove}
             disabled={busy === 'pay'}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50 transition"
@@ -202,6 +203,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
         )}
         {daysRemaining <= 3 && daysRemaining >= 0 && (
           <button
+            type="button"
             onClick={handleNotifyExpiration}
             disabled={busy === 'notify'}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50 transition"
@@ -212,6 +214,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
         )}
         <div className="grid grid-cols-2 gap-2">
           <button
+            type="button"
             onClick={() => setEditing((v) => !v)}
             className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 text-sm font-semibold transition"
           >
@@ -219,6 +222,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
             {editing ? 'Cerrar' : 'Llave'}
           </button>
           <button
+            type="button"
             onClick={handleDelete}
             disabled={busy === 'delete'}
             className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive hover:bg-destructive/25 text-sm font-semibold disabled:opacity-50 transition"
@@ -269,6 +273,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
             className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
           />
           <button
+            type="button"
             onClick={handleSave}
             disabled={busy === 'save'}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition"

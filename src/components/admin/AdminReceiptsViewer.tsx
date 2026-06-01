@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; 
 import { AlertCircle, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -121,6 +121,7 @@ export function AdminReceiptsViewer() {
             <h3 className="font-semibold text-destructive">Error al cargar comprobantes</h3>
             <p className="text-sm text-muted-foreground mt-1">{error}</p>
             <button
+            type="button"
               onClick={loadReceipts}
               className="mt-3 text-xs px-3 py-1 rounded bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
             >
@@ -146,6 +147,7 @@ export function AdminReceiptsViewer() {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Comprobantes de Pago ({receipts.length})</h3>
         <button
+        type="button"
           onClick={loadReceipts}
           className="text-xs px-3 py-1 rounded border border-border hover:bg-secondary transition-colors"
         >
