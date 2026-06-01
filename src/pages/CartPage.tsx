@@ -80,9 +80,7 @@ const CartPage = () => {
                     </div>
                     <div className="flex items-center gap-3 justify-between">
                       <span className="font-display font-bold gold-text text-sm whitespace-nowrap">
-                        {isVESMode
-                          ? formatConvertedAmount(item.product.price * item.quantity, conversionMethod, exchangeRate)
-                          : formatMoney(item.product.price * item.quantity, 'USD')}
+                        {formatMoney(item.product.price * item.quantity, 'USD')}
                       </span>
                       <button
                         onClick={() => removeItem(item.product.cart_key || item.product.id)}
@@ -99,23 +97,21 @@ const CartPage = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Subtotal</span>
                   <span className="font-display font-semibold text-sm">
-                    {isVESMode ? formatConvertedAmount(subtotal, conversionMethod, exchangeRate) : formatMoney(subtotal, 'USD')}
+                    {formatMoney(subtotal, 'USD')}
                   </span>
                 </div>
                 {discount > 0 && (
                   <div className="flex items-center justify-between text-green-400">
                     <span className="text-sm">Descuento 10% (2+ productos)</span>
                     <span className="font-display font-semibold text-sm">
-                      {isVESMode
-                        ? `-${formatConvertedAmount(discount, conversionMethod, exchangeRate)}`
-                        : `-${formatMoney(discount, 'USD')}`}
+                      {`-${formatMoney(discount, 'USD')}`}
                     </span>
                   </div>
                 )}
                 <div className="border-t border-border pt-2 flex items-center justify-between">
                   <span className="text-sm font-medium">Total</span>
                   <span className="font-display font-bold text-xl gold-text">
-                    {isVESMode ? formatConvertedAmount(total, conversionMethod, exchangeRate) : formatMoney(total, 'USD')}
+                    {formatMoney(total, 'USD')}
                   </span>
                 </div>
               </div>
