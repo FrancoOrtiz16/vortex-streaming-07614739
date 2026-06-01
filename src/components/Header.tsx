@@ -79,7 +79,7 @@ const Header = () => {
           <motion.div
             initial={shouldAnimateOnDevice ? { height: 0, opacity: 0 } : false}
             animate={{ height: 'auto', opacity: 1 }}
-            exit={shouldAnimateOnDevice ? { height: 0, opacity: 0 } : false}
+            exit={shouldAnimateOnDevice ? { height: 0, opacity: 0 } : undefined}
             transition={shouldAnimateOnDevice ? { duration: 0.2 } : { duration: 0 }}
             className="md:hidden border-t border-border overflow-hidden"
             style={{ background: 'hsla(220, 20%, 6%, 0.95)' }}

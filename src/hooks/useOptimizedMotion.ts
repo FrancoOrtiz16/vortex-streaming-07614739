@@ -169,9 +169,9 @@ export function useOptimizedMotion() {
   const getCardAnimation = (index: number) => {
     if (!shouldAnimateOnDevice) {
       return {
-        initial: false,
-        animate: false,
-        exit: false,
+        initial: false as const,
+        animate: undefined,
+        exit: undefined,
         transition: { duration: 0 },
       };
     }
