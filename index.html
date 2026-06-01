@@ -215,6 +215,41 @@
           });
       })();
     </script>
+    <!-- 🛡️ SILENT TELEMETRY INTERCEPTOR — Previene bloqueo por 403 en /__l5e/trackevents -->
+    <script>
+      (function () {
+        const ORIGIN = window.location.origin;
+        const TELEMETRY_PATH = '/__l5e/trackevents';
+        const originalFetch = window.fetch;
+
+        window.fetch = async function (input, init) {
+          const url = typeof input === 'string' ? input : (input && input.url) ? input.url : String(input);
+          const isTelemetry = url === ORIGIN + TELEMETRY_PATH || url.endsWith(TELEMETRY_PATH);
+
+          if (!isTelemetry) {
+            return originalFetch.apply(this, arguments);
+          }
+
+          try {
+            const response = await originalFetch.apply(this, arguments);
+            if (response.status === 403) {
+              console.warn('[Telemetry] 403 Forbidden caught silently — app continues normally');
+              return new Response(JSON.stringify({ caught: true }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+            return response;
+          } catch (networkError) {
+            console.warn('[Telemetry] Network error caught silently — app continues normally');
+            return new Response(JSON.stringify({ caught: true }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        };
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
