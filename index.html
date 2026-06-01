@@ -234,47 +234,43 @@
           return normalized === ORIGIN + TELEMETRY_PATH || normalized.endsWith(TELEMETRY_PATH);
         };
 
-        const normalizeBody = (data) => {
-          if (!data) return JSON.stringify({});
-          
+        const ensureValidBody = (data) => {
+          // Si ya es string válido, devolverlo tal cual
           if (typeof data === 'string') {
             return data;
           }
           
+          // Si es Blob, decodificar
           if (data instanceof Blob) {
             try {
-              const decoded = new TextDecoder().decode(data);
-              try {
-                JSON.parse(decoded);
-                return decoded;
-              } catch (_e) {
-                return JSON.stringify({ raw: decoded });
-              }
+              return new TextDecoder().decode(data);
             } catch (_err) {
-              return JSON.stringify({});
+              return undefined;
             }
           }
           
-          if (typeof data === 'object') {
+          // Si es objeto, serializar a JSON
+          if (typeof data === 'object' && data !== null) {
             try {
               return JSON.stringify(data);
             } catch (_err) {
-              return JSON.stringify({});
+              return undefined;
             }
           }
           
-          return JSON.stringify({});
+          // Cualquier otro tipo (null, undefined, etc.) devolverlo como está
+          return data;
         };
 
         const safeTelemetryFetch = async (url, body) => {
           try {
-            const normalizedBody = normalizeBody(body);
+            const validBody = ensureValidBody(body);
             const response = await originalFetch(url, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: normalizedBody,
+              body: validBody,
               keepalive: true,
             });
             
@@ -282,7 +278,7 @@
               return;
             }
           } catch (_err) {
-            // Silenciar completamente - no registrar nada
+            // Silenciar completamente
           }
         };
 
@@ -305,12 +301,14 @@
           }
 
           try {
-            const normalizedBody = init && init.body ? normalizeBody(init.body) : undefined;
-            const response = await originalFetch(url, {
-              ...init,
-              body: normalizedBody,
-              keepalive: true,
-            });
+            const fetchOptions = { ...init, keepalive: true };
+            
+            // Si hay body, asegurarse de que es válido
+            if (init && init.body !== undefined && init.body !== null) {
+              fetchOptions.body = ensureValidBody(init.body);
+            }
+            
+            const response = await originalFetch(url, fetchOptions);
             
             if (!response.ok) {
               return new Response(JSON.stringify({}), {
