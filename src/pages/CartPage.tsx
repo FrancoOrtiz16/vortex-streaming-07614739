@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useCurrency } from '@/context/CurrencyContext';
-import { formatConvertedAmount } from '@/hooks/useCurrencyConverter';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CheckoutDialog from '@/components/shop/CheckoutDialog';
@@ -18,10 +17,7 @@ const formatDurationLabel = (days?: number) => {
 
 const CartPage = () => {
   const { items, total, subtotal, discount, removeItem, clear } = useCart();
-  const { currency, rate, formatMoney } = useCurrency();
-  const exchangeRate = typeof rate === 'number' && !Number.isNaN(rate) ? rate : 40;
-  const isVESMode = currency === 'VES';
-  const conversionMethod = isVESMode ? 'pago_movil' : undefined;
+  const { formatMoney } = useCurrency();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const renewalItems = items.filter(item => item.product.renewal);
 
