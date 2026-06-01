@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type CurrencyCode = 'USD' | 'VES';
 
@@ -14,8 +15,9 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 
 const CURRENCY_STORAGE_KEY = 'vortex_currency_v1';
-// Tasa de cambio FIJA en código (sin dependencias de BD para evitar bloqueos)
-const FIXED_USD_VES_RATE = 700;
+const RATE_STORAGE_KEY = 'vortex_usd_ves_rate_v1';
+// Fallback inicial si aún no hay valor cargado de la BD
+const FALLBACK_RATE = 95;
 
 const parseCurrency = (value: string | null): CurrencyCode => {
   return value === 'VES' ? 'VES' : 'USD';
@@ -37,8 +39,59 @@ const formatMoneyValue = (value: number, currency: CurrencyCode = 'USD') => {
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>('USD');
-  const [rate] = useState<number>(FIXED_USD_VES_RATE);
-  const loadingRate = false;
+  const [rate, setRate] = useState<number>(() => {
+    if (typeof window === 'undefined') return FALLBACK_RATE;
+    const cached = window.localStorage.getItem(RATE_STORAGE_KEY);
+    const parsed = cached ? parseFloat(cached) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : FALLBACK_RATE;
+  });
+  const [loadingRate, setLoadingRate] = useState<boolean>(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const applyRate = (raw: unknown) => {
+      const parsed = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+      if (Number.isFinite(parsed) && parsed > 0) {
+        setRate(parsed);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(RATE_STORAGE_KEY, String(parsed));
+        }
+      }
+    };
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('app_settings' as any)
+          .select('value')
+          .eq('key', 'usd_ves_rate')
+          .maybeSingle();
+        if (!cancelled && data) applyRate((data as any).value);
+      } catch (err) {
+        console.warn('[Currency] Error cargando tasa', err);
+      } finally {
+        if (!cancelled) setLoadingRate(false);
+      }
+    })();
+
+    const channel = supabase
+      .channel('app_settings_rate')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.usd_ves_rate' },
+        (payload: any) => {
+          const newVal = payload?.new?.value;
+          if (newVal !== undefined) applyRate(newVal);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
