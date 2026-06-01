@@ -215,7 +215,7 @@
           });
       })();
     </script>
-    <!-- 🛡️ SILENT TELEMETRY INTERCEPTOR — Previene bloqueo por 403 en /__l5e/trackevents -->
+    <!-- 🛡️ SILENT TELEMETRY INTERCEPTOR — Previene bloqueo por 400/403 en /__l5e/trackevents -->
     <script>
       (function () {
         const ORIGIN = window.location.origin;
@@ -234,34 +234,62 @@
           return normalized === ORIGIN + TELEMETRY_PATH || normalized.endsWith(TELEMETRY_PATH);
         };
 
+        const normalizeBody = (data) => {
+          if (!data) return JSON.stringify({});
+          
+          if (typeof data === 'string') {
+            return data;
+          }
+          
+          if (data instanceof Blob) {
+            try {
+              const decoded = new TextDecoder().decode(data);
+              try {
+                JSON.parse(decoded);
+                return decoded;
+              } catch (_e) {
+                return JSON.stringify({ raw: decoded });
+              }
+            } catch (_err) {
+              return JSON.stringify({});
+            }
+          }
+          
+          if (typeof data === 'object') {
+            try {
+              return JSON.stringify(data);
+            } catch (_err) {
+              return JSON.stringify({});
+            }
+          }
+          
+          return JSON.stringify({});
+        };
+
         const safeTelemetryFetch = async (url, body) => {
           try {
-            await originalFetch(url, {
+            const normalizedBody = normalizeBody(body);
+            const response = await originalFetch(url, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                // Añade aquí cabeceras de origen o credenciales necesarias si el entorno de producción lo requiere
               },
-              body,
+              body: normalizedBody,
               keepalive: true,
             });
-          } catch (err) {
-            console.warn('Telemetry event skipped:', err?.message || err);
+            
+            if (!response.ok) {
+              return;
+            }
+          } catch (_err) {
+            // Silenciar completamente - no registrar nada
           }
         };
 
         if (originalSendBeacon) {
           navigator.sendBeacon = function (url, data) {
             if (isTelemetryUrl(url)) {
-              let body = data;
-              if (data instanceof Blob) {
-                try {
-                  body = new TextDecoder().decode(data);
-                } catch (_err) {
-                  body = null;
-                }
-              }
-              safeTelemetryFetch(url, body);
+              safeTelemetryFetch(url, data);
               return true;
             }
             return originalSendBeacon(url, data);
@@ -277,18 +305,22 @@
           }
 
           try {
-            const response = await originalFetch(input, init);
-            if (response.status === 403) {
-              console.warn('[Telemetry] 403 Forbidden caught silently — app continues normally');
-              return new Response(JSON.stringify({ caught: true }), {
+            const normalizedBody = init && init.body ? normalizeBody(init.body) : undefined;
+            const response = await originalFetch(url, {
+              ...init,
+              body: normalizedBody,
+              keepalive: true,
+            });
+            
+            if (!response.ok) {
+              return new Response(JSON.stringify({}), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
               });
             }
             return response;
-          } catch (networkError) {
-            console.warn('[Telemetry] Network error caught silently — app continues normally');
-            return new Response(JSON.stringify({ caught: true }), {
+          } catch (_err) {
+            return new Response(JSON.stringify({}), {
               status: 200,
               headers: { 'Content-Type': 'application/json' },
             });
