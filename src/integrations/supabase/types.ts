@@ -71,45 +71,6 @@ export type Database = {
         }
         Relationships: []
       }
-      payment_history: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          id: string
-          method: string | null
-          notes: string | null
-          receipt_url: string | null
-          status: string | null
-          subscription_id: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          method?: string | null
-          notes?: string | null
-          receipt_url?: string | null
-          status?: string | null
-          subscription_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          method?: string | null
-          notes?: string | null
-          receipt_url?: string | null
-          status?: string | null
-          subscription_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       payment_methods: {
         Row: {
           account_info: string
@@ -149,37 +110,34 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          phone: string | null
           display_name: string | null
           email: string | null
           id: string
           is_active: boolean | null
           is_verified: boolean | null
-          verificado: boolean
+          phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          phone?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
-          verificado?: boolean
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          phone?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
-          verificado?: boolean
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -243,15 +201,15 @@ export type Database = {
           credential_password: string | null
           duration_days: number
           id: string
-          last_renewal: string | null
-          next_renewal: string | null
-          notified_at: string | null
+          last_renewal: string
+          next_renewal: string
           profile_name: string | null
           profile_pin: string | null
           service_name: string
           status: string
+          subscription_code: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -259,15 +217,15 @@ export type Database = {
           credential_password?: string | null
           duration_days?: number
           id?: string
-          last_renewal?: string | null
-          next_renewal?: string | null
-          notified_at?: string | null
+          last_renewal?: string
+          next_renewal?: string
           profile_name?: string | null
           profile_pin?: string | null
           service_name: string
           status?: string
+          subscription_code?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -275,15 +233,15 @@ export type Database = {
           credential_password?: string | null
           duration_days?: number
           id?: string
-          last_renewal?: string | null
-          next_renewal?: string | null
-          notified_at?: string | null
+          last_renewal?: string
+          next_renewal?: string
           profile_name?: string | null
           profile_pin?: string | null
           service_name?: string
           status?: string
+          subscription_code?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
