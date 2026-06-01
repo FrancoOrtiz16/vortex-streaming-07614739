@@ -71,6 +71,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_history: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string | null
+          notes: string | null
+          receipt_url: string | null
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          receipt_url?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          receipt_url?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           account_info: string
@@ -118,6 +157,7 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string
+          verificado: boolean
         }
         Insert: {
           created_at?: string
@@ -129,6 +169,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id: string
+          verificado?: boolean
         }
         Update: {
           created_at?: string
@@ -140,6 +181,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+          verificado?: boolean
         }
         Relationships: []
       }
