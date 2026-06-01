@@ -169,9 +169,9 @@ export function useOptimizedMotion() {
   const getCardAnimation = (index: number) => {
     if (!shouldAnimateOnDevice) {
       return {
-        initial: false,
-        animate: false,
-        exit: false,
+        initial: false as const,
+        animate: undefined,
+        exit: undefined,
         transition: { duration: 0 },
       };
     }
@@ -185,14 +185,14 @@ export function useOptimizedMotion() {
         transition: {
           duration: 0.35,
           delay: index * 0.05,
-          ease: 'easeOut',
+          ease: 'easeOut' as const,
         },
       },
       exit: { opacity: 0, scale: 0.9 },
       whileHover: {
         scale: 1.03,
         y: -5,
-        transition: { duration: 0.2, type: 'spring', stiffness: 400 },
+        transition: { duration: 0.2, type: 'spring' as const, stiffness: 400 },
       },
       whileTap: {
         scale: 0.97,

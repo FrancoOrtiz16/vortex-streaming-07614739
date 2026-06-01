@@ -43,12 +43,14 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from('payment_methods')
-      .select('id, method_name, method_type, account_info, instructions, sort_order')
-      .eq('is_active', true)
-      .order('sort_order')
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('payment_methods')
+          .select('id, method_name, method_type, account_info, instructions, sort_order')
+          .eq('is_active', true)
+          .order('sort_order');
+
         if (error) {
           console.error('[PaymentMethods] Error loading payment methods:', error.message);
           setError(error.message || 'Error al cargar los métodos de pago.');
@@ -71,14 +73,14 @@ const PaymentMethods = ({ selectedId, onSelect }: Props) => {
           });
           setMethods(orderedMethods);
         }
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err: any) {
         console.error('[PaymentMethods] Error fetching payment methods:', err);
-        setError(err.message || 'Error al cargar los métodos de pago.');
+        setError(err?.message || 'Error al cargar los métodos de pago.');
         setMethods([]);
+      } finally {
         setLoading(false);
-      });
+      }
+    })();
   }, []);
 
   if (loading) {
