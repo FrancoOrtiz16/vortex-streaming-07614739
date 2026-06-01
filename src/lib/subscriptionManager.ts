@@ -96,7 +96,7 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       profile_pin: null,
     }])
     .select('id, user_id, service_name, status, next_renewal, duration_days')
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('[subscriptionManager] createNewSubscriptionInstance error:', error);
