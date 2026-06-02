@@ -53,10 +53,21 @@ async function getCurrentVersionHash(): Promise<string> {
 
     const html = await response.text();
 
-    // Generar hash simple del HTML (primeros 100 chars + últimos 100)
-    // Esto detecta cambios en el contenido sin necesidad de parsing completo
-    const start = html.substring(0, 100);
-    const end = html.substring(html.length - 100);
+    // ⚠️ El HTML servido por Lovable inyecta dinámicamente data-context-token (JWT
+    // con `exp` distinto en cada request) y timestamps en `?v=`. Si los incluimos
+    // el hash cambia en cada chequeo y dispara un reload-loop infinito en producción.
+    // Filtramos cualquier fragmento volátil antes de hashear.
+    const sanitized = html
+      .replace(/data-context-token="[^"]*"/g, '')
+      .replace(/data-commit-sha="[^"]*"/g, '')
+      .replace(/data-artifact-id="[^"]*"/g, '')
+      .replace(/\?v=\d+/g, '')
+      .replace(/exp"\s*:\s*\d+/g, '')
+      .replace(/\s+/g, ' ');
+
+    // Hash sobre los primeros y últimos 200 chars del HTML saneado
+    const start = sanitized.substring(0, 200);
+    const end = sanitized.substring(sanitized.length - 200);
     const combined = start + end;
 
     // Hash simple usando charCodeAt
