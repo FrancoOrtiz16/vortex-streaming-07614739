@@ -58,8 +58,8 @@ const App = () => {
           <Toaster />
           <Sonner />
           <VersionUpdateNotification 
-            autoUpdate={true}
-            checkInterval={10000}
+            autoUpdate={false}
+            checkInterval={60000}
             position="top"
           />
           <div className="relative min-h-screen overflow-hidden bg-[#030303] text-white">
