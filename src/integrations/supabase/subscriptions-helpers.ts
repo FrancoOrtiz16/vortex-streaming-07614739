@@ -337,13 +337,15 @@ export async function createSubscriptionExpirationNotification(
     const { data: sessionData } = await supabase.auth.getUser();
     const accessToken = sessionData?.user?.id ? (await supabase.auth.getSession()).data.session?.access_token : null;
 
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-expiration`;
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://qxmecegqnapcjlchjqld.supabase.co';
+    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4bWVjZWdxbmFwY2psY2hqcWxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNjU0MTAsImV4cCI6MjA4OTg0MTQxMH0.8ygnUHfD4p77GlyrUXJYzVq7zsx6CuaT1rr9fjbZoQU';
+    const url = `${SUPABASE_URL}/functions/v1/notify-expiration`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken || ''}`,
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        apikey: SUPABASE_KEY,
       },
       body: JSON.stringify({ user_id: userId, subscription_id: subscriptionId, service_name: serviceName, phone, message: `Hola, tu servicio ${serviceName} está por vencer.` }),
     });
