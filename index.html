@@ -22,6 +22,37 @@
     
     <!-- 🛡️ CACHE-BUSTING SCRIPT - Previene bucles infinitos de carga -->
     <script>
+      // 🧯 Recuperación de producción: elimina service workers/cachés antiguos que
+      // podían servir bundles obsoletos y dejar la app en pantalla negra.
+      (function () {
+        var RECOVERY_VERSION = '2026-06-04-disable-sw';
+        var RECOVERY_KEY = 'vortex_sw_recovery_version';
+        if (sessionStorage.getItem(RECOVERY_KEY) === RECOVERY_VERSION) return;
+
+        var cleanupTasks = [];
+        if ('serviceWorker' in navigator) {
+          cleanupTasks.push(
+            navigator.serviceWorker.getRegistrations()
+              .then(function (regs) { return Promise.all(regs.map(function (r) { return r.unregister(); })); })
+              .catch(function () {})
+          );
+        }
+        if ('caches' in window) {
+          cleanupTasks.push(
+            caches.keys()
+              .then(function (keys) { return Promise.all(keys.map(function (key) { return caches.delete(key); })); })
+              .catch(function () {})
+          );
+        }
+
+        if (cleanupTasks.length > 0) {
+          Promise.all(cleanupTasks).then(function () {
+            sessionStorage.setItem(RECOVERY_KEY, RECOVERY_VERSION);
+            window.location.replace(window.location.pathname + '?cache-cleared=' + Date.now());
+          });
+        }
+      })();
+
       // Inyectar timestamp único para cache-busting de imports dinámicos
       window.__CACHE_BUST_VERSION__ = Date.now().toString();
       
