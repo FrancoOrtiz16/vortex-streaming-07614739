@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseIsConfigured } from '@/integrations/supabase/client';
+import { fallbackProducts } from '@/data/fallbackProducts';
 import type { ProductCategory } from '@/data/products';
 
 export interface Product {
@@ -44,6 +45,28 @@ export function useProducts() {
       if (!isMounted) return;
       setLoading(true);
       setError(null);
+
+      if (!supabaseIsConfigured) {
+        const fallback: Product[] = fallbackProducts.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: '',
+          price: Number(item.price ?? 0),
+          category: item.category,
+          image: item.image_url,
+          badge: item.badge ?? null,
+          plan_type: null,
+          orden_prioridad: null,
+          is_available: true,
+          group_name: null,
+          image_scale: 100,
+        }));
+
+        setProducts(fallback);
+        setError('Catálogo en modo de respaldo. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
+        setLoading(false);
+        return;
+      }
 
       try {
         const { data, error: supabaseError } = await supabase

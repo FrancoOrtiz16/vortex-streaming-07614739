@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseIsConfigured } from '@/integrations/supabase/client';
+import { fallbackProducts } from '@/data/fallbackProducts';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import { useAuth } from '@/hooks/useAuth';
 import type { ProductCategory } from '@/data/products';
@@ -99,14 +100,21 @@ const StandaloneCatalog: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      if (!supabaseIsConfigured) {
+        setError('Catálogo en modo de respaldo. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
+        setProducts(fallbackProducts);
+        setLoading(false);
+        return;
+      }
+
       try {
         const fresh = await fetchProducts();
         if (!isMounted) return;
         setProducts(fresh);
       } catch (err: any) {
         if (!isMounted) return;
-        setError(err?.message || 'No se pudo cargar el catálogo. Intenta recargar la página.');
-        setProducts([]);
+        setError('No se pudo cargar el catálogo desde Supabase. Mostrando catálogo local de respaldo.');
+        setProducts(fallbackProducts);
       } finally {
         if (!isMounted) return;
         setLoading(false);
@@ -305,18 +313,14 @@ const StandaloneCatalog: React.FC = () => {
             })}
           </div>
 
-          {error ? (
-            <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-8 text-center">
+          {error && grouped.length > 0 && (
+            <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-8 text-center mb-6">
               <AlertCircle className="mx-auto h-8 w-8 text-amber-400 mb-4" />
               <h3 className="font-display font-semibold text-lg text-amber-300 mb-2">{error}</h3>
-              <button
-                onClick={() => window.location.reload()}
-                className="inline-block px-4 py-2 rounded-xl bg-amber-500 text-amber-50 text-sm font-semibold hover:bg-amber-600"
-              >
-                Reintentar
-              </button>
             </div>
-          ) : grouped.length === 0 ? (
+          )}
+
+          {grouped.length === 0 ? (
             <div className="rounded-3xl border border-slate-700/30 bg-slate-800/10 p-8 text-center">
               <h3 className="font-display font-semibold text-lg text-slate-300 mb-2">No hay productos disponibles</h3>
               <p className="text-sm text-slate-400">Vuelve pronto para más contenido</p>
