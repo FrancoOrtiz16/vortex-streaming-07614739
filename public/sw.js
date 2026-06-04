@@ -16,6 +16,10 @@ self.addEventListener('activate', (event) => {
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
       client.postMessage({ type: 'VORTEX_SW_DISABLED' });
+      if ('navigate' in client) {
+        const separator = client.url.includes('?') ? '&' : '?';
+        client.navigate(`${client.url}${separator}sw-cleared=${Date.now()}`);
+      }
     }
 
     await self.registration.unregister();
