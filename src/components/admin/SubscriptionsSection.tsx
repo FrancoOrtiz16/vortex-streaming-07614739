@@ -72,6 +72,7 @@ export function SubscriptionsSection() {
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [services, setServices] = useState<any[]>([]);
+  const [notifyingBulk, setNotifyingBulk] = useState(false);
   const isMountedRef = useRef(true);
 
   const fetchData = async () => {
