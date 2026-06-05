@@ -35,7 +35,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
   const { items, total, subtotal, discount, clear } = useCart();
-  const { setCurrency } = useCurrency();
+  const { currency, setCurrency } = useCurrency();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
