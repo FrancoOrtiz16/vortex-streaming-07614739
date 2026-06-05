@@ -360,7 +360,9 @@ declare global {
  * Inicialización automática cuando se importa el módulo
  * Esto asegura que el guardián se active inmediatamente
  */
-if (typeof window !== 'undefined') {
+const DISABLE_CACHE_CONTROL_AUTO_INIT = true; // Temporal: desactivar limpieza automática para pruebas
+
+if (typeof window !== 'undefined' && !DISABLE_CACHE_CONTROL_AUTO_INIT) {
   // Ejecutar en el próximo tick para asegurar que DOM esté listo
   setTimeout(() => {
     initializeCacheControl();
