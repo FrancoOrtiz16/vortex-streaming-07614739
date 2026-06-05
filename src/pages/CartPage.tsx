@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CheckoutDialog from '@/components/shop/CheckoutDialog';
 import { CheckoutErrorBoundary } from '@/components/shop/CheckoutErrorBoundary';
+import { loadCheckoutDraft } from '@/lib/checkoutPersistence';
 import { toast } from 'sonner';
 
 const formatDurationLabel = (days?: number) => {
@@ -20,6 +21,13 @@ const CartPage = () => {
   const { formatMoney } = useCurrency();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const renewalItems = items.filter(item => item.product.renewal);
+
+  useEffect(() => {
+    const draft = loadCheckoutDraft();
+    if (draft?.checkoutOpen && items.length > 0) {
+      setCheckoutOpen(true);
+    }
+  }, [items.length]);
 
   return (
     <div className="min-h-screen flex flex-col">
