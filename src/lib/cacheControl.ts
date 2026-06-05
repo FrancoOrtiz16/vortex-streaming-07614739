@@ -37,6 +37,11 @@ const WHITELIST_KEYS = [
   'vortex_checkout_draft_v1', // Mantiene el borrador de pago móvil durante el TTL
 ];
 
+const CACHE_CONTROL_VERSION_KEY = 'app_version';
+const CACHE_CONTROL_PENDING_VERSION_KEY = 'cache_control_pending_version';
+const CACHE_CONTROL_PENDING_AT_KEY = 'cache_control_pending_at';
+const CACHE_CONTROL_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutos
+
 /**
  * Columnas obsoletas que deben ser filtradas de consultas
  * Si se detectan, se alerta al desarrollador
@@ -46,6 +51,8 @@ const OBSOLETE_COLUMNS = ['combo_id', 'subscription_code'];
 // =============================================================================
 // 2. FUNCIÓN DE LIMPIEZA INTELIGENTE (ANTI-BUCLE)
 // =============================================================================
+
+let cacheControlInitialized = false;
 
 /**
  * Función principal de limpieza inteligente del caché
@@ -57,52 +64,76 @@ export function initializeCacheControl(): void {
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
     if (pathname.includes('/admin')) {
       console.debug('[CacheControl] ⚠️ Saltando inicialización en ruta admin:', pathname);
-      sessionStorage.setItem('cache_control_initialized', APP_VERSION);
+      cacheControlInitialized = true;
       return;
     }
   } catch (err) {
     console.warn('[CacheControl] Error comprobando pathname:', err);
   }
 
-  if (sessionStorage.getItem('cache_control_initialized') === APP_VERSION) {
+  if (cacheControlInitialized) {
     return;
   }
 
-  sessionStorage.setItem('cache_control_initialized', APP_VERSION);
+  cacheControlInitialized = true;
   console.debug('[CacheControl] 🛡️ Inicializando Guardián de Caché...');
 
   // Unregister Service Workers antiguos
   unregisterServiceWorkers();
 
-  const storedVersion = localStorage.getItem('app_version');
+  const storedVersion = localStorage.getItem(CACHE_CONTROL_VERSION_KEY);
+  const pendingVersion = localStorage.getItem(CACHE_CONTROL_PENDING_VERSION_KEY);
+  const pendingAt = Number(localStorage.getItem(CACHE_CONTROL_PENDING_AT_KEY) ?? '0');
+  const now = Date.now();
   const hasReloaded = sessionStorage.getItem('has_reloaded') === 'true';
 
-  // Si la versión cambió y no hemos recargado aún en esta sesión
-  if (storedVersion !== APP_VERSION && !hasReloaded) {
-    console.warn('[CacheControl] 🔄 Versión cambió - Ejecutando limpieza inteligente...');
+  // Primera carga sin versión previa: solo registrar la versión actual y no limpiar.
+  if (!storedVersion && !pendingVersion) {
+    localStorage.setItem(CACHE_CONTROL_VERSION_KEY, APP_VERSION);
+    console.debug('[CacheControl] ✅ Versión inicial guardada - Sin limpieza necesaria');
+    if (hasReloaded) {
+      sessionStorage.removeItem('has_reloaded');
+    }
+    return;
+  }
 
-    // Limpiar caché con whitelist
-    clearCacheWithWhitelist();
+  // Si la versión actual ya fue sincronizada y no hay pendiente, no limpiar.
+  if (storedVersion === APP_VERSION && !pendingVersion) {
+    console.debug('[CacheControl] ✅ Versión sincronizada - Sin limpieza necesaria');
+    if (hasReloaded) {
+      sessionStorage.removeItem('has_reloaded');
+    }
+    return;
+  }
 
-    // Marcar que hemos recargado para evitar bucles
+  // Si hay una versión pendiente programada, verificar si ya llegó el cooldown.
+  if (pendingVersion === APP_VERSION) {
+    const elapsed = now - pendingAt;
+    if (elapsed < CACHE_CONTROL_COOLDOWN_MS) {
+      const remaining = Math.ceil((CACHE_CONTROL_COOLDOWN_MS - elapsed) / 1000);
+      console.debug(`[CacheControl] ⏳ Limpieza programada en ${remaining}s para versión ${APP_VERSION}`);
+      return;
+    }
+
+    console.warn('[CacheControl] 🔄 Cooldown cumplido - Ejecutando limpieza inteligente para versión pendiente...');
+    performCacheCleanup();
     sessionStorage.setItem('has_reloaded', 'true');
-
-    // Guardar nueva versión
-    localStorage.setItem('app_version', APP_VERSION);
-
+    localStorage.setItem(CACHE_CONTROL_VERSION_KEY, APP_VERSION);
+    localStorage.removeItem(CACHE_CONTROL_PENDING_VERSION_KEY);
+    localStorage.removeItem(CACHE_CONTROL_PENDING_AT_KEY);
     console.log('[CacheControl] ✅ Limpieza completada - Recargando página...');
-
-    // Recarga suave para aplicar cambios
     window.location.reload();
     return;
   }
 
-  // Si ya estamos en la versión correcta
-  if (storedVersion === APP_VERSION) {
-    console.debug('[CacheControl] ✅ Versión sincronizada - Sin limpieza necesaria');
+  // Si la versión cambió y aún no tenemos un pendiente, programar la limpieza para después del cooldown.
+  if (storedVersion !== APP_VERSION) {
+    console.warn('[CacheControl] ⏳ Nueva versión detectada, programando limpieza en 10 minutos...');
+    localStorage.setItem(CACHE_CONTROL_PENDING_VERSION_KEY, APP_VERSION);
+    localStorage.setItem(CACHE_CONTROL_PENDING_AT_KEY, String(now));
+    return;
   }
 
-  // Resetear bandera de recarga para próximas sesiones
   if (hasReloaded) {
     sessionStorage.removeItem('has_reloaded');
   }
@@ -134,6 +165,11 @@ function clearCacheWithWhitelist(): void {
   });
 
   console.log('[CacheControl] ✅ Limpieza completada - Autenticación preservada');
+}
+
+function performCacheCleanup(): void {
+  console.debug('[CacheControl] 🧹 Iniciando limpieza de caché programada...');
+  clearCacheWithWhitelist();
 }
 
 /**
