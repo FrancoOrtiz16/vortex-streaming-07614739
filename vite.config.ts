@@ -1,23 +1,7 @@
-import fs from "fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import pkg from "./package.json" assert { type: "json" };
-
-const BUILD_APP_VERSION = process.env.VITE_APP_VERSION
-  ?? (pkg.version && pkg.version !== "0.0.0" ? pkg.version : new Date().toISOString());
-const VERSION_JSON_PATH = path.resolve(__dirname, "public", "version.json");
-
-try {
-  fs.writeFileSync(
-    VERSION_JSON_PATH,
-    JSON.stringify({ version: BUILD_APP_VERSION }, null, 2),
-    'utf-8'
-  );
-} catch (error) {
-  console.warn('[vite] No se pudo escribir public/version.json', error);
-}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -72,11 +56,6 @@ export default defineConfig(({ mode }) => ({
     
     // Tamaño de chunks
     chunkSizeWarningLimit: 1000,
-  },
-
-  define: {
-    'import.meta.env.VITE_APP_VERSION': JSON.stringify(BUILD_APP_VERSION),
-    '__APP_VERSION__': JSON.stringify(BUILD_APP_VERSION),
   },
 
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

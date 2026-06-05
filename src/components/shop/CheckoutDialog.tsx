@@ -12,11 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { createNewSubscriptionInstance, renewExistingSubscription } from '@/lib/subscriptionManager';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import PaymentMethods, { PaymentMethod as PMType } from './PaymentMethods';
-import {
-  loadCheckoutDraft,
-  saveCheckoutDraft,
-  clearCheckoutDraft,
-} from '@/lib/checkoutPersistence';
 import PaymentDetailsCard from './PaymentDetailsCard';
 import { canSubmitCheckout, getCheckoutActionLabel } from './checkoutFlow';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,7 +30,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
   const { items, total, subtotal, discount, clear } = useCart();
-  const { currency, setCurrency } = useCurrency();
+  const { setCurrency } = useCurrency();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
@@ -50,67 +45,18 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   // en cualquier otro caso permanecen en USD. Reversión instantánea al cambiar de método.
   const subtotalDisplay = formatConvertedAmount(subtotal, selectedMethod, safeExchangeRate);
   const discountDisplay = formatConvertedAmount(discount, selectedMethod, safeExchangeRate);
-  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
 
   useEffect(() => {
-    if (hasRestoredDraft) return;
-
-    const draft = loadCheckoutDraft();
-    if (!draft) {
-      setHasRestoredDraft(true);
-      return;
-    }
-
-    if (draft.selectedMethod) {
-      setSelectedMethod(draft.selectedMethod as PMType);
-    }
-
-    setCurrency(draft.currency || 'USD');
-    if (draft.receiptUrl) {
-      setReceiptUrl(draft.receiptUrl);
-      setReceiptPreview(draft.receiptUrl);
-    }
-    setHasRestoredDraft(true);
-  }, [hasRestoredDraft, setCurrency]);
-
-  useEffect(() => {
-    const draftData = {
-      selectedMethod: selectedMethod ? { ...selectedMethod } : null,
-      currency,
-      receiptUrl,
-      checkoutOpen: open,
-    };
-
-    if (!draftData.selectedMethod && !draftData.receiptUrl && !draftData.checkoutOpen) {
-      clearCheckoutDraft();
-      return;
-    }
-
-    saveCheckoutDraft(draftData);
-  }, [selectedMethod, currency, receiptUrl, open]);
-
-  useEffect(() => {
-    if (items.length === 0) {
-      clearCheckoutDraft();
+    if (open) {
       setSelectedMethod(null);
       setReceiptFile(null);
       setReceiptPreview(null);
       setReceiptUrl(null);
+      setProfilePhone(null);
+      setPhoneLoading(false);
       setCurrency('USD');
     }
-  }, [items.length, setCurrency]);
-
-  useEffect(() => {
-    if (!open || hasRestoredDraft) return;
-
-    setSelectedMethod(null);
-    setReceiptFile(null);
-    setReceiptPreview(null);
-    setReceiptUrl(null);
-    setProfilePhone(null);
-    setPhoneLoading(false);
-    setCurrency('USD');
-  }, [open, hasRestoredDraft, setCurrency]);
+  }, [open, setCurrency]);
 
   useEffect(() => {
     // Cargar teléfono del perfil cuando se abre el dialog
@@ -271,15 +217,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
       const whatsappUrl = getWhatsAppUrl(message);
 
-      clearCheckoutDraft();
       clear();
-      setSelectedMethod(null);
-      setReceiptFile(null);
-      setReceiptPreview(null);
-      setReceiptUrl(null);
-      setCurrency('USD');
-      setProfilePhone(null);
-      setPhoneLoading(false);
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
       window.open(whatsappUrl, '_blank');
