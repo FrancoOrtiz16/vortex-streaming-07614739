@@ -11,6 +11,12 @@
  * @date 2026-05-03
  */
 
+import {
+  ensureOfficialAppVersion,
+  getOfficialAppVersion,
+  subscribeOfficialAppVersion,
+} from '@/lib/appSettings';
+
 // =============================================================================
 // 1. CONFIGURACIÓN DE VERSIÓN Y CONSTANTES
 // =============================================================================
@@ -85,14 +91,34 @@ export async function initializeCacheControl(): Promise<void> {
   // Unregister Service Workers antiguos
   unregisterServiceWorkers();
 
-  const deployedVersion = await fetchDeployedAppVersion();
-  if (deployedVersion && deployedVersion !== APP_VERSION) {
-    console.warn('[CacheControl] 🚨 Deploy detectado con versión distinta:', deployedVersion, 'vs bundle', APP_VERSION);
+  let officialBackendVersion: string | null = null;
+  try {
+    officialBackendVersion = await getOfficialAppVersion();
+    if (!officialBackendVersion) {
+      officialBackendVersion = await ensureOfficialAppVersion(APP_VERSION);
+    }
+  } catch (error) {
+    console.warn('[CacheControl] ⚠️ No se pudo obtener versión oficial desde Supabase:', error);
+  }
+
+  if (!officialBackendVersion) {
+    officialBackendVersion = await fetchDeployedAppVersion();
+  }
+
+  if (officialBackendVersion && officialBackendVersion !== APP_VERSION) {
+    console.warn('[CacheControl] 🚨 La versión oficial de Supabase difiere del build:', officialBackendVersion, 'vs', APP_VERSION);
     if (shouldReloadWithCacheBuster()) {
       reloadWithCacheBuster();
     }
     return;
   }
+
+  subscribeOfficialAppVersion((newVersion) => {
+    if (newVersion !== APP_VERSION && shouldReloadWithCacheBuster()) {
+      console.warn('[CacheControl] 🔄 Versión oficial cambió en backend, forzando recarga:', newVersion);
+      reloadWithCacheBuster();
+    }
+  });
 
   const storedVersion = localStorage.getItem(CACHE_CONTROL_VERSION_KEY);
   const pendingVersion = localStorage.getItem(CACHE_CONTROL_PENDING_VERSION_KEY);
