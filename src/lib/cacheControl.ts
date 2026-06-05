@@ -20,7 +20,11 @@
  * de lo contrario se produce un bucle infinito de recarga al inicializar.
  * Bumpea este string manualmente cuando quieras forzar limpieza global.
  */
-export const APP_VERSION = "2026.05.05.1";
+declare const __APP_VERSION__: string;
+
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION
+  ?? import.meta.env.APP_VERSION
+  ?? (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '2026.05.05.1');
 
 /**
  * Claves whitelist que NO deben ser eliminadas durante limpieza de caché
@@ -58,7 +62,7 @@ let cacheControlInitialized = false;
  * Función principal de limpieza inteligente del caché
  * Compara versiones y limpia solo si es necesario
  */
-export function initializeCacheControl(): void {
+export async function initializeCacheControl(): Promise<void> {
   // Evitar ejecutar limpieza automática en rutas de administración para prevenir bucles
   try {
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -80,6 +84,15 @@ export function initializeCacheControl(): void {
 
   // Unregister Service Workers antiguos
   unregisterServiceWorkers();
+
+  const deployedVersion = await fetchDeployedAppVersion();
+  if (deployedVersion && deployedVersion !== APP_VERSION) {
+    console.warn('[CacheControl] 🚨 Deploy detectado con versión distinta:', deployedVersion, 'vs bundle', APP_VERSION);
+    if (shouldReloadWithCacheBuster()) {
+      reloadWithCacheBuster();
+    }
+    return;
+  }
 
   const storedVersion = localStorage.getItem(CACHE_CONTROL_VERSION_KEY);
   const pendingVersion = localStorage.getItem(CACHE_CONTROL_PENDING_VERSION_KEY);
@@ -170,6 +183,44 @@ function clearCacheWithWhitelist(): void {
 function performCacheCleanup(): void {
   console.debug('[CacheControl] 🧹 Iniciando limpieza de caché programada...');
   clearCacheWithWhitelist();
+}
+
+async function fetchDeployedAppVersion(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const response = await fetch('/version.json', { cache: 'no-store' });
+    if (!response.ok) {
+      console.warn('[CacheControl] ⚠️ No se pudo obtener version.json del servidor:', response.status);
+      return null;
+    }
+
+    const payload = await response.json();
+    if (!payload || typeof payload.version !== 'string') {
+      console.warn('[CacheControl] ⚠️ version.json no contiene version válida');
+      return null;
+    }
+
+    return payload.version;
+  } catch (error) {
+    console.warn('[CacheControl] ⚠️ Error al obtener versión desplegada:', error);
+    return null;
+  }
+}
+
+function shouldReloadWithCacheBuster(): boolean {
+  return typeof window !== 'undefined'
+    && !window.location.search.includes('vortex_reload')
+    && !window.location.search.includes('sw-cleared');
+}
+
+function reloadWithCacheBuster(): void {
+  if (typeof window === 'undefined') return;
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('vortex_reload', String(Date.now()));
+  console.warn('[CacheControl] 🔁 Forzando recarga limpia con cache busting:', url.toString());
+  window.location.replace(url.toString());
 }
 
 /**
@@ -360,12 +411,14 @@ declare global {
  * Inicialización automática cuando se importa el módulo
  * Esto asegura que el guardián se active inmediatamente
  */
-const DISABLE_CACHE_CONTROL_AUTO_INIT = true; // Temporal: desactivar limpieza automática para pruebas
+const DISABLE_CACHE_CONTROL_AUTO_INIT = import.meta.env.VITE_DISABLE_CACHE_CONTROL_AUTO_INIT === 'true';
 
 if (typeof window !== 'undefined' && !DISABLE_CACHE_CONTROL_AUTO_INIT) {
   // Ejecutar en el próximo tick para asegurar que DOM esté listo
   setTimeout(() => {
-    initializeCacheControl();
+    initializeCacheControl().catch(error => {
+      console.error('[CacheControl] ❌ Error inicializando el Guardián de Caché:', error);
+    });
     
     // Limpiar timeout de carga bloqueante después de cargar
     if (window.__LOADING_TIMEOUT__) {
