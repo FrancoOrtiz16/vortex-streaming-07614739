@@ -102,7 +102,7 @@ const StandaloneCatalog: React.FC = () => {
 
       if (!supabaseIsConfigured) {
         setError('Catálogo en modo de respaldo. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
-        setProducts(fallbackProducts);
+        setProducts(fallbackProducts as unknown as Product[]);
         setLoading(false);
         return;
       }
@@ -114,7 +114,7 @@ const StandaloneCatalog: React.FC = () => {
       } catch (err: any) {
         if (!isMounted) return;
         setError('No se pudo cargar el catálogo desde Supabase. Mostrando catálogo local de respaldo.');
-        setProducts(fallbackProducts);
+        setProducts(fallbackProducts as unknown as Product[]);
       } finally {
         if (!isMounted) return;
         setLoading(false);
