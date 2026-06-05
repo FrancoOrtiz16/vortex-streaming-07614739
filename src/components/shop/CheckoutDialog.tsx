@@ -41,7 +41,10 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const [profilePhone, setProfilePhone] = useState<string | null>(null);
   const [phoneLoading, setPhoneLoading] = useState(false);
   const { amount: totalConvertedAmount, formatted: totalConvertedFormatted, isVES, exchangeRate: safeExchangeRate } = useCurrencyConverter(total, selectedMethod);
-  const subtotalDisplay = formatConvertedAmount(subtotal, undefined, safeExchangeRate);
+  // Subtotal/discount siguen al método: si es nacional (Pago Móvil / Transferencia) se muestran en Bs.,
+  // en cualquier otro caso permanecen en USD. Reversión instantánea al cambiar de método.
+  const subtotalDisplay = formatConvertedAmount(subtotal, selectedMethod, safeExchangeRate);
+  const discountDisplay = formatConvertedAmount(discount, selectedMethod, safeExchangeRate);
 
   useEffect(() => {
     if (open) {
@@ -324,7 +327,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                   {discount > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-green-600">Descuento (10%):</span>
-                      <span className="text-sm text-green-600">-{formatConvertedAmount(discount, undefined, safeExchangeRate)}</span>
+                      <span className="text-sm text-green-600">-{discountDisplay}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -344,7 +347,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
                   {discount > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-green-600">Descuento (10%):</span>
-                      <span className="text-sm text-green-600">-{formatConvertedAmount(discount, undefined, safeExchangeRate)}</span>
+                      <span className="text-sm text-green-600">-{discountDisplay}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
