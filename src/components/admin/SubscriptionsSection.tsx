@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search } from 'lucide-react';
+import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
@@ -8,11 +8,13 @@ import {
   updateSimpleSubscription,
   updateSimpleSubscriptionStatus,
   getSubscriptionCredentials,
+  createSubscriptionExpirationNotification,
 } from '@/integrations/supabase/subscriptions-helpers';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
-import { getVETDateInputISO, getVETDateString } from '@/lib/trafficLightUtils';
+import { getVETDateInputISO, getVETDateString, getTrafficLightStatus, getDaysUntilExpiry } from '@/lib/trafficLightUtils';
+import { getWhatsAppUrl } from '@/lib/whatsapp';
 
 interface Subscription {
   id: string;
@@ -34,6 +36,7 @@ interface Profile {
   user_id: string;
   display_name: string | null;
   email: string | null;
+  phone?: string | null;
 }
 
 interface CredentialForm {
@@ -69,6 +72,7 @@ export function SubscriptionsSection() {
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [services, setServices] = useState<any[]>([]);
+  const [notifyingBulk, setNotifyingBulk] = useState(false);
   const isMountedRef = useRef(true);
 
   const fetchData = async () => {
@@ -76,7 +80,7 @@ export function SubscriptionsSection() {
       console.debug('[Admin] Fetching all subscriptions and pending orders');
       const [{ data: subsData, error: subsError }, profilesRes, ordersRes, servicesRes] = await Promise.all([
         getAllSubscriptionsAdmin(),
-        supabase.from('profiles').select('id, user_id, display_name, email'),
+        supabase.from('profiles').select('id, user_id, display_name, email, phone'),
         supabase.from('orders').select('id, user_id, customer_email, product_name, total, status, created_at, expiry_date').eq('status', 'procesando_credenciales'),
         supabase.from('services').select('id, name').eq('is_available', true),
       ]);
@@ -242,6 +246,86 @@ export function SubscriptionsSection() {
     }
   };
 
+  /**
+   * Filtrar suscripciones a notificar: solo estado activo/confirmado y semáforo amarillo
+   * (0 a 3 días para vencer). Excluye vencidas (rojo) y activas con mucho margen (verde).
+   */
+  const yellowSubsToNotify = useMemo(() => {
+    return subs.filter(s => {
+      const isActive = s.status === 'active' || s.status === 'confirmed' || s.status === 'Activo';
+      if (!isActive) return false;
+      const status = getTrafficLightStatus(s.next_renewal);
+      return status === 'yellow';
+    });
+  }, [subs]);
+
+  const handleNotifyBulk = async () => {
+    if (notifyingBulk) return;
+    const targets = yellowSubsToNotify;
+    if (targets.length === 0) {
+      toast.info('No hay clientes con vencimiento en 3 días o menos.');
+      return;
+    }
+
+    if (!window.confirm(`Se enviarán ${targets.length} notificación(es) de vencimiento. ¿Continuar?`)) {
+      return;
+    }
+
+    setNotifyingBulk(true);
+    let success = 0;
+    let failed = 0;
+    const whatsappLinks: string[] = [];
+
+    for (const sub of targets) {
+      try {
+        const profile: any = (sub as any).profile;
+        const clientName = profile?.display_name || profile?.email?.split('@')[0] || 'Cliente';
+        const days = getDaysUntilExpiry(sub.next_renewal);
+        const expiryDate = sub.next_renewal
+          ? new Date(sub.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' })
+          : 'pronto';
+        const dayLabel = days === 0 ? 'hoy' : days === 1 ? 'mañana' : `en ${days} días`;
+        const message =
+          `Hola ${clientName}, te recordamos que tu servicio de ${sub.service_name} vence ${dayLabel} ` +
+          `(${expiryDate}). Renueva ahora para no perder el acceso. — Vortex Streaming`;
+
+        const { error } = await createSubscriptionExpirationNotification(
+          sub.user_id,
+          sub.id,
+          sub.service_name,
+        );
+
+        const phone = profile?.phone;
+        if (phone) {
+          whatsappLinks.push(getWhatsAppUrl(message, phone));
+        }
+
+        if (error) {
+          // Aún contamos como éxito si tenemos al menos canal WhatsApp; si no, fallo.
+          if (phone) success++; else failed++;
+        } else {
+          success++;
+        }
+      } catch (err) {
+        console.error('[BulkNotify] Error notificando suscripción', sub.id, err);
+        failed++;
+      }
+    }
+
+    // Abrir hasta 5 ventanas de WhatsApp para evitar bloqueo de pop-ups masivo.
+    whatsappLinks.slice(0, 5).forEach((url, idx) => {
+      setTimeout(() => window.open(url, '_blank'), idx * 250);
+    });
+
+    if (failed === 0) {
+      toast.success(`✅ ${success} alerta(s) procesada(s) con éxito.`);
+    } else {
+      toast.warning(`Procesadas: ${success}. Fallidas: ${failed}.`);
+    }
+
+    setNotifyingBulk(false);
+  };
+
   const confirmRenewal = async (sub: Subscription) => {
     setConfirming(sub.id);
     try {
@@ -393,13 +477,33 @@ export function SubscriptionsSection() {
           <CalendarClock className="w-5 h-5 text-primary" />
           <h2 className="font-display font-bold text-xl">Gestión de Suscripciones</h2>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Nueva Suscripción Manual
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleNotifyBulk}
+            disabled={notifyingBulk || yellowSubsToNotify.length === 0}
+            title={
+              yellowSubsToNotify.length === 0
+                ? 'No hay clientes con vencimiento en 3 días o menos'
+                : `Enviar alerta a ${yellowSubsToNotify.length} cliente(s) próximos a vencer`
+            }
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {notifyingBulk ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Bell className="w-3.5 h-3.5" />
+            )}
+            Notificar Vencimientos ({yellowSubsToNotify.length})
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Nueva Suscripción Manual
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
