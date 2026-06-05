@@ -246,6 +246,86 @@ export function SubscriptionsSection() {
     }
   };
 
+  /**
+   * Filtrar suscripciones a notificar: solo estado activo/confirmado y semáforo amarillo
+   * (0 a 3 días para vencer). Excluye vencidas (rojo) y activas con mucho margen (verde).
+   */
+  const yellowSubsToNotify = useMemo(() => {
+    return subs.filter(s => {
+      const isActive = s.status === 'active' || s.status === 'confirmed' || s.status === 'Activo';
+      if (!isActive) return false;
+      const status = getTrafficLightStatus(s.next_renewal);
+      return status === 'yellow';
+    });
+  }, [subs]);
+
+  const handleNotifyBulk = async () => {
+    if (notifyingBulk) return;
+    const targets = yellowSubsToNotify;
+    if (targets.length === 0) {
+      toast.info('No hay clientes con vencimiento en 3 días o menos.');
+      return;
+    }
+
+    if (!window.confirm(`Se enviarán ${targets.length} notificación(es) de vencimiento. ¿Continuar?`)) {
+      return;
+    }
+
+    setNotifyingBulk(true);
+    let success = 0;
+    let failed = 0;
+    const whatsappLinks: string[] = [];
+
+    for (const sub of targets) {
+      try {
+        const profile: any = (sub as any).profile;
+        const clientName = profile?.display_name || profile?.email?.split('@')[0] || 'Cliente';
+        const days = getDaysUntilExpiry(sub.next_renewal);
+        const expiryDate = sub.next_renewal
+          ? new Date(sub.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' })
+          : 'pronto';
+        const dayLabel = days === 0 ? 'hoy' : days === 1 ? 'mañana' : `en ${days} días`;
+        const message =
+          `Hola ${clientName}, te recordamos que tu servicio de ${sub.service_name} vence ${dayLabel} ` +
+          `(${expiryDate}). Renueva ahora para no perder el acceso. — Vortex Streaming`;
+
+        const { error } = await createSubscriptionExpirationNotification(
+          sub.user_id,
+          sub.id,
+          sub.service_name,
+        );
+
+        const phone = profile?.phone;
+        if (phone) {
+          whatsappLinks.push(getWhatsAppUrl(message, phone));
+        }
+
+        if (error) {
+          // Aún contamos como éxito si tenemos al menos canal WhatsApp; si no, fallo.
+          if (phone) success++; else failed++;
+        } else {
+          success++;
+        }
+      } catch (err) {
+        console.error('[BulkNotify] Error notificando suscripción', sub.id, err);
+        failed++;
+      }
+    }
+
+    // Abrir hasta 5 ventanas de WhatsApp para evitar bloqueo de pop-ups masivo.
+    whatsappLinks.slice(0, 5).forEach((url, idx) => {
+      setTimeout(() => window.open(url, '_blank'), idx * 250);
+    });
+
+    if (failed === 0) {
+      toast.success(`✅ ${success} alerta(s) procesada(s) con éxito.`);
+    } else {
+      toast.warning(`Procesadas: ${success}. Fallidas: ${failed}.`);
+    }
+
+    setNotifyingBulk(false);
+  };
+
   const confirmRenewal = async (sub: Subscription) => {
     setConfirming(sub.id);
     try {
