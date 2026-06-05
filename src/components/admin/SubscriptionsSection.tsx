@@ -477,13 +477,33 @@ export function SubscriptionsSection() {
           <CalendarClock className="w-5 h-5 text-primary" />
           <h2 className="font-display font-bold text-xl">Gestión de Suscripciones</h2>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Nueva Suscripción Manual
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleNotifyBulk}
+            disabled={notifyingBulk || yellowSubsToNotify.length === 0}
+            title={
+              yellowSubsToNotify.length === 0
+                ? 'No hay clientes con vencimiento en 3 días o menos'
+                : `Enviar alerta a ${yellowSubsToNotify.length} cliente(s) próximos a vencer`
+            }
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {notifyingBulk ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Bell className="w-3.5 h-3.5" />
+            )}
+            Notificar Vencimientos ({yellowSubsToNotify.length})
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Nueva Suscripción Manual
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
