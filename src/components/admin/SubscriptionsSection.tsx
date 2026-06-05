@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search } from 'lucide-react';
+import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
@@ -8,11 +8,13 @@ import {
   updateSimpleSubscription,
   updateSimpleSubscriptionStatus,
   getSubscriptionCredentials,
+  createSubscriptionExpirationNotification,
 } from '@/integrations/supabase/subscriptions-helpers';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
-import { getVETDateInputISO, getVETDateString } from '@/lib/trafficLightUtils';
+import { getVETDateInputISO, getVETDateString, getTrafficLightStatus, getDaysUntilExpiry } from '@/lib/trafficLightUtils';
+import { getWhatsAppUrl } from '@/lib/whatsapp';
 
 interface Subscription {
   id: string;
@@ -34,6 +36,7 @@ interface Profile {
   user_id: string;
   display_name: string | null;
   email: string | null;
+  phone?: string | null;
 }
 
 interface CredentialForm {
@@ -76,7 +79,7 @@ export function SubscriptionsSection() {
       console.debug('[Admin] Fetching all subscriptions and pending orders');
       const [{ data: subsData, error: subsError }, profilesRes, ordersRes, servicesRes] = await Promise.all([
         getAllSubscriptionsAdmin(),
-        supabase.from('profiles').select('id, user_id, display_name, email'),
+        supabase.from('profiles').select('id, user_id, display_name, email, phone'),
         supabase.from('orders').select('id, user_id, customer_email, product_name, total, status, created_at, expiry_date').eq('status', 'procesando_credenciales'),
         supabase.from('services').select('id, name').eq('is_available', true),
       ]);
