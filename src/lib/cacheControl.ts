@@ -32,7 +32,9 @@ const WHITELIST_KEYS = [
   'supabase.auth.token',
   'user-session',
   'auth-token',
-  'session-token'
+  'session-token',
+  'vortex_cart_items_v1', // Mantiene el carrito en recargas/actualizaciones de versión
+  'vortex_checkout_draft_v1', // Mantiene el borrador de pago móvil durante el TTL
 ];
 
 /**
