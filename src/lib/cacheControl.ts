@@ -20,7 +20,7 @@
  * de lo contrario se produce un bucle infinito de recarga al inicializar.
  * Bumpea este string manualmente cuando quieras forzar limpieza global.
  */
-export const APP_VERSION = "2026.05.05.1";
+export const APP_VERSION = "2026.06.06.1";
 
 /**
  * Claves whitelist que NO deben ser eliminadas durante limpieza de caché
@@ -50,18 +50,8 @@ const OBSOLETE_COLUMNS = ['combo_id', 'subscription_code'];
  * Compara versiones y limpia solo si es necesario
  */
 export function initializeCacheControl(): void {
-  // Evitar ejecutar limpieza automática en rutas de administración para prevenir bucles
-  try {
-    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-    if (pathname.includes('/admin')) {
-      console.debug('[CacheControl] ⚠️ Saltando inicialización en ruta admin:', pathname);
-      sessionStorage.setItem('cache_control_initialized', APP_VERSION);
-      return;
-    }
-  } catch (err) {
-    console.warn('[CacheControl] Error comprobando pathname:', err);
-  }
-
+  // Force-update global: aplicar a TODAS las rutas (incluido /admin) para
+  // garantizar que el 100% de los usuarios usen exactamente la misma versión.
   if (sessionStorage.getItem('cache_control_initialized') === APP_VERSION) {
     return;
   }
@@ -73,25 +63,20 @@ export function initializeCacheControl(): void {
   unregisterServiceWorkers();
 
   const storedVersion = localStorage.getItem('app_version');
-  const hasReloaded = sessionStorage.getItem('has_reloaded') === 'true';
+  const reloadGuardKey = `version_reload_done_${APP_VERSION}`;
+  const alreadyReloadedForThisVersion = sessionStorage.getItem(reloadGuardKey) === 'true';
 
-  // Si la versión cambió y no hemos recargado aún en esta sesión
-  if (storedVersion !== APP_VERSION && !hasReloaded) {
-    console.warn('[CacheControl] 🔄 Versión cambió - Ejecutando limpieza inteligente...');
+  // Si la versión local difiere de la versión activa global → force update
+  if (storedVersion !== APP_VERSION && !alreadyReloadedForThisVersion) {
+    console.warn(`[CacheControl] 🔄 Versión cambió (${storedVersion} → ${APP_VERSION}) - Force update`);
 
-    // Limpiar caché con whitelist
     clearCacheWithWhitelist();
-
-    // Marcar que hemos recargado para evitar bucles
-    sessionStorage.setItem('has_reloaded', 'true');
-
-    // Guardar nueva versión
     localStorage.setItem('app_version', APP_VERSION);
+    sessionStorage.setItem(reloadGuardKey, 'true');
 
-    console.log('[CacheControl] ✅ Limpieza completada - Recargando página...');
-
-    // Recarga suave para aplicar cambios
-    window.location.reload();
+    // Recarga forzada con cache-buster en la URL
+    const separator = window.location.search ? '&' : '?';
+    window.location.replace(`${window.location.pathname}${window.location.search}${separator}v=${APP_VERSION}`);
     return;
   }
 
@@ -100,9 +85,9 @@ export function initializeCacheControl(): void {
     console.debug('[CacheControl] ✅ Versión sincronizada - Sin limpieza necesaria');
   }
 
-  // Resetear bandera de recarga para próximas sesiones
-  if (hasReloaded) {
-    sessionStorage.removeItem('has_reloaded');
+  // Asegurar que la versión queda registrada localmente
+  if (storedVersion !== APP_VERSION) {
+    localStorage.setItem('app_version', APP_VERSION);
   }
 }
 
