@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 type CurrencyCode = 'USD' | 'VES';
@@ -8,6 +8,7 @@ interface CurrencyContextValue {
   rate: number;
   loadingRate: boolean;
   setCurrency: (currency: CurrencyCode) => void;
+  refreshRate: () => Promise<void>;
   convertToVES: (usd: number) => number;
   formatMoney: (value: number, currency?: CurrencyCode) => string;
 }
@@ -101,16 +102,37 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
   }, [currency]);
 
+  const refreshRate = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings' as any)
+        .select('value')
+        .eq('key', 'usd_ves_rate')
+        .maybeSingle();
+      const rawValue = (data as any)?.value;
+      const parsed = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue ?? ''));
+      if (Number.isFinite(parsed) && parsed > 0) {
+        setRate(parsed);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(RATE_STORAGE_KEY, String(parsed));
+        }
+      }
+    } catch (err) {
+      console.warn('[Currency] Error refrescando tasa', err);
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       currency,
       rate,
       loadingRate,
       setCurrency: setCurrencyState,
+      refreshRate,
       convertToVES: (usd: number) => usd * rate,
       formatMoney: formatMoneyValue,
     }),
-    [currency, rate, loadingRate],
+    [currency, rate, loadingRate, refreshRate],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;

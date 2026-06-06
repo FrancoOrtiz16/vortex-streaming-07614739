@@ -64,7 +64,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const { user } = useAuth();
   const { items, total, subtotal, discount, clear } = useCart();
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, refreshRate } = useCurrency();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PMType | null>(null);
@@ -82,16 +82,24 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
   useEffect(() => {
     if (!open) return;
-    const persisted = loadPersistedCheckoutState();
-    if (persisted) {
-      setSelectedMethod(persisted.selectedMethod);
-      setReceiptUrl(persisted.receiptUrl);
-      setReceiptPreview(persisted.receiptUrl);
-      setCurrency(persisted.currency);
-    } else {
-      setCurrency('USD');
-    }
-  }, [open, setCurrency]);
+
+    const restoreState = () => {
+      const persisted = loadPersistedCheckoutState();
+      if (persisted) {
+        setSelectedMethod(persisted.selectedMethod);
+        setReceiptUrl(persisted.receiptUrl);
+        setReceiptPreview(persisted.receiptUrl);
+        setCurrency(persisted.currency);
+      } else {
+        setCurrency('USD');
+      }
+    };
+
+    restoreState();
+    refreshRate().catch((error) => {
+      console.warn('[Checkout] Error refrescando la tasa de cambio:', error);
+    });
+  }, [open, setCurrency, refreshRate]);
 
   const hasMountedRef = React.useRef(false);
 
