@@ -4,11 +4,9 @@ import { useCart } from '@/hooks/useCart';
 import { motion } from 'framer-motion';
 import UserMenu from '@/components/UserMenu';
 import { useResponsive } from '@/hooks/useResponsive';
-import { useAuth } from '@/hooks/useAuth';
 
 const Header = () => {
   const { count } = useCart();
-  const { isAdmin } = useAuth();
   const { shouldAnimateOnDevice } = useResponsive();
 
   return (
@@ -21,24 +19,6 @@ const Header = () => {
             <span className="neon-text"> STREAMING</span>
           </span>
         </Link>
-
-        {/* Desktop actions */}
-        <div className="hidden md:flex items-center gap-2 lg:gap-3">
-          <Link
-            to="/#catalogo"
-            className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium border border-border hover:border-primary/50 transition-colors will-change-transform"
-          >
-            Ver Tienda
-          </Link>
-          {isAdmin && (
-            <Link
-              to="/admin-access"
-              className="px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors will-change-transform"
-            >
-              Admin Original
-            </Link>
-          )}
-        </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-1 sm:gap-2">

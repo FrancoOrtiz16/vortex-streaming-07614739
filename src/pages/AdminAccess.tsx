@@ -5,6 +5,7 @@ import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import UserMenu from '@/components/UserMenu';
 import { UsersSection } from '@/components/admin/UsersSection';
 import { SalesSection } from '@/components/admin/SalesSection';
 import { ProductsSection } from '@/components/admin/ProductsSection';
@@ -56,6 +57,9 @@ export default function AdminAccess() {
             <SidebarTrigger className="mr-3" />
             <Shield className="w-4 h-4 text-primary mr-2" />
             <span className="font-display font-bold text-sm neon-text">Vortex Streaming</span>
+            <div className="ml-auto">
+              <UserMenu />
+            </div>
           </header>
           <main className="flex-1 p-6 overflow-y-auto">
             <Routes>

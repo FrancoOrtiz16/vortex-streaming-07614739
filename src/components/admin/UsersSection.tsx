@@ -94,7 +94,14 @@ export function UsersSection() {
       .channel('profiles-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
         if (payload.eventType === 'UPDATE') {
-          setProfiles(prev => prev.map(p => p.id === (payload.new as Profile).id ? (payload.new as Profile) : p));
+          const updatedProfile = payload.new as Profile;
+          const shouldHide = updatedProfile.is_active === false && updatedProfile.is_verified === false && updatedProfile.verificado === false;
+          if (shouldHide) {
+            setProfiles(prev => prev.filter(p => p.id !== updatedProfile.id));
+            return;
+          }
+
+          setProfiles(prev => prev.map(p => p.id === updatedProfile.id ? updatedProfile : p));
         } else if (payload.eventType === 'INSERT') {
           setProfiles(prev => [(payload.new as Profile), ...prev]);
         } else if (payload.eventType === 'DELETE') {
@@ -119,18 +126,13 @@ export function UsersSection() {
 
   const deleteUserFromWeb = async (profile: Profile) => {
     try {
-      const { error } = await supabase.from('profiles').update({
-        is_active: false,
-        is_verified: false,
-        verificado: false,
-        updated_at: new Date().toISOString(),
-      }).eq('id', profile.id);
+      const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
 
       if (error) {
-        throw new Error('Error eliminando usuario de la web');
+        throw new Error('Error eliminando usuario');
       }
 
-      toast.success('Usuario eliminado de la web. El registro permanece en la base de datos.');
+      toast.success('Usuario eliminado definitivamente.');
       setProfiles(prev => prev.filter(p => p.id !== profile.id));
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Error desconocido');
@@ -139,12 +141,23 @@ export function UsersSection() {
 
   const toggleActive = async (profile: Profile) => {
     try {
-      const { error } = await supabase.from('profiles').update({ is_active: !profile.is_active }).eq('id', profile.id);
-      if (error) {
+      const nextActive = profile.is_active !== false ? false : true;
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ is_active: nextActive })
+        .eq('id', profile.id)
+        .select('*')
+        .single();
+
+      if (error || !data) {
         throw new Error('Error actualizando');
       }
-      toast.success(profile.is_active ? 'Usuario desactivado (baneado)' : 'Usuario activado');
-      await fetchData();
+
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === profile.id ? (data as Profile) : p)),
+      );
+
+      toast.success(nextActive ? 'Usuario activado' : 'Usuario desactivado (baneado)');
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Error desconocido');
     }

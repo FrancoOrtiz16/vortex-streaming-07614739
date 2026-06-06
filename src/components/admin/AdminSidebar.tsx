@@ -1,4 +1,4 @@
-import { Users, BarChart3, Package, CreditCard, LogOut, Shield, CalendarClock, ClipboardList, Boxes, Settings, Eye, Store } from 'lucide-react';
+import { Users, BarChart3, CreditCard, LogOut, Shield, CalendarClock, Boxes, Settings } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -65,38 +65,7 @@ export function AdminSidebar({ onSignOut }: AdminSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Store Preview Section */}
-        <SidebarGroup className="border-t border-border mt-4">
-          <SidebarGroupLabel className={!collapsed ? 'text-xs' : ''}>
-            {!collapsed && <span>Previsualización</span>}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={handleViewStore}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                  title="Ver Tienda"
-                />
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
-
-      {/* Store Preview Button in Sidebar */}
-      <div className="p-3 border-t border-border">
-        <button
-        type="button"
-          onClick={handleViewStore}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium text-sm"
-          title="Ver Tienda en Nueva Pestaña"
-        >
-          <Eye className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Ver Tienda</span>}
-        </button>
-      </div>
-
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
