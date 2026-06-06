@@ -129,19 +129,8 @@ const ClientDashboard = () => {
 
     if (user && user.id) {
       loadDashboardData();
-      const handleFocus = () => {
-        const elapsed = Date.now() - lastLoadedAtRef.current;
-        if (elapsed < 15000) {
-          console.debug('[ClientDashboard] Saltando refresco en foco porque los datos están recientes', { elapsed });
-          return;
-        }
-        loadDashboardData();
-      };
-
-      window.addEventListener('focus', handleFocus);
       return () => {
         isMountedRef.current = false;
-        window.removeEventListener('focus', handleFocus);
       };
     }
 

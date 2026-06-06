@@ -112,7 +112,8 @@ export function useAuth() {
       const storePath = '/';
       if (window.location.pathname !== storePath) {
         console.debug('[Auth] Redirecting to store after sign in');
-        window.location.replace(storePath);
+        window.history.replaceState(null, '', storePath);
+        window.dispatchEvent(new PopStateEvent('popstate'));
       }
     };
 

@@ -55,8 +55,8 @@ export class EmergencyErrorBoundary extends React.Component<
     this.setState({
       hasError: false,
       error: null,
+      errorCount: 0,
     });
-    window.location.reload();
   };
 
   render() {
