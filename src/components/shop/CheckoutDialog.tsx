@@ -174,6 +174,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       return;
     }
 
+    const whatsappWindow = typeof window !== 'undefined' ? window.open('', '_blank') : null;
     setSubmitting(true);
     try {
       console.debug('[Checkout] Starting order creation');
@@ -267,7 +268,13 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       clearPersistedCheckoutState();
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
-      window.open(whatsappUrl, '_blank');
+
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+        whatsappWindow.focus();
+      } else {
+        window.open(whatsappUrl, '_blank');
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       console.error('[Checkout] Error:', err);
