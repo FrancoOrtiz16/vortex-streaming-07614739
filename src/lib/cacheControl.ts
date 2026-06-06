@@ -55,49 +55,21 @@ export function initializeCacheControl(): void {
   }
 
   sessionStorage.setItem('cache_control_initialized', APP_VERSION);
-  console.debug('[CacheControl] 🛡️ Inicializando Guardián de Caché...');
+  console.debug('[CacheControl] 🛡️ Inicializando control silencioso de versión...');
 
   unregisterServiceWorkers();
 
   const storedVersion = localStorage.getItem('app_version');
-  const reloadGuardKey = `version_reload_done_${APP_VERSION}`;
-  const alreadyReloadedForThisVersion = sessionStorage.getItem(reloadGuardKey) === 'true';
-
-  // Throttle: solo permitir un force-reload por versión cada 10 minutos como
-  // mínimo. Esto evita que el usuario sufra recargas constantes al volver a
-  // abrir la pestaña; sus datos (carrito, sesión) se mantienen intactos.
-  const RELOAD_THROTTLE_MS = 10 * 60 * 1000;
-  const lastReloadAtRaw = localStorage.getItem('app_version_last_reload_at');
-  const lastReloadAt = lastReloadAtRaw ? parseInt(lastReloadAtRaw, 10) : 0;
-  const now = Date.now();
-  const enoughTimeElapsed = !lastReloadAt || (now - lastReloadAt) >= RELOAD_THROTTLE_MS;
-
-  if (
-    storedVersion &&
-    storedVersion !== APP_VERSION &&
-    !alreadyReloadedForThisVersion &&
-    enoughTimeElapsed
-  ) {
-    console.warn(`[CacheControl] 🔄 Versión cambió (${storedVersion} → ${APP_VERSION}) - Force update`);
-
-    clearCacheWithWhitelist();
-    localStorage.setItem('app_version', APP_VERSION);
-    localStorage.setItem('app_version_last_reload_at', String(now));
-    sessionStorage.setItem(reloadGuardKey, 'true');
-
-    const separator = window.location.search ? '&' : '?';
-    window.location.replace(`${window.location.pathname}${window.location.search}${separator}v=${APP_VERSION}`);
-    return;
-  }
 
   if (storedVersion !== APP_VERSION) {
-    // Registrar la versión sin recargar (primera visita o dentro del throttle)
+    // Registrar la versión de forma silenciosa: no limpiar storage, no recargar,
+    // no redireccionar. El usuario conserva carrito, sesión y progreso.
     localStorage.setItem('app_version', APP_VERSION);
-    if (!lastReloadAt) {
-      localStorage.setItem('app_version_last_reload_at', String(now));
-    }
+    window.dispatchEvent(new CustomEvent('vortex:update-available', {
+      detail: { previousVersion: storedVersion, currentVersion: APP_VERSION }
+    }));
   } else {
-    console.debug('[CacheControl] ✅ Versión sincronizada - Sin limpieza necesaria');
+    console.debug('[CacheControl] ✅ Versión sincronizada - Sin acciones intrusivas');
   }
 }
 
@@ -106,27 +78,7 @@ export function initializeCacheControl(): void {
  * Mantiene autenticación de Supabase intacta
  */
 function clearCacheWithWhitelist(): void {
-  console.debug('[CacheControl] 🧹 Ejecutando limpieza con whitelist...');
-
-  // Limpiar localStorage
-  const localKeys = Object.keys(localStorage);
-  localKeys.forEach(key => {
-    if (!isWhitelisted(key)) {
-      localStorage.removeItem(key);
-      console.debug(`[CacheControl] 🗑️ Eliminado localStorage: ${key}`);
-    }
-  });
-
-  // Limpiar sessionStorage
-  const sessionKeys = Object.keys(sessionStorage);
-  sessionKeys.forEach(key => {
-    if (!isWhitelisted(key)) {
-      sessionStorage.removeItem(key);
-      console.debug(`[CacheControl] 🗑️ Eliminado sessionStorage: ${key}`);
-    }
-  });
-
-  console.log('[CacheControl] ✅ Limpieza completada - Autenticación preservada');
+  console.debug('[CacheControl] 🧹 Limpieza manual desactivada para preservar sesión y carrito');
 }
 
 /**
