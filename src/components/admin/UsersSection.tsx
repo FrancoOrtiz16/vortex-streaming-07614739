@@ -129,10 +129,20 @@ export function UsersSection() {
   const deleteUserFromWeb = async (profile: Profile) => {
     try {
       setDeletingUserId(profile.id);
-      const { data, error } = await supabase.from('profiles').delete().eq('id', profile.id).select('id');
 
-      if (error || !data) {
-        throw new Error('Error eliminando usuario');
+      const { data, error } = await supabase
+        .from('profiles')
+        .delete({ returning: 'representation' })
+        .eq('id', profile.id)
+        .select('id');
+
+      if (error) {
+        throw new Error(error.message || 'Error eliminando usuario');
+      }
+
+      const deletedRows = Array.isArray(data) ? data.length : data ? 1 : 0;
+      if (deletedRows === 0) {
+        throw new Error('No se eliminó ningún usuario.');
       }
 
       toast.success('Usuario eliminado definitivamente.');

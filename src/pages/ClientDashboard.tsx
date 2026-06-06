@@ -5,7 +5,6 @@ import { ArrowLeft, Package, Clock, CheckCircle, RefreshCw, Eye, EyeOff, Loader2
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CredentialService from '@/components/services/CredentialService';
-import WelcomeTutorial from '@/components/WelcomeTutorial';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserSubscriptions } from '@/integrations/supabase/subscriptions-helpers';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
@@ -341,7 +340,6 @@ const ClientDashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 pt-24 pb-12">
-        <WelcomeTutorial userId={user?.id} />
         <div className="container mx-auto px-4 max-w-4xl">
           <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-6 transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" />
