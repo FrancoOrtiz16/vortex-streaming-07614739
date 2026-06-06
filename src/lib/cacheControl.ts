@@ -1,10 +1,10 @@
 /**
  * 🛡️ CACHE CONTROL GUARDIAN
- * Arquitectura de Cero Persistencia para Progressive Web Apps
+ * Control silencioso de versión con persistencia estable
  *
- * Este archivo actúa como el "guardián" del sistema de caché, eliminando
- * bucles infinitos de carga y asegurando que el navegador se comporte
- * como en modo incógnito para máxima confiabilidad.
+ * Este archivo registra la versión activa sin recargar la página, sin limpiar
+ * storage y sin cerrar sesiones. Las actualizaciones se aplican en la próxima
+ * carga manual/navegación normal del usuario.
  *
  * @version 1.0.0
  * @author Arquitecto de Sistemas Senior - PWA Expert
@@ -260,8 +260,7 @@ function unregisterServiceWorkers(): void {
  */
 declare global {
   interface Window {
-    __LOADING_TIMEOUT__?: number;
-    __CACHE_BUST_VERSION__?: string;
+    __vortexUpdateAvailable?: boolean;
   }
 }
 
@@ -273,17 +272,10 @@ if (typeof window !== 'undefined') {
   // Ejecutar en el próximo tick para asegurar que DOM esté listo
   setTimeout(() => {
     initializeCacheControl();
-    
-    // Limpiar timeout de carga bloqueante después de cargar
-    if (window.__LOADING_TIMEOUT__) {
-      clearTimeout(window.__LOADING_TIMEOUT__);
-      console.debug('[CacheControl] ✅ Timeout de carga cancelado - Aplicación lista');
-    }
   }, 0);
 
-  // Nota: no se registra beforeunload para contar recargas. Ese patrón convertía
-  // cualquier navegación/HMR en falso positivo y podía forzar reloads con query
-  // no-cache indefinidamente en la previsualización.
+  // Nota: no se registran visibilitychange/blur/focus/beforeunload para recargar.
+  // La app debe mantenerse estable al cambiar de pestaña o volver desde móvil.
 }
 
 console.log(`[CacheControl] 🛡️ Guardián de Caché v1.0.0 inicializado (Versión: ${APP_VERSION})`);
