@@ -8,6 +8,8 @@ import { CurrencyProvider } from '@/context/CurrencyContext';
 import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
 import Index from "./pages/Index";
 import BannedGuard from "./components/BannedGuard";
+import { useAuth } from '@/hooks/useAuth';
+import { initDevToolsBlocker } from '@/utils/devtoolsBlocker';
 
 // Lazy load heavy components
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
@@ -48,6 +50,19 @@ const App = () => {
     delay: `${Math.random() * 8}s`,
     opacity: `${Math.random() * 0.3 + 0.2}`,
   }));
+
+  const { isAdmin, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const cleanup = initDevToolsBlocker(isAdmin);
+    return () => {
+      cleanup?.();
+    };
+  }, [loading, isAdmin]);
 
   return (
     <EmergencyErrorBoundary level="page">

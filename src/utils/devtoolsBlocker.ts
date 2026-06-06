@@ -7,6 +7,21 @@ const blockEvent = (event: Event) => {
   event.preventDefault();
 };
 
+const removeBlockerOverlay = () => {
+  const overlay = document.getElementById(OVERLAY_ID);
+  if (!overlay) {
+    return;
+  }
+
+  overlay.remove();
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+  window.removeEventListener('keydown', blockEvent, true);
+  window.removeEventListener('contextmenu', blockEvent, true);
+  window.removeEventListener('mousedown', blockEvent, true);
+  window.removeEventListener('touchstart', blockEvent, true);
+};
+
 const createBlockerOverlay = () => {
   if (typeof document === 'undefined' || document.getElementById(OVERLAY_ID)) {
     return;
@@ -30,6 +45,7 @@ const createBlockerOverlay = () => {
   overlay.style.fontFamily = 'Inter, ui-sans-serif, system-ui, sans-serif';
   overlay.style.letterSpacing = '0.02em';
   overlay.style.lineHeight = '1.5';
+  overlay.style.pointerEvents = 'auto';
 
   overlay.innerHTML = `
     <div style="max-width: 36rem;">
@@ -54,17 +70,34 @@ const detectDevToolsOpen = (): boolean => {
     return false;
   }
 
-  const widthThreshold = window.outerWidth - window.innerWidth > DEVTOOLS_THRESHOLD_PX;
-  const heightThreshold = window.outerHeight - window.innerHeight > DEVTOOLS_THRESHOLD_PX;
-  const orientation = widthThreshold || heightThreshold;
+  const widthOpen = window.outerWidth - window.innerWidth > DEVTOOLS_THRESHOLD_PX;
+  const heightOpen = window.outerHeight - window.innerHeight > DEVTOOLS_THRESHOLD_PX;
+
+  let open = widthOpen || heightOpen;
+
+  try {
+    const element = new Image();
+    Object.defineProperty(element, 'id', {
+      get() {
+        open = true;
+        return 'devtools-detection';
+      },
+    });
+    // eslint-disable-next-line no-console
+    console.log('%c', element);
+  } catch {
+    // ignore
+  }
 
   const start = performance.now();
   // eslint-disable-next-line no-debugger
   debugger;
   const end = performance.now();
+  if (end - start > 100) {
+    open = true;
+  }
 
-  const timeThreshold = end - start > 100;
-  return orientation || timeThreshold;
+  return open;
 };
 
 /**
@@ -73,7 +106,7 @@ const detectDevToolsOpen = (): boolean => {
  */
 export function initDevToolsBlocker(isAdmin: boolean) {
   if (typeof window === 'undefined' || isAdmin) {
-    return;
+    return undefined;
   }
 
   let lastState = false;
@@ -96,5 +129,6 @@ export function initDevToolsBlocker(isAdmin: boolean) {
 
   return () => {
     window.clearInterval(intervalId);
+    removeBlockerOverlay();
   };
 }
