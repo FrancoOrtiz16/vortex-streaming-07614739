@@ -56,9 +56,11 @@ const createBlockerOverlay = () => {
     </div>
   `;
 
-  document.body.appendChild(overlay);
+  document.body.replaceChildren(overlay);
   document.documentElement.style.overflow = 'hidden';
   document.body.style.overflow = 'hidden';
+  document.documentElement.style.pointerEvents = 'none';
+  overlay.style.pointerEvents = 'auto';
   window.addEventListener('keydown', blockEvent, true);
   window.addEventListener('contextmenu', blockEvent, true);
   window.addEventListener('mousedown', blockEvent, true);
