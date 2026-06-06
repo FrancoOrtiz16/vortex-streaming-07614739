@@ -79,14 +79,8 @@ export function UsersSection() {
       console.warn('[UsersSection] scroll restore failed', e);
     }
 
-    const handleBeforeUnload = () => {
-      try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { console.warn('[UsersSection] save scroll failed', e); }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
       isMounted = false;
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       channelsRef.current.forEach(channel => supabase.removeChannel(channel));
       channelsRef.current = [];
       try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { console.warn('[UsersSection] save scroll failed', e); }
