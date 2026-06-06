@@ -1,7 +1,12 @@
-export const WHATSAPP_NUMBER = '584242644553';
+export const WHATSAPP_NUMBER = '04241772003';
+
+const normalizeWhatsAppNumber = (number: string) => {
+  const digits = number.replace(/[^0-9]/g, '');
+  return digits.length === 11 && digits.startsWith('0') ? `58${digits.slice(1)}` : digits;
+};
 
 export const getWhatsAppUrl = (message: string, number: string = WHATSAPP_NUMBER) => {
-  const sanitized = number.replace(/[^0-9]/g, '');
+  const sanitized = normalizeWhatsAppNumber(number);
   return `https://wa.me/${sanitized}?text=${encodeURIComponent(message)}`;
 };
 
