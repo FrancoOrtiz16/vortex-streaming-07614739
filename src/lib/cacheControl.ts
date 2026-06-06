@@ -274,7 +274,7 @@ if (typeof window !== 'undefined') {
     initializeCacheControl();
   }, 0);
 
-  // Nota: no se registran visibilitychange/blur/focus/beforeunload para recargar.
+  // Nota: no se registran listeners de ciclo de vida para recargar.
   // La app debe mantenerse estable al cambiar de pestaña o volver desde móvil.
 }
 
