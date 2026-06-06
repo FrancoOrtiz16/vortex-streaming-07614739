@@ -285,35 +285,3 @@ export default function WelcomeTutorial({ userId }: WelcomeTutorialProps) {
     </Dialog>
   );
 }
-                  {step === TUTORIAL_STEPS.length ? 'Finalizar' : 'Siguiente'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogFooter>
-
-        {highlightRect && (
-          <div className="fixed inset-0 pointer-events-none">
-            <div
-              className="absolute rounded-3xl border-2 border-primary/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)]"
-              style={{
-                top: Math.max(highlightRect.top - 10, 8),
-                left: Math.max(highlightRect.left - 10, 8),
-                width: highlightRect.width + 20,
-                height: highlightRect.height + 20,
-                transition: 'all 0.2s ease',
-              }}
-            />
-            <div
-              className="absolute w-14 h-14 rounded-full bg-primary/40 border border-primary/70"
-              style={{
-                top: highlightRect.top + highlightRect.height / 2 - 28,
-                left: highlightRect.left + highlightRect.width / 2 - 28,
-              }}
-            />
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
