@@ -50,8 +50,6 @@ const OBSOLETE_COLUMNS = ['combo_id', 'subscription_code'];
  * Compara versiones y limpia solo si es necesario
  */
 export function initializeCacheControl(): void {
-  // Force-update global: aplicar a TODAS las rutas (incluido /admin) para
-  // garantizar que el 100% de los usuarios usen exactamente la misma versión.
   if (sessionStorage.getItem('cache_control_initialized') === APP_VERSION) {
     return;
   }
@@ -59,35 +57,47 @@ export function initializeCacheControl(): void {
   sessionStorage.setItem('cache_control_initialized', APP_VERSION);
   console.debug('[CacheControl] 🛡️ Inicializando Guardián de Caché...');
 
-  // Unregister Service Workers antiguos
   unregisterServiceWorkers();
 
   const storedVersion = localStorage.getItem('app_version');
   const reloadGuardKey = `version_reload_done_${APP_VERSION}`;
   const alreadyReloadedForThisVersion = sessionStorage.getItem(reloadGuardKey) === 'true';
 
-  // Si la versión local difiere de la versión activa global → force update
-  if (storedVersion !== APP_VERSION && !alreadyReloadedForThisVersion) {
+  // Throttle: solo permitir un force-reload por versión cada 10 minutos como
+  // mínimo. Esto evita que el usuario sufra recargas constantes al volver a
+  // abrir la pestaña; sus datos (carrito, sesión) se mantienen intactos.
+  const RELOAD_THROTTLE_MS = 10 * 60 * 1000;
+  const lastReloadAtRaw = localStorage.getItem('app_version_last_reload_at');
+  const lastReloadAt = lastReloadAtRaw ? parseInt(lastReloadAtRaw, 10) : 0;
+  const now = Date.now();
+  const enoughTimeElapsed = !lastReloadAt || (now - lastReloadAt) >= RELOAD_THROTTLE_MS;
+
+  if (
+    storedVersion &&
+    storedVersion !== APP_VERSION &&
+    !alreadyReloadedForThisVersion &&
+    enoughTimeElapsed
+  ) {
     console.warn(`[CacheControl] 🔄 Versión cambió (${storedVersion} → ${APP_VERSION}) - Force update`);
 
     clearCacheWithWhitelist();
     localStorage.setItem('app_version', APP_VERSION);
+    localStorage.setItem('app_version_last_reload_at', String(now));
     sessionStorage.setItem(reloadGuardKey, 'true');
 
-    // Recarga forzada con cache-buster en la URL
     const separator = window.location.search ? '&' : '?';
     window.location.replace(`${window.location.pathname}${window.location.search}${separator}v=${APP_VERSION}`);
     return;
   }
 
-  // Si ya estamos en la versión correcta
-  if (storedVersion === APP_VERSION) {
-    console.debug('[CacheControl] ✅ Versión sincronizada - Sin limpieza necesaria');
-  }
-
-  // Asegurar que la versión queda registrada localmente
   if (storedVersion !== APP_VERSION) {
+    // Registrar la versión sin recargar (primera visita o dentro del throttle)
     localStorage.setItem('app_version', APP_VERSION);
+    if (!lastReloadAt) {
+      localStorage.setItem('app_version_last_reload_at', String(now));
+    }
+  } else {
+    console.debug('[CacheControl] ✅ Versión sincronizada - Sin limpieza necesaria');
   }
 }
 
