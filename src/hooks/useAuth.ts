@@ -108,25 +108,9 @@ export function useAuth() {
       setLoading(false);
     }, AUTH_READY_TIMEOUT_MS);
 
-    const redirectToStore = () => {
-      const storePath = '/';
-      if (window.location.pathname !== storePath) {
-        console.debug('[Auth] Redirecting to store after sign in');
-        window.history.replaceState(null, '', storePath);
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }
-    };
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         console.debug('[Auth] Auth state changed:', { event: _event, hasSession: !!session });
-
-        // Only redirect to store on new sign-in, not on session recovery
-        if (_event === 'SIGNED_IN' && session?.user && isInitialSessionApplied) {
-          redirectToStore();
-          return;
-        }
-
         applySession(session);
       }
     );

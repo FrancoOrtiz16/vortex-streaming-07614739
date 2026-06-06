@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Lock, AlertTriangle } from 'lucide-react';
-import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
@@ -17,13 +17,17 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 export default function AdminAccess() {
   const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // If not logged in, redirect to auth
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/auth', { replace: true });
+      navigate('/auth', {
+        replace: true,
+        state: { from: location.pathname + location.search },
+      });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, navigate, location.pathname, location.search]);
 
   if (loading) {
     return (

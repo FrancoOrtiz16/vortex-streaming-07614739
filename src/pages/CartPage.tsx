@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
@@ -20,6 +20,19 @@ const CartPage = () => {
   const { formatMoney } = useCurrency();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const renewalItems = items.filter(item => item.product.renewal);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = window.localStorage.getItem('vortex_checkout_open_v1');
+    if (saved === 'true') {
+      setCheckoutOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('vortex_checkout_open_v1', checkoutOpen ? 'true' : 'false');
+  }, [checkoutOpen]);
 
   return (
     <div className="min-h-screen flex flex-col">

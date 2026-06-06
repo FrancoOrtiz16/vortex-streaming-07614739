@@ -53,7 +53,7 @@ const ProfilePage = () => {
 
           // Redirigir solo en transición de no verificado -> verificado
           if (!oldProfile?.is_verified && updatedProfile.is_verified) {
-            navigate('/');
+            console.debug('[Profile] Perfil verificado, permaneciendo en la página de perfil.');
           }
         })
       .subscribe();
