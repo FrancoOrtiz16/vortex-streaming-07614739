@@ -34,7 +34,8 @@ const AuthPage = () => {
 
     try {
       if (mode === 'register') {
-        const { error } = await supabase.auth.signUp({
+        // Paso 1: Crear usuario en auth
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -42,14 +43,36 @@ const AuthPage = () => {
             emailRedirectTo: window.location.origin,
           },
         });
+
         if (error) throw error;
-        toast.success('¡Cuenta creada! Revisa tu email para confirmar.');
+
+        // Paso 2: Crear perfil en la tabla profiles si el usuario se creó exitosamente
+        if (data?.user?.id) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: data.user.id,
+              display_name: name || email,
+              email: email,
+              is_active: true,
+            });
+
+          if (profileError) {
+            console.error('[Auth] Error creando perfil:', profileError);
+            // No lanzar error aquí, el perfil se puede crear después
+          } else {
+            console.log('[Auth] Perfil creado exitosamente para:', data.user.id);
+          }
+        }
+
+        toast.success('¡Cuenta creada! Por favor revisa tu email para confirmar tu cuenta.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success('¡Bienvenido de vuelta!');
       }
     } catch (err: any) {
+      console.error('[Auth] Error:', err);
       toast.error(err.message || 'Error de autenticación');
     } finally {
       setLoading(false);
