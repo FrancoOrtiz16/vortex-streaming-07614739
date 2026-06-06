@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell, User, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -48,15 +48,38 @@ const statusColor = (status?: string | null) => {
 };
 
 const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
-  const [editing, setEditing] = useState(false);
+  const EDIT_STATE_KEY = `admin_mobile_subscription_edit_${data.id}_v1`;
+  const EDIT_FORM_KEY = `admin_mobile_subscription_form_${data.id}_v1`;
+
+  const [editing, setEditing] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.sessionStorage.getItem(EDIT_STATE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
-  const [form, setForm] = useState({
-    credential_email: data.credential_email || '',
-    credential_password: data.credential_password || '',
-    profile_name: data.profile_name || '',
-    profile_pin: data.profile_pin || '',
-    externalId: data.subscription_code || '',
-    next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
+  const [form, setForm] = useState(() => {
+    const base = {
+      credential_email: data.credential_email || '',
+      credential_password: data.credential_password || '',
+      profile_name: data.profile_name || '',
+      profile_pin: data.profile_pin || '',
+      externalId: data.subscription_code || '',
+      next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
+    };
+
+    if (typeof window === 'undefined') return base;
+
+    try {
+      const raw = window.sessionStorage.getItem(EDIT_FORM_KEY);
+      if (!raw) return base;
+      const parsed = JSON.parse(raw);
+      return { ...base, ...parsed };
+    } catch {
+      return base;
+    }
   });
 
   const isPending = data.status === 'pending_approval' || data.status === 'procesando_credenciales';
@@ -66,6 +89,16 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
     ? { icon: '🟡', label: 'Pendiente', tooltip: 'Suscripción aguardando aprobación administrativa' }
     : getTrafficLightInfo(tlStatus);
   const daysRemaining = !isPending && data.next_renewal ? getDaysUntilExpiry(data.next_renewal) : null;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(EDIT_STATE_KEY, String(editing));
+      window.sessionStorage.setItem(EDIT_FORM_KEY, JSON.stringify(form));
+    } catch {
+      // ignore write failures
+    }
+  }, [editing, form, data.id]);
 
   const handleSave = async () => {
     setBusy('save');

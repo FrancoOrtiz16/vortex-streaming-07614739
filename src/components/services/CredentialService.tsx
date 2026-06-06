@@ -32,9 +32,60 @@ const CredentialService: React.FC<CredentialServiceProps> = ({
   variant = 'button',
 }) => {
   const { credentials, isLoading, error, refetch } = useCredentialData(subscriptionId);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPin, setShowPin] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const DIALOG_STATE_KEY = subscriptionId ? `credential_dialog_state_${subscriptionId}_v1` : null;
+  const [showPassword, setShowPassword] = useState(() => {
+    if (typeof window === 'undefined' || !DIALOG_STATE_KEY) return false;
+    try {
+      const raw = window.sessionStorage.getItem(DIALOG_STATE_KEY);
+      return raw ? JSON.parse(raw).showPassword ?? false : false;
+    } catch {
+      return false;
+    }
+  });
+  const [showPin, setShowPin] = useState(() => {
+    if (typeof window === 'undefined' || !DIALOG_STATE_KEY) return false;
+    try {
+      const raw = window.sessionStorage.getItem(DIALOG_STATE_KEY);
+      return raw ? JSON.parse(raw).showPin ?? false : false;
+    } catch {
+      return false;
+    }
+  });
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === 'undefined' || !DIALOG_STATE_KEY) return false;
+    try {
+      const raw = window.sessionStorage.getItem(DIALOG_STATE_KEY);
+      return raw ? JSON.parse(raw).isOpen ?? false : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !DIALOG_STATE_KEY) return;
+    try {
+      const raw = window.sessionStorage.getItem(DIALOG_STATE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      setShowPassword(parsed.showPassword ?? false);
+      setShowPin(parsed.showPin ?? false);
+      setIsOpen(parsed.isOpen ?? false);
+    } catch {
+      // ignore parse failures
+    }
+  }, [DIALOG_STATE_KEY]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !DIALOG_STATE_KEY) return;
+    try {
+      window.sessionStorage.setItem(
+        DIALOG_STATE_KEY,
+        JSON.stringify({ isOpen, showPassword, showPin }),
+      );
+    } catch {
+      // ignore write failures
+    }
+  }, [DIALOG_STATE_KEY, isOpen, showPassword, showPin]);
 
   // Estados calculados
   const hasCredentials = credentials?.password_cuenta && credentials.password_cuenta.trim() !== '';

@@ -23,7 +23,11 @@ export default function AdminSubscriptionsNew() {
   const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
-  const [showManualModal, setShowManualModal] = useState(false);
+  const MANUAL_MODAL_KEY = 'admin_manual_subscription_modal_open_v1';
+  const [showManualModal, setShowManualModal] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.sessionStorage.getItem(MANUAL_MODAL_KEY) === 'true';
+  });
   const [services, setServices] = useState<Array<{ id: string; name: string }>>([]);
   const [syncing, setSyncing] = useState(false);
   const isMountedRef = useRef(true);
@@ -201,6 +205,11 @@ export default function AdminSubscriptionsNew() {
     fetchAll();
     return () => { isMountedRef.current = false; };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(MANUAL_MODAL_KEY, String(showManualModal));
+  }, [showManualModal]);
 
   // Realtime: refrescar la tabla cuando se inserte/actualice/borre cualquier suscripción.
   useEffect(() => {

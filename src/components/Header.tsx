@@ -1,8 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShoppingCart } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import UserMenu from '@/components/UserMenu';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +9,6 @@ import { useAuth } from '@/hooks/useAuth';
 const Header = () => {
   const { count } = useCart();
   const { isAdmin } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
   const { shouldAnimateOnDevice } = useResponsive();
 
   return (
@@ -62,41 +60,8 @@ const Header = () => {
             )}
           </Link>
           <UserMenu />
-          {/* Mobile menu button */}
-          <button
-            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-            className="md:hidden p-1.5 sm:p-2 rounded-lg hover:bg-secondary transition-colors will-change-transform"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            {menuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </button>
         </div>
       </div>
-
-      {/* Mobile menu - Responsivo */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={shouldAnimateOnDevice ? { height: 0, opacity: 0 } : false}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={shouldAnimateOnDevice ? { height: 0, opacity: 0 } : undefined}
-            transition={shouldAnimateOnDevice ? { duration: 0.2 } : { duration: 0 }}
-            className="md:hidden border-t border-border overflow-hidden"
-            style={{ background: 'hsla(220, 20%, 6%, 0.95)' }}
-          >
-            <nav className="flex flex-col p-2 sm:p-4 gap-1 sm:gap-2">
-              <Link to="/#catalogo" onClick={() => setMenuOpen(false)} className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                Ver Tienda
-              </Link>
-              {isAdmin && (
-                <Link to="/admin-access" onClick={() => setMenuOpen(false)} className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  Admin Principal
-                </Link>
-              )}
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   );
 };

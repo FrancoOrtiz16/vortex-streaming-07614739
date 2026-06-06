@@ -1,4 +1,4 @@
-import { User, ShoppingCart, LayoutDashboard, LogOut, Shield } from 'lucide-react';
+import { User, ShoppingCart, LayoutDashboard, LogOut, Shield, Store } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -61,6 +61,12 @@ const UserMenu = () => {
           <Link to="/cart" className="flex items-center gap-2">
             <ShoppingCart className="w-4 h-4" />
             Mi Carrito
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+          <Link to="/#catalogo" className="flex items-center gap-2">
+            <Store className="w-4 h-4" />
+            Ver Tienda
           </Link>
         </DropdownMenuItem>
         {isAdmin && (

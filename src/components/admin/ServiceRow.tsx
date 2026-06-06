@@ -74,15 +74,38 @@ const statusLabel = (status?: string | null) => {
 };
 
 const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
-  const [editing, setEditing] = useState(false);
+  const EDIT_STATE_KEY = `admin_subscription_edit_${data.id}_v1`;
+  const EDIT_FORM_KEY = `admin_subscription_form_${data.id}_v1`;
+
+  const [editing, setEditing] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.sessionStorage.getItem(EDIT_STATE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [busy, setBusy] = useState<'save' | 'notify' | 'delete' | 'pay' | null>(null);
-  const [form, setForm] = useState({
-    credential_email: data.credential_email || '',
-    profile_name: data.profile_name || '',
-    profile_pin: data.profile_pin || '',
-    subscription_code: data.subscription_code || '',
-    credential_password: data.credential_password || '', // Para edición
-    next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
+  const [form, setForm] = useState(() => {
+    const base = {
+      credential_email: data.credential_email || '',
+      profile_name: data.profile_name || '',
+      profile_pin: data.profile_pin || '',
+      subscription_code: data.subscription_code || '',
+      credential_password: data.credential_password || '',
+      next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
+    };
+
+    if (typeof window === 'undefined') return base;
+
+    try {
+      const raw = window.sessionStorage.getItem(EDIT_FORM_KEY);
+      if (!raw) return base;
+      const parsed = JSON.parse(raw);
+      return { ...base, ...parsed };
+    } catch {
+      return base;
+    }
   });
 
   // Cargar el estado de verificación del cliente
@@ -94,6 +117,16 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
     ? { icon: '🟡', label: 'Pendiente', tooltip: 'Suscripción aguardando aprobación administrativa' }
     : getTrafficLightInfo(trafficLightStatus);
   const daysRemaining = !isPendingApproval && data.next_renewal ? getDaysUntilExpiry(data.next_renewal) : null;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(EDIT_STATE_KEY, String(editing));
+      window.sessionStorage.setItem(EDIT_FORM_KEY, JSON.stringify(form));
+    } catch {
+      // ignore write failures
+    }
+  }, [editing, form, data.id]);
 
   const handleSave = async () => {
     setBusy('save');

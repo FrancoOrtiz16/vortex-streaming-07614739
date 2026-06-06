@@ -23,18 +23,42 @@ export function ManualSubscriptionModal({
   onSuccess,
   services,
 }: ManualSubscriptionModalProps) {
+  const FORM_STORE_KEY = 'admin_manual_subscription_form_v1';
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    clientName: '',
-    clientEmail: '',
-    serviceName: '',
-    credentialEmail: '',
-    credentialPassword: '',
-    profileName: '',
-    profilePin: '',
-    externalId: '',
-    startDate: getVETDateString(),
-    expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+  const [form, setForm] = useState(() => {
+    if (typeof window === 'undefined') {
+      return {
+        clientName: '',
+        clientEmail: '',
+        serviceName: '',
+        credentialEmail: '',
+        credentialPassword: '',
+        profileName: '',
+        profilePin: '',
+        externalId: '',
+        startDate: getVETDateString(),
+        expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+      };
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(FORM_STORE_KEY);
+      if (!raw) throw new Error('No stored form');
+      return JSON.parse(raw);
+    } catch {
+      return {
+        clientName: '',
+        clientEmail: '',
+        serviceName: '',
+        credentialEmail: '',
+        credentialPassword: '',
+        profileName: '',
+        profilePin: '',
+        externalId: '',
+        startDate: getVETDateString(),
+        expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+      };
+    }
   });
   const [linkedProfile, setLinkedProfile] = useState<LinkedProfile | null>(null);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'searching' | 'found' | 'not_found' | 'invalid'>('idle');
@@ -120,6 +144,16 @@ export function ManualSubscriptionModal({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(FORM_STORE_KEY, JSON.stringify(form));
+  }, [form]);
+
+  const clearPersistedForm = () => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.removeItem(FORM_STORE_KEY);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -170,6 +204,7 @@ export function ManualSubscriptionModal({
       toast.success(`✅ Suscripción manual creada para ${form.clientName}`);
       onSuccess();
       onClose();
+      clearPersistedForm();
       setForm({
         clientName: '',
         clientEmail: '',
