@@ -32,6 +32,7 @@ export function ManualSubscriptionModal({
     credentialPassword: '',
     profileName: '',
     profilePin: '',
+    externalId: '',
     startDate: getVETDateString(),
     expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
   });
@@ -153,6 +154,7 @@ export function ManualSubscriptionModal({
         status: 'pending_approval', // Pendiente de aprobación
         credential_email: form.credentialEmail || null,
         credential_password: form.credentialPassword || null,
+        subscription_code: form.externalId || null,
         profile_name: form.profileName || null,
         profile_pin: form.profilePin || null,
         duration_days: 30,
@@ -176,6 +178,7 @@ export function ManualSubscriptionModal({
         credentialPassword: '',
         profileName: '',
         profilePin: '',
+        externalId: '',
         startDate: getVETDateString(),
         expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
       });
@@ -299,6 +302,14 @@ export function ManualSubscriptionModal({
                 name="credentialPassword"
                 placeholder="Contraseña"
                 value={form.credentialPassword}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+              <input
+                type="text"
+                name="externalId"
+                placeholder="ID-Externo (solo admin)"
+                value={form.externalId}
                 onChange={handleChange}
                 className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
               />

@@ -55,6 +55,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
     credential_password: data.credential_password || '',
     profile_name: data.profile_name || '',
     profile_pin: data.profile_pin || '',
+    externalId: data.subscription_code || '',
     next_renewal: data.next_renewal ? data.next_renewal.slice(0, 10) : '',
   });
 
@@ -74,6 +75,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
         credential_password: form.credential_password || null,
         profile_name: form.profile_name || null,
         profile_pin: form.profile_pin || null,
+        subscription_code: form.externalId || null,
       };
       if (form.next_renewal) payload.next_renewal = getVETDateInputISO(form.next_renewal);
       const { error } = await supabase.from('subscriptions').update(payload).eq('id', data.id);
@@ -256,6 +258,13 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
               placeholder="Perfil"
               value={form.profile_name}
               onChange={(e) => setForm({ ...form, profile_name: e.target.value })}
+              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
+            />
+            <input
+              type="text"
+              placeholder="ID-Externo"
+              value={form.externalId}
+              onChange={(e) => setForm({ ...form, externalId: e.target.value })}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
             />
             <input

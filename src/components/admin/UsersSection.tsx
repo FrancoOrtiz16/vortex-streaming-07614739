@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, Shield, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -117,14 +117,21 @@ export function UsersSection() {
     };
   }, [profiles.length]);
 
-  const toggleVerified = async (profile: Profile) => {
+  const deleteUserFromWeb = async (profile: Profile) => {
     try {
-      const { error } = await supabase.from('profiles').update({ is_verified: !profile.is_verified }).eq('id', profile.id);
+      const { error } = await supabase.from('profiles').update({
+        is_active: false,
+        is_verified: false,
+        verificado: false,
+        updated_at: new Date().toISOString(),
+      }).eq('id', profile.id);
+
       if (error) {
-        throw new Error('Error actualizando');
+        throw new Error('Error eliminando usuario de la web');
       }
-      toast.success(profile.is_verified ? 'Verificación removida' : 'Usuario verificado');
-      await fetchData();
+
+      toast.success('Usuario eliminado de la web. El registro permanece en la base de datos.');
+      setProfiles(prev => prev.filter(p => p.id !== profile.id));
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Error desconocido');
     }
@@ -163,7 +170,6 @@ export function UsersSection() {
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Servicio</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Estado</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">WhatsApp</th>
-                <th className="text-center px-4 py-3 text-muted-foreground font-medium">Verificado</th>
                 <th className="text-center px-4 py-3 text-muted-foreground font-medium">Acciones</th>
               </tr>
             </thead>
@@ -204,20 +210,20 @@ export function UsersSection() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button onClick={() => toggleVerified(p)} aria-label={p.is_verified ? 'Quitar verificación' : 'Verificar usuario'}>
-                        {p.is_verified ? (
-                          <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-muted-foreground mx-auto hover:text-primary transition-colors" />
-                        )}
+                      <button
+                        onClick={() => deleteUserFromWeb(p)}
+                        className="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-destructive border border-destructive/20 hover:bg-destructive/10 transition-colors"
+                        aria-label="Eliminar usuario de la web"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar web
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-center text-muted-foreground">—</td>
                   </motion.tr>
                 );
               })}
               {profiles.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No hay usuarios registrados</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No hay usuarios registrados</td></tr>
               )}
             </tbody>
           </table>
