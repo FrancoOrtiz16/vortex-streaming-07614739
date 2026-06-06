@@ -38,7 +38,10 @@ const formatMoneyValue = (value: number, currency: CurrencyCode = 'USD') => {
 };
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>('USD');
+  const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
+    if (typeof window === 'undefined') return 'USD';
+    return parseCurrency(window.localStorage.getItem(CURRENCY_STORAGE_KEY));
+  });
   const [rate, setRate] = useState<number>(() => {
     if (typeof window === 'undefined') return FALLBACK_RATE;
     const cached = window.localStorage.getItem(RATE_STORAGE_KEY);

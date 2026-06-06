@@ -20,7 +20,7 @@ interface GroupedItem {
 const ProductGrid = () => {
   const [searchParams] = useSearchParams();
   const catParam = searchParams.get('cat');
-  const { products, loading, error } = useProducts();
+  const { products, loading, error, retry } = useProducts();
   const [category, setCategory] = useState<ProductCategory | 'all'>((catParam as ProductCategory) || 'all');
 
   const filtered = category === 'all'
@@ -121,7 +121,7 @@ const ProductGrid = () => {
               {error}
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={retry}
               className="inline-block px-4 py-2 rounded-lg sm:rounded-xl bg-amber-500 text-amber-50 text-xs sm:text-sm font-semibold hover:bg-amber-600 transition-colors"
             >
               Reintentar

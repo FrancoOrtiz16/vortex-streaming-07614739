@@ -65,13 +65,11 @@ const ClientDashboard = () => {
   const { addItem } = useCart();
 
   const [renewing, setRenewing] = useState<string | null>(null);
-  const lastLoadedAtRef = useRef<number>(0);
 
   const loadDashboardData = useCallback(async () => {
     if (!user?.id || !isMountedRef.current) return;
 
     setLoading(true);
-    lastLoadedAtRef.current = Date.now();
     // CORRECCIÓN 1: Timeout AGRESIVO de 2 segundos en lugar de 8 para NO bloquear la UI
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current) {
@@ -129,19 +127,8 @@ const ClientDashboard = () => {
 
     if (user && user.id) {
       loadDashboardData();
-      const handleFocus = () => {
-        const elapsed = Date.now() - lastLoadedAtRef.current;
-        if (elapsed < 15000) {
-          console.debug('[ClientDashboard] Saltando refresco en foco porque los datos están recientes', { elapsed });
-          return;
-        }
-        loadDashboardData();
-      };
-
-      window.addEventListener('focus', handleFocus);
       return () => {
         isMountedRef.current = false;
-        window.removeEventListener('focus', handleFocus);
       };
     }
 

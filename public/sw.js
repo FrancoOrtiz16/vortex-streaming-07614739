@@ -1,7 +1,6 @@
 // Vortex Streaming service-worker kill switch.
-// Previous versions cached index.html and hashed JS bundles, which could keep an
-// obsolete production bundle alive after publishing. This worker activates once,
-// clears Cache Storage, releases all clients, and unregisters itself.
+// Clears stale app caches silently and unregisters itself without navigating
+// clients, so users never suffer automatic reload loops when returning to the app.
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -16,10 +15,6 @@ self.addEventListener('activate', (event) => {
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
       client.postMessage({ type: 'VORTEX_SW_DISABLED' });
-      if ('navigate' in client) {
-        const separator = client.url.includes('?') ? '&' : '?';
-        client.navigate(`${client.url}${separator}sw-cleared=${Date.now()}`);
-      }
     }
 
     await self.registration.unregister();

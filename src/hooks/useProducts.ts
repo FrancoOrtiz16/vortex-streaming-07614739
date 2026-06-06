@@ -37,6 +37,7 @@ export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,7 +119,7 @@ export function useProducts() {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [retryKey]);
 
-  return { products, loading, error };
+  return { products, loading, error, retry: () => setRetryKey(key => key + 1) };
 }

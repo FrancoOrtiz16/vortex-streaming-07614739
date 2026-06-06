@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, supabaseIsConfigured } from '@/integrations/supabase/client';
 import { fallbackProducts } from '@/data/fallbackProducts';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
@@ -32,6 +32,7 @@ interface GroupedItem {
 }
 
 const StandaloneCatalog: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAdmin, user } = useAuth();
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -265,7 +266,7 @@ const StandaloneCatalog: React.FC = () => {
             <p className="text-sm text-muted-foreground mb-4">Para procesar compras y recibir soporte necesitamos tu número de WhatsApp. Añádelo en tu perfil para continuar.</p>
             <div className="flex gap-3 justify-center">
               <button
-                onClick={() => { window.location.href = '/profile'; }}
+                onClick={() => { navigate('/profile'); }}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold"
               >
                 Ir a mi perfil

@@ -20,103 +20,12 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     
-    <!-- 🛡️ CACHE-BUSTING SCRIPT - Previene bucles infinitos de carga -->
+    <!-- 🛡️ ESTABILIDAD DE SESIÓN: sin recargas automáticas ni limpiezas intrusivas -->
     <script>
-      // 🧯 Recuperación de producción: elimina service workers/cachés antiguos que
-      // podían servir bundles obsoletos y dejar la app en pantalla negra.
-      (function () {
-        var RECOVERY_VERSION = '2026-06-04-disable-sw';
-        var RECOVERY_KEY = 'vortex_sw_recovery_version';
-        if (sessionStorage.getItem(RECOVERY_KEY) === RECOVERY_VERSION) return;
-
-        var cleanupTasks = [];
-        if ('serviceWorker' in navigator) {
-          cleanupTasks.push(
-            navigator.serviceWorker.getRegistrations()
-              .then(function (regs) { return Promise.all(regs.map(function (r) { return r.unregister(); })); })
-              .catch(function () {})
-          );
-        }
-        if ('caches' in window) {
-          cleanupTasks.push(
-            caches.keys()
-              .then(function (keys) { return Promise.all(keys.map(function (key) { return caches.delete(key); })); })
-              .catch(function () {})
-          );
-        }
-
-        if (cleanupTasks.length > 0) {
-          Promise.all(cleanupTasks).then(function () {
-            sessionStorage.setItem(RECOVERY_KEY, RECOVERY_VERSION);
-            window.location.replace(window.location.pathname + '?cache-cleared=' + Date.now());
-          });
-        }
-      })();
-
-      // Inyectar timestamp único para cache-busting de imports dinámicos
-      window.__CACHE_BUST_VERSION__ = Date.now().toString();
-      
-      // Prevenir caché persistente de archivos críticos en modo incógnito
+      // Mantener solo señales pasivas para optimización visual; nunca recargar ni limpiar storage.
       if (navigator.maxTouchPoints !== undefined || /mobile|android|iphone/i.test(navigator.userAgent)) {
-        // En dispositivos móviles, forzar validación de caché
         document.documentElement.setAttribute('data-cache-mode', 'strict');
       }
-      
-      // 🛡️ WATCHDOG DE MONTAJE (5s) — Auto-rescate sin intervención del usuario
-      (function () {
-        var ATTEMPT_KEY = 'vortex_recovery_attempt';
-        var WHITELIST = ['sb-', 'supabase.auth', 'supabase-auth', 'auth-token', 'session-token'];
-        function isWhitelisted(k) {
-          k = (k || '').toLowerCase();
-          for (var i = 0; i < WHITELIST.length; i++) if (k.indexOf(WHITELIST[i].toLowerCase()) !== -1) return true;
-          return false;
-        }
-        window.__vortexDeepClean = function (preserveAuth) {
-          try {
-            var ks = Object.keys(localStorage);
-            for (var i = 0; i < ks.length; i++) if (!preserveAuth || !isWhitelisted(ks[i])) localStorage.removeItem(ks[i]);
-            var ss = Object.keys(sessionStorage);
-            for (var j = 0; j < ss.length; j++) sessionStorage.removeItem(ss[j]);
-            // Cookies
-            document.cookie.split(';').forEach(function (c) {
-              var name = c.split('=')[0].trim();
-              if (!name) return;
-              if (preserveAuth && isWhitelisted(name)) return;
-              document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-            });
-            // Caches API
-            if ('caches' in window) caches.keys().then(function (ns) { ns.forEach(function (n) { caches.delete(n); }); });
-            // Service workers
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function (regs) { regs.forEach(function (r) { r.unregister(); }); });
-            }
-          } catch (e) { console.warn('[Watchdog] deepClean error', e); }
-        };
-        function showRecoveryUI() {
-          var root = document.getElementById('root');
-          if (!root) return;
-          root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#020617;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;padding:24px;text-align:center"><div style="max-width:420px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h1 style="font-size:22px;margin:0 0 12px;color:#3b82f6">No pudimos cargar la app</h1><p style="opacity:.8;margin:0 0 24px;line-height:1.5">Detectamos un bloqueo persistente. Realiza una limpieza profunda para restablecer la sesión.</p><button id="vortex-deep-clean-btn" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border:0;padding:14px 22px;border-radius:10px;font-weight:600;cursor:pointer;font-size:15px;box-shadow:0 8px 24px rgba(59,130,246,.35)">Limpieza Profunda y Reintentar</button></div></div>';
-          var btn = document.getElementById('vortex-deep-clean-btn');
-          if (btn) btn.addEventListener('click', function () {
-            window.__vortexDeepClean(false);
-            sessionStorage.removeItem(ATTEMPT_KEY);
-            window.location.replace(window.location.pathname + '?fresh=' + Date.now());
-          });
-        }
-        window.__LOADING_TIMEOUT__ = setTimeout(function () {
-          if (window.__APP_MOUNTED__) return;
-          var attempt = parseInt(sessionStorage.getItem(ATTEMPT_KEY) || '0', 10);
-          if (attempt >= 1) {
-            console.error('[Watchdog] Bloqueo persistente — mostrando UI de recuperación');
-            showRecoveryUI();
-            return;
-          }
-          console.error('[Watchdog] Montaje no completado en 5s — auto-clear y recarga');
-          sessionStorage.setItem(ATTEMPT_KEY, String(attempt + 1));
-          window.__vortexDeepClean(true);
-          window.location.reload();
-        }, 5000);
-      })();
     </script>
 
     <!-- TODO: Update og:title to match your application name -->

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getUserNotifications, markNotificationAsRead } from '@/integrations/supabase/subscriptions-helpers';
@@ -14,6 +15,7 @@ interface Notification {
 }
 
 export function NotificationBell() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -68,8 +70,7 @@ export function NotificationBell() {
   };
 
   const handleRenewClick = () => {
-    // Navigate to cart or renewal page
-    window.location.href = '/cart';
+    navigate('/cart');
   };
 
   return (
