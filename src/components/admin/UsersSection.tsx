@@ -124,18 +124,24 @@ export function UsersSection() {
     };
   }, [profiles.length]);
 
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
   const deleteUserFromWeb = async (profile: Profile) => {
     try {
-      const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
+      setDeletingUserId(profile.id);
+      const { data, error } = await supabase.from('profiles').delete().eq('id', profile.id).select('id');
 
-      if (error) {
+      if (error || !data) {
         throw new Error('Error eliminando usuario');
       }
 
       toast.success('Usuario eliminado definitivamente.');
       setProfiles(prev => prev.filter(p => p.id !== profile.id));
+      await fetchData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Error desconocido');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -225,7 +231,8 @@ export function UsersSection() {
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => deleteUserFromWeb(p)}
-                        className="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-destructive border border-destructive/20 hover:bg-destructive/10 transition-colors"
+                        disabled={deletingUserId === p.id}
+                        className="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-destructive border border-destructive/20 hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Eliminar usuario de la web"
                       >
                         <Trash2 className="w-4 h-4" />
