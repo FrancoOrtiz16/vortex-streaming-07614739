@@ -348,7 +348,7 @@ const ClientDashboard = () => {
             Inicio
           </Link>
 
-          <div className="flex flex-wrap items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1" id="tutorial-dashboard-menu">
             <h1 className="font-display font-bold text-2xl">Mi Panel</h1>
             {user && profilePhone && (
               <div className="flex items-center gap-1 text-emerald-400 text-sm">
@@ -363,7 +363,7 @@ const ClientDashboard = () => {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-6" id="tutorial-dashboard-profile">
             {user && (
               <button
                 onClick={() => navigate('/profile')}
@@ -380,7 +380,7 @@ const ClientDashboard = () => {
             <Package className="w-4 h-4 text-primary" />
             Historial de Pedidos
           </h2>
-          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden mb-8">
+          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden mb-8" id="tutorial-dashboard-orders">
             {orders.length === 0 ? (
               <div className="px-4 py-8 text-center text-slate-400 text-sm">
                 No tienes pedidos aún.
@@ -412,7 +412,7 @@ const ClientDashboard = () => {
             <RefreshCw className="w-4 h-4 text-primary" />
             Historial de Suscripciones
           </h2>
-          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden">
+          <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden" id="tutorial-dashboard-subs">
             {subs.length === 0 ? (
               <div className="px-4 py-8 text-center text-slate-400 text-sm">
                 No tienes servicios activos aún.
