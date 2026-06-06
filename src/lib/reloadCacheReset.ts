@@ -16,18 +16,19 @@ const clearAppStorage = () => {
   if (typeof window === 'undefined') return;
 
   const preservedKeys = new Set([CART_STORAGE_KEY]);
+  const preservedPrefix = ['supabase', 'sb-', 'sb:', 'supabase.auth', 'sb.'];
   const keysToRemove: string[] = [];
 
   for (let i = 0; i < window.localStorage.length; i += 1) {
     const key = window.localStorage.key(i);
     if (!key) continue;
-    if (!preservedKeys.has(key)) {
+    const isPreserved = preservedKeys.has(key) || preservedPrefix.some(prefix => key.startsWith(prefix));
+    if (!isPreserved) {
       keysToRemove.push(key);
     }
   }
 
   keysToRemove.forEach((key) => window.localStorage.removeItem(key));
-  window.sessionStorage.clear();
 };
 
 const clearBrowserCaches = async () => {

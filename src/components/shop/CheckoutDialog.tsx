@@ -22,7 +22,7 @@ import { useCurrencyConverter, formatConvertedAmount, shouldUseVES } from '@/hoo
 import { useCurrency } from '@/context/CurrencyContext';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
 
-const CHECKOUT_STATE_KEY = 'vortex_checkout_state_v1';
+const CHECKOUT_SESSION_KEY = 'vortex_checkout_session_state_v1';
 
 interface PersistedCheckoutState {
   selectedMethod: PMType | null;
@@ -33,7 +33,7 @@ interface PersistedCheckoutState {
 const loadPersistedCheckoutState = (): PersistedCheckoutState | null => {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(CHECKOUT_STATE_KEY);
+    const raw = window.sessionStorage.getItem(CHECKOUT_SESSION_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as PersistedCheckoutState;
   } catch (error) {
@@ -45,7 +45,7 @@ const loadPersistedCheckoutState = (): PersistedCheckoutState | null => {
 const savePersistedCheckoutState = (state: PersistedCheckoutState) => {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(CHECKOUT_STATE_KEY, JSON.stringify(state));
+    window.sessionStorage.setItem(CHECKOUT_SESSION_KEY, JSON.stringify(state));
   } catch (error) {
     console.warn('[Checkout] Error guardando estado persistido:', error);
   }
@@ -53,7 +53,7 @@ const savePersistedCheckoutState = (state: PersistedCheckoutState) => {
 
 const clearPersistedCheckoutState = () => {
   if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(CHECKOUT_STATE_KEY);
+  window.sessionStorage.removeItem(CHECKOUT_SESSION_KEY);
 };
 
 interface CheckoutDialogProps {
@@ -74,7 +74,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [profilePhone, setProfilePhone] = useState<string | null>(null);
   const [phoneLoading, setPhoneLoading] = useState(false);
-  const [isCheckoutStateRestored, setIsCheckoutStateRestored] = useState(false);
   const { amount: totalConvertedAmount, formatted: totalConvertedFormatted, isVES, exchangeRate: safeExchangeRate } = useCurrencyConverter(total, selectedMethod);
   // Subtotal/discount siguen al método: si es nacional (Pago Móvil / Transferencia) se muestran en Bs.,
   // en cualquier otro caso permanecen en USD. Reversión instantánea al cambiar de método.
@@ -82,27 +81,39 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
   const discountDisplay = formatConvertedAmount(discount, selectedMethod, safeExchangeRate);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!open) return;
     const persisted = loadPersistedCheckoutState();
     if (persisted) {
       setSelectedMethod(persisted.selectedMethod);
       setReceiptUrl(persisted.receiptUrl);
       setReceiptPreview(persisted.receiptUrl);
       setCurrency(persisted.currency);
-    } else if (open) {
+    } else {
       setCurrency('USD');
     }
-    setIsCheckoutStateRestored(true);
-  }, [setCurrency, open]);
+  }, [open, setCurrency]);
+
+  const hasMountedRef = React.useRef(false);
 
   useEffect(() => {
-    if (!isCheckoutStateRestored) return;
+    if (!open) return;
     savePersistedCheckoutState({
       selectedMethod,
       receiptUrl,
       currency,
     });
-  }, [selectedMethod, receiptUrl, currency, isCheckoutStateRestored]);
+  }, [open, selectedMethod, receiptUrl, currency]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    if (!open) {
+      clearPersistedCheckoutState();
+    }
+  }, [open]);
 
   useEffect(() => {
     // Cargar teléfono del perfil cuando se abre el dialog
@@ -265,7 +276,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const whatsappUrl = getWhatsAppUrl(message);
 
       clear();
-      clearPersistedCheckoutState();
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
 

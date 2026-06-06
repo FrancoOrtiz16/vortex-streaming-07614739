@@ -23,7 +23,7 @@ const CartPage = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const saved = window.localStorage.getItem('vortex_checkout_open_v1');
+    const saved = window.sessionStorage.getItem('vortex_checkout_session_open_v1');
     if (saved === 'true') {
       setCheckoutOpen(true);
     }
@@ -31,7 +31,7 @@ const CartPage = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem('vortex_checkout_open_v1', checkoutOpen ? 'true' : 'false');
+    window.sessionStorage.setItem('vortex_checkout_session_open_v1', checkoutOpen ? 'true' : 'false');
   }, [checkoutOpen]);
 
   return (
