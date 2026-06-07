@@ -382,7 +382,7 @@ export async function createSubscriptionExpirationNotification(
     if (daysLeft < 0) {
       alertLine = `🚨 *Su servicio ya venció.* No pierda su historial de series, películas y música.`;
     } else if (daysLeft === 0) {
-      alertLine = `🚨 *Su servicio vence hoy.* No pierda su historial de series, películas y música.\n\n🔄 *Hoy es su última oportunidad para renovarlo.*`;
+      alertLine = `🚨 *Su servicio vence hoy.* No pierda su historial de series, películas y música.`;
     } else if (daysLeft === 1) {
       alertLine = `🚨 *Su servicio vencerá mañana.* No pierda su historial de series, películas y música.`;
     } else {
@@ -390,11 +390,20 @@ export async function createSubscriptionExpirationNotification(
     }
 
     const accountEmail = credentialEmail || profile?.email || 'no disponible';
-    const accountLine = `📧 *Cuenta:* ${accountEmail} | 🗓️ Exp: ${expiryDate}`;
+    const accountLine = `📧 Cuenta:`;
+    const accountValue = `🔸 ${accountEmail} | 🗓️ Exp: ${expiryDate}`;
 
-    const cta = `💳 *Renueve ahora en nuestra web:* https://vortex-streaming.lovable.app/dashboard`;
+    const renewalLine = daysLeft < 0
+      ? `🔄 Renueve ahora para recuperar su acceso.`
+      : daysLeft === 0
+        ? `🔄 Hoy es su última oportunidad para renovarlo.`
+        : daysLeft === 1
+          ? `🔄 Mañana vence, renueve antes de que expire.`
+          : `🔄 Aproveche para renovarlo antes de que expire.`;
 
-    const message = `${header}Hola estimado(a) *${clientName}*, queremos recordarle que su servicio de *${serviceName}* está por expirar.\n\n${accountLine}\n\n${alertLine}\n\n${cta}\n\nSi no desea renovarlo, simplemente ignore este mensaje.\n\n📌 *Gracias por su tiempo.* 🙌`;
+    const cta = `💳 Renueve ahora en nuestra web: https://vortex-streaming.lovable.app/dashboard`;
+
+    const message = `${header}Hola estimado(a) *${clientName}*, queremos recordarle que su servicio de *${serviceName}* está por expirar.\n\n${accountLine}\n${accountValue}\n\n${alertLine}\n${renewalLine}\n${cta}\nSi no desea renovarlo, simplemente ignore este mensaje.\n📌 Gracias por su tiempo. 🙌`;
 
     if (!phone) {
       return { data: null, error: { message: 'No phone available for user' } };
