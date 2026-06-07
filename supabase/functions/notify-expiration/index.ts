@@ -33,35 +33,42 @@ async function sendWhatsAppMessage(phoneId: string, token: string, toPhone: stri
   return data;
 }
 
-Deno.serve(async (req: any) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_KEY') ?? ''
 
-  try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+if (!supabaseKey) {
+  Deno.serve(() => new Response(JSON.stringify({ error: 'Supabase key missing in environment' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }))
+} else {
+  Deno.serve(async (req: any) => {
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders })
     }
 
-    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL') || Deno.env.get('SUPABASE_URL_PUBLIC')
-    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_KEY')
-    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_KEY') || Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_KEY')
+    try {
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
 
-    const missing = [
-      !supabaseUrl ? 'SUPABASE_URL' : null,
-      !anonKey ? 'SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY' : null,
-      !serviceKey ? 'SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY' : null,
-    ].filter(Boolean)
+      if (!supabaseUrl) {
+        return new Response(JSON.stringify({ error: 'SUPABASE_URL missing in environment' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
 
-    if (missing.length > 0) {
-      return new Response(JSON.stringify({ error: `Server environment not configured for notify-expiration (missing: ${missing.join(', ')})` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+      const missing = [
+        !supabaseUrl ? 'SUPABASE_URL' : null,
+        !serviceKey ? 'SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY' : null,
+      ].filter(Boolean)
+
+      if (missing.length > 0) {
+        return new Response(JSON.stringify({ error: `Server environment not configured for notify-expiration (missing: ${missing.join(', ')})` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
 
     // verify caller
     let callerClient
     try {
-      callerClient = createClient(supabaseUrl, anonKey, {
+      callerClient = createClient(supabaseUrl, anonKey || supabaseKey, {
         global: { headers: { Authorization: authHeader } },
       })
     } catch (e: unknown) {
