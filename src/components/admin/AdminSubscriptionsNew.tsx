@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Loader2, Plus, Zap } from 'lucide-react';
+import { Search, Loader2, Plus, Zap, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,6 +7,7 @@ import ServiceRow, { type ServiceRowData } from './ServiceRow';
 import MobileServiceCard from './MobileServiceCard';
 import { ManualSubscriptionModal } from './ManualSubscriptionModal';
 import { syncOrderToSubscription } from '@/services/orderService';
+import { exportSubscriptionsToExcel } from '@/lib/subscriptionExcelExport';
 
 /**
  * AdminSubscriptionsNew — Vista en tabla con filas independientes (Sandboxing).
@@ -28,8 +29,9 @@ export default function AdminSubscriptionsNew() {
     if (typeof window === 'undefined') return false;
     return window.sessionStorage.getItem(MANUAL_MODAL_KEY) === 'true';
   });
-  const [services, setServices] = useState<Array<{ id: string; name: string }>>([]);
+  const [services, setServices] = useState<Array<{ id: string; name: string; price: number; plan_type: string | null }>>([]);
   const [syncing, setSyncing] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const isMountedRef = useRef(true);
   const profileCacheRef = useRef<Map<string, { display_name: string | null; email: string | null; phone: string | null }>>(new Map());
   const highlightTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -41,7 +43,7 @@ export default function AdminSubscriptionsNew() {
     try {
       const { data, error } = await supabase
         .from('services')
-        .select('id, name')
+        .select('id, name, price, plan_type')
         .eq('is_available', true)
         .order('name');
 
@@ -332,6 +334,34 @@ export default function AdminSubscriptionsNew() {
     [rows]
   );
 
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      await exportSubscriptionsToExcel(
+        filtered.map((row) => ({
+          id: row.id,
+          client_label: row.client_label || 'Cliente sin nombre',
+          user_id: row.user_id,
+          service_name: row.service_name,
+          credential_email: row.credential_email,
+          credential_password: row.credential_password,
+          profile_name: row.profile_name || row.client_label || null,
+          next_renewal: row.next_renewal || null,
+          created_at: row.last_renewal || null,
+          status: row.status,
+          price: 0,
+        })),
+        `suscripciones-streaming-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+      toast.success('Reporte exportado a Excel');
+    } catch (error) {
+      console.error('[AdminSubscriptionsNew] export error:', error);
+      toast.error('No se pudo exportar el reporte a Excel');
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -364,6 +394,16 @@ export default function AdminSubscriptionsNew() {
               <Zap className="w-4 h-4" />
             )}
             {syncing ? 'Sincronizando...' : 'Sincronizar Órdenes'}
+          </button>
+          <button
+            type='button'
+            onClick={handleExportExcel}
+            disabled={exportingExcel || filtered.length === 0}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50 transition"
+            title="Exportar el listado actual a Excel"
+          >
+            {exportingExcel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {exportingExcel ? 'Exportando...' : 'Exportar Excel'}
           </button>
           <button
             type='button'

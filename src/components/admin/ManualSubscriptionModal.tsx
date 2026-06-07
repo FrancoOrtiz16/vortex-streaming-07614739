@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { getVETDateInputISO, getVETDateString } from '@/lib/trafficLightUtils';
+import { getVETDateInputISO, getVETDateString, addVETDays } from '@/lib/trafficLightUtils';
+import { getDurationDaysFromLabel } from '@/lib/durationVariants';
 
 interface ManualSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  services: Array<{ id: string; name: string }>;
+  services: Array<{ id: string; name: string; price: number; plan_type: string | null }>;
 }
 
 interface LinkedProfile {
@@ -30,14 +31,18 @@ export function ManualSubscriptionModal({
       return {
         clientName: '',
         clientEmail: '',
+        serviceId: '',
         serviceName: '',
+        servicePrice: 0,
+        durationLabel: '1 Mes',
+        durationDays: 30,
         credentialEmail: '',
         credentialPassword: '',
         profileName: '',
         profilePin: '',
         externalId: '',
         startDate: getVETDateString(),
-        expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+        expiryDate: getVETDateString(addVETDays(new Date(), 30)),
       };
     }
 
@@ -49,14 +54,18 @@ export function ManualSubscriptionModal({
       return {
         clientName: '',
         clientEmail: '',
+        serviceId: '',
         serviceName: '',
+        servicePrice: 0,
+        durationLabel: '1 Mes',
+        durationDays: 30,
         credentialEmail: '',
         credentialPassword: '',
         profileName: '',
         profilePin: '',
         externalId: '',
         startDate: getVETDateString(),
-        expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+        expiryDate: getVETDateString(addVETDays(new Date(), 30)),
       };
     }
   });
@@ -141,7 +150,36 @@ export function ManualSubscriptionModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'serviceName') {
+      const selectedService = services.find((svc) => svc.id === value) ?? null;
+      const durationDays = selectedService ? getDurationDaysFromLabel(selectedService.plan_type) : 30;
+      const startDate = getVETDateString();
+      const expiryDate = getVETDateString(addVETDays(new Date(startDate), durationDays));
+
+      setForm((prev) => ({
+        ...prev,
+        serviceId: selectedService?.id || '',
+        serviceName: selectedService?.name || '',
+        servicePrice: selectedService?.price ?? 0,
+        durationLabel: selectedService?.plan_type || '1 Mes',
+        durationDays,
+        startDate,
+        expiryDate,
+      }));
+      return;
+    }
+
+    setForm((prev) => {
+      const next = { ...prev, [name]: value } as typeof prev;
+
+      if (name === 'startDate' && prev.durationDays > 0) {
+        const baseDate = new Date(`${value}T00:00:00-04:00`);
+        next.expiryDate = getVETDateString(addVETDays(baseDate, prev.durationDays));
+      }
+
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -177,22 +215,22 @@ export function ManualSubscriptionModal({
         return;
       }
 
-      // ⚠️ IMPORTANTE: Al crear una suscripción manual, debe estar en 'pending_approval'
-      // Usar fecha lejana (100 años) en lugar de NULL porque la BD no permite NULL
-      const pendingDate = new Date();
-      pendingDate.setFullYear(pendingDate.getFullYear() + 100);
-      
+      const durationDays = Number(form.durationDays) || getDurationDaysFromLabel(form.durationLabel);
+      const startDate = form.startDate || getVETDateString();
+      const expiryDate = form.expiryDate || getVETDateString(addVETDays(new Date(startDate), durationDays));
+
       const payload = {
         user_id: linkedProfile.user_id,
         service_name: form.serviceName,
-        status: 'pending_approval', // Pendiente de aprobación
+        status: 'pending_approval',
         credential_email: form.credentialEmail || null,
         credential_password: form.credentialPassword || null,
         subscription_code: form.externalId || null,
         profile_name: form.profileName || null,
         profile_pin: form.profilePin || null,
-        duration_days: 30,
-        next_renewal: pendingDate.toISOString(), // Fecha lejana = marcador de "pendiente"
+        duration_days: durationDays,
+        last_renewal: getVETDateInputISO(startDate),
+        next_renewal: getVETDateInputISO(expiryDate),
       };
 
       const { error } = await supabase
@@ -208,14 +246,18 @@ export function ManualSubscriptionModal({
       setForm({
         clientName: '',
         clientEmail: '',
+        serviceId: '',
         serviceName: '',
+        servicePrice: 0,
+        durationLabel: '1 Mes',
+        durationDays: 30,
         credentialEmail: '',
         credentialPassword: '',
         profileName: '',
         profilePin: '',
         externalId: '',
         startDate: getVETDateString(),
-        expiryDate: getVETDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+        expiryDate: getVETDateString(addVETDays(new Date(), 30)),
       });
       setLinkedProfile(null);
       setEmailStatus('idle');
@@ -231,10 +273,10 @@ export function ManualSubscriptionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl mx-4 bg-slate-950 border border-white/10 rounded-xl shadow-2xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Nueva Suscripción Manual</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 sm:px-6">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-white/10 rounded-xl shadow-2xl p-6 sm:p-8 mx-auto flex flex-col items-center">
+        <div className="w-full flex items-center justify-between mb-6 gap-4">
+          <h2 className="w-full text-xl font-bold text-white text-center">Nueva Suscripción Manual</h2>
           <button
             type="button"
             onClick={onClose}
@@ -244,11 +286,11 @@ export function ManualSubscriptionModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="w-full space-y-4 flex flex-col items-center">
           {/* Información del Cliente */}
-          <div className="bg-slate-900/40 border border-white/5 rounded-lg p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-300">Información del Cliente</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="w-full bg-slate-900/40 border border-white/5 rounded-lg p-4 space-y-3 text-center">
+            <h3 className="text-sm font-semibold text-slate-300 text-center">Información del Cliente</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 justify-center">
               <input
                 type="text"
                 name="clientName"
@@ -286,23 +328,39 @@ export function ManualSubscriptionModal({
           </div>
 
           {/* Servicio y Fechas */}
-          <div className="bg-slate-900/40 border border-white/5 rounded-lg p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-300">Servicio y Vigencia</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="w-full bg-slate-900/40 border border-white/5 rounded-lg p-4 space-y-3 text-center">
+            <h3 className="text-sm font-semibold text-slate-300 text-center">Servicio y Vigencia</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-end justify-center">
               <select
                 name="serviceName"
-                value={form.serviceName}
+                value={form.serviceId || ''}
                 onChange={handleChange}
                 className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500"
                 required
               >
                 <option value="">Seleccionar servicio</option>
                 {services.map((svc) => (
-                  <option key={svc.id} value={svc.name}>
-                    {svc.name}
+                  <option key={svc.id} value={svc.id}>
+                    {svc.name} {svc.plan_type ? `· ${svc.plan_type}` : ''}
                   </option>
                 ))}
               </select>
+              <input
+                type="text"
+                name="servicePrice"
+                value={form.servicePrice ? `$${form.servicePrice.toFixed(2)}` : ''}
+                readOnly
+                placeholder="Precio auto"
+                className="w-full px-3 py-2 bg-slate-800/70 border border-white/10 rounded-lg text-emerald-300 focus:outline-none"
+              />
+              <input
+                type="text"
+                name="durationLabel"
+                value={form.durationLabel || '1 Mes'}
+                readOnly
+                placeholder="Duración auto"
+                className="w-full px-3 py-2 bg-slate-800/70 border border-white/10 rounded-lg text-sky-300 focus:outline-none"
+              />
               <input
                 type="date"
                 name="startDate"
@@ -321,9 +379,9 @@ export function ManualSubscriptionModal({
           </div>
 
           {/* Credenciales del Servicio */}
-          <div className="bg-slate-900/40 border border-white/5 rounded-lg p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-300">Credenciales del Servicio</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="w-full bg-slate-900/40 border border-white/5 rounded-lg p-4 space-y-3 text-center">
+            <h3 className="text-sm font-semibold text-slate-300 text-center">Credenciales del Servicio</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 justify-center">
               <input
                 type="email"
                 name="credentialEmail"
@@ -368,7 +426,7 @@ export function ManualSubscriptionModal({
           </div>
 
           {/* Botones */}
-          <div className="flex gap-3 pt-4">
+          <div className="w-full flex flex-col sm:flex-row gap-3 pt-4 justify-center items-center">
             <button
               type="button"
               onClick={onClose}
