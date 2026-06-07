@@ -346,17 +346,21 @@ export async function createSubscriptionExpirationNotification(
     }
 
     const clientName = profile?.display_name || (profile?.email ? String(profile.email).split('@')[0] : 'Cliente');
-    const phone = profile?.phone ?? profile?.profile_phone ?? null;
+    const phone = profile?.phone ?? null;
 
-    // Fetch subscription next_renewal to include expiration date in message
+    // Fetch subscription next_renewal and credential email to include in the message
     let nextRenewal: string | null = null;
+    let credentialEmail: string | null = null;
     if (subscriptionId) {
       const { data: sub, error: subError } = await supabase
         .from('subscriptions')
-        .select('next_renewal')
+        .select('next_renewal, credential_email')
         .eq('id', subscriptionId)
         .maybeSingle();
-      if (!subError && sub) nextRenewal = (sub as any).next_renewal ?? null;
+      if (!subError && sub) {
+        nextRenewal = (sub as any).next_renewal ?? null;
+        credentialEmail = (sub as any).credential_email ?? null;
+      }
     }
 
     const expiryDate = nextRenewal ? new Date(nextRenewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'pronto';
@@ -367,29 +371,30 @@ export async function createSubscriptionExpirationNotification(
     // Build personalized message per requirements
     let header = '';
     if (daysLeft <= 0) {
-      header = '⏳ **** ¡ÚLTIMO DÍA PARA RENOVAR SU SERVICIO! **** ⏳\n\n';
+      header = '⏳ *¡ÚLTIMO DÍA PARA RENOVAR SU SERVICIO!* ⏳\n\n';
     } else if (daysLeft === 1) {
-      header = '⏳ **** Recordatorio de renovación **** ⏳\n\n';
+      header = '⏳ *Recordatorio de renovación* ⏳\n\n';
     } else {
-      header = '⏳ **** Recordatorio de renovación **** ⏳\n\n';
+      header = '⏳ *Recordatorio de renovación* ⏳\n\n';
     }
 
     let alertLine = '';
     if (daysLeft < 0) {
-      alertLine = `🚨 ****Su servicio ya venció.**** No pierda su historial de series, películas y música.`;
+      alertLine = `🚨 *Su servicio ya venció.* No pierda su historial de series, películas y música.`;
     } else if (daysLeft === 0) {
-      alertLine = `🚨 ****Su servicio vence hoy.**** No pierda su historial de series, películas y música.\n\n🔄 ****Hoy es su última oportunidad para renovarlo.****`;
+      alertLine = `🚨 *Su servicio vence hoy.* No pierda su historial de series, películas y música.\n\n🔄 *Hoy es su última oportunidad para renovarlo.*`;
     } else if (daysLeft === 1) {
-      alertLine = `🚨 ****Su servicio vencerá mañana.**** No pierda su historial de series, películas y música.`;
+      alertLine = `🚨 *Su servicio vencerá mañana.* No pierda su historial de series, películas y música.`;
     } else {
-      alertLine = `🚨 Su servicio vencerá en ${daysLeft} días. No pierda su historial de series, películas y música.`;
+      alertLine = `🚨 *Su servicio vencerá en ${daysLeft} días.* No pierda su historial de series, películas y música.`;
     }
 
-    const accountLine = `📧 ****Cuenta:**** ${profile?.email ?? ''} | 🗓️ Exp: ${expiryDate}`;
+    const accountEmail = credentialEmail || profile?.email || 'no disponible';
+    const accountLine = `📧 *Cuenta:* ${accountEmail} | 🗓️ Exp: ${expiryDate}`;
 
-    const cta = `💳 ****Renueve ahora en nuestra web:**** https://vortex-streaming.lovable.app/`;
+    const cta = `💳 *Renueve ahora en nuestra web:* https://vortex-streaming.lovable.app/dashboard`;
 
-    const message = `${header}Hola estimado(a) ****${clientName}****, queremos recordarle que su servicio de ****${serviceName}**** está por expirar.\n\n${accountLine}\n\n${alertLine}\n\n${cta}\n\nSi no desea renovarlo, simplemente ignore este mensaje.\n\n📌 ****Gracias por su tiempo.**** 🙌`;
+    const message = `${header}Hola estimado(a) *${clientName}*, queremos recordarle que su servicio de *${serviceName}* está por expirar.\n\n${accountLine}\n\n${alertLine}\n\n${cta}\n\nSi no desea renovarlo, simplemente ignore este mensaje.\n\n📌 *Gracias por su tiempo.* 🙌`;
 
     if (!phone) {
       return { data: null, error: { message: 'No phone available for user' } };
