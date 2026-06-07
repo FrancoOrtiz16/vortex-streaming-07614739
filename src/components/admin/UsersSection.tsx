@@ -137,15 +137,28 @@ export function UsersSection() {
         return;
       }
 
-      // Intentar obtener el id del admin que solicita la eliminación
+      // Obtener el id del admin que solicita la eliminación.
+      // Muchas instalaciones usan el id de auth.users como `user_id` en la tabla `profiles`.
+      // Si `admin_user_deletions.requested_by` referencia `profiles.id`, debemos buscar el profile.id
       let requestedBy: string | null = null;
       try {
-        // supabase.auth.getUser es opcional según la versión del cliente
-        // usamos optional chaining para no romper si no existe
         // @ts-ignore
         const userRes = await supabase.auth?.getUser?.();
-        // @ts-ignore
-        requestedBy = userRes?.data?.user?.id ?? null;
+        const authUserId = userRes?.data?.user?.id ?? null;
+        if (authUserId) {
+          const { data: adminProfile, error: adminProfileErr } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', authUserId)
+            .limit(1)
+            .maybeSingle();
+
+          if (!adminProfileErr && adminProfile && (adminProfile as any).id) {
+            requestedBy = (adminProfile as any).id;
+          } else {
+            requestedBy = null;
+          }
+        }
       } catch (e) {
         requestedBy = null;
       }
