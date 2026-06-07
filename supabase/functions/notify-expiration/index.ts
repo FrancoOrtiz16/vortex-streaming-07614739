@@ -41,21 +41,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL')!
-    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY')!
-    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL')
+    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY')
+    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !anonKey || !serviceKey) {
+      return new Response(JSON.stringify({ error: 'Server environment not configured for notify-expiration' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // verify caller
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
-    const { data: { user: caller } } = await callerClient.auth.getUser()
+    const userResponse = await callerClient.auth.getUser()
+    const caller = userResponse.data?.user ?? null
     if (!caller) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const message = userResponse.error?.message || 'Invalid token'
+      return new Response(JSON.stringify({ error: message }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // check admin role
-    const { data: isAdmin } = await callerClient.rpc('has_role', { _user_id: caller.id, _role: 'admin' })
+    const { data: isAdmin, error: roleError } = await callerClient.rpc('has_role', { _user_id: caller.id, _role: 'admin' })
+    if (roleError) {
+      console.error('[notify-expiration] has_role rpc error', roleError)
+      return new Response(JSON.stringify({ error: 'Authorization check failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Not authorized' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
