@@ -296,12 +296,13 @@ export function SubscriptionsSection() {
         );
 
         const waLink = result?.data?.wa_link;
+        const finalMessage = result?.data?.message || message;
         if (waLink) {
           whatsappLinks.push(waLink);
         } else {
           const phone = profile?.phone;
           if (phone) {
-            whatsappLinks.push(getWhatsAppUrl(message, phone));
+            whatsappLinks.push(getWhatsAppUrl(finalMessage, phone));
           }
         }
 

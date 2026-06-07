@@ -195,9 +195,9 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
         window.open(waLink, '_blank');
       } else {
         const whatsappPhone = data.phone || data.profile_phone;
+        const fallbackMessage = result?.data?.message || `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
         if (whatsappPhone) {
-          const message = `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
-          window.open(getWhatsAppUrl(message, whatsappPhone), '_blank');
+          window.open(getWhatsAppUrl(fallbackMessage, whatsappPhone), '_blank');
         }
       }
 
