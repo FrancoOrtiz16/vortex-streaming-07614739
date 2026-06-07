@@ -6,8 +6,16 @@
 export interface DurationVariant {
   label: string;
   days: number;
-  priceMultiplier: number; // Multiplicador de precio base
+  priceMultiplier: number; // Multiplicador de precio base (mantener para compatibilidad, no se usa en la UI)
 }
+
+export const PLAN_DURATION_OPTIONS = [
+  { label: '15 días', days: 15 },
+  { label: '1 Mes', days: 30 },
+  { label: '3 Meses', days: 90 },
+  { label: '6 Meses', days: 180 },
+  { label: '1 Año', days: 365 },
+] as const;
 
 /**
  * Definición de variantes de duración disponibles.
@@ -16,27 +24,27 @@ export interface DurationVariant {
 export const DURATION_VARIANTS: Record<string, DurationVariant[]> = {
   // Streaming estándar (Netflix, Disney+, HBO Max, Spotify, etc.)
   streaming: [
-    { label: '15 días', days: 15, priceMultiplier: 0.5 },
-    { label: '1 mes', days: 30, priceMultiplier: 1.0 },
-    { label: '3 meses', days: 90, priceMultiplier: 2.7 },
-    { label: '6 meses', days: 180, priceMultiplier: 5.0 },
-    { label: '1 año', days: 365, priceMultiplier: 9.5 },
+    { label: '15 días', days: 15, priceMultiplier: 1 },
+    { label: '1 Mes', days: 30, priceMultiplier: 1 },
+    { label: '3 Meses', days: 90, priceMultiplier: 1 },
+    { label: '6 Meses', days: 180, priceMultiplier: 1 },
+    { label: '1 Año', days: 365, priceMultiplier: 1 },
   ],
   // Gaming estándar
   gaming: [
-    { label: '15 días', days: 15, priceMultiplier: 0.5 },
-    { label: '1 mes', days: 30, priceMultiplier: 1.0 },
-    { label: '3 meses', days: 90, priceMultiplier: 2.7 },
-    { label: '6 meses', days: 180, priceMultiplier: 5.0 },
-    { label: '1 año', days: 365, priceMultiplier: 9.5 },
+    { label: '15 días', days: 15, priceMultiplier: 1 },
+    { label: '1 Mes', days: 30, priceMultiplier: 1 },
+    { label: '3 Meses', days: 90, priceMultiplier: 1 },
+    { label: '6 Meses', days: 180, priceMultiplier: 1 },
+    { label: '1 Año', days: 365, priceMultiplier: 1 },
   ],
   // Por defecto (usado si no hay categoría específica)
   default: [
-    { label: '15 días', days: 15, priceMultiplier: 0.5 },
-    { label: '1 mes', days: 30, priceMultiplier: 1.0 },
-    { label: '3 meses', days: 90, priceMultiplier: 2.7 },
-    { label: '6 meses', days: 180, priceMultiplier: 5.0 },
-    { label: '1 año', days: 365, priceMultiplier: 9.5 },
+    { label: '15 días', days: 15, priceMultiplier: 1 },
+    { label: '1 Mes', days: 30, priceMultiplier: 1 },
+    { label: '3 Meses', days: 90, priceMultiplier: 1 },
+    { label: '6 Meses', days: 180, priceMultiplier: 1 },
+    { label: '1 Año', days: 365, priceMultiplier: 1 },
   ],
 };
 
@@ -64,13 +72,16 @@ export function getDurationVariantsForGroup(groupName?: string | null): Duration
  */
 export function getDaysForVariant(groupName?: string | null, variantLabel?: string): number {
   if (!variantLabel) return 30;
-  
-  const variants = getDurationVariantsForGroup(groupName);
-  const variant = variants.find(
+
+  const variant = PLAN_DURATION_OPTIONS.find(
     v => v.label.toLowerCase() === variantLabel.toLowerCase()
   );
-  
+
   return variant?.days ?? 30;
+}
+
+export function getDurationDaysFromLabel(label?: string | null): number {
+  return PLAN_DURATION_OPTIONS.find(v => v.label.toLowerCase() === (label || '').toLowerCase())?.days ?? 30;
 }
 
 /**
@@ -108,10 +119,10 @@ export function calculateAdjustedPrice(
  */
 export function formatDurationLabel(days: number): string {
   if (days === 15) return '15 días';
-  if (days === 30) return '1 mes';
-  if (days === 90) return '3 meses';
-  if (days === 180) return '6 meses';
-  if (days === 365) return '1 año';
+  if (days === 30) return '1 Mes';
+  if (days === 90) return '3 Meses';
+  if (days === 180) return '6 Meses';
+  if (days === 365) return '1 Año';
   
   // Para duraciones custom
   if (days % 30 === 0) {

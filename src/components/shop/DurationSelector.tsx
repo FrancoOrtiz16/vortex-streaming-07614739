@@ -8,14 +8,13 @@ import {
 } from '@/components/ui/select';
 import {
   getDurationVariantsForGroup,
-  calculateAdjustedPrice,
   formatDurationLabel,
 } from '@/lib/durationVariants';
 
 interface DurationSelectorProps {
   groupName?: string | null;
   basePrice: number;
-  onDurationSelect: (days: number, adjustedPrice: number) => void;
+  onDurationSelect: (days: number) => void;
   defaultDays?: number;
   className?: string;
 }
@@ -38,12 +37,10 @@ export function DurationSelector({
   const handleDurationChange = (days: string) => {
     const daysNum = parseInt(days, 10);
     setSelectedDays(daysNum);
-    const adjustedPrice = calculateAdjustedPrice(basePrice, daysNum, groupName);
-    onDurationSelect(daysNum, adjustedPrice);
+    onDurationSelect(daysNum);
   };
 
   const selectedVariant = variants.find(v => v.days === selectedDays);
-  const displayPrice = calculateAdjustedPrice(basePrice, selectedDays, groupName);
 
   return (
     <div className={`w-full space-y-2 ${className}`}>
@@ -57,13 +54,7 @@ export function DurationSelector({
         <SelectContent>
           {variants.map((variant) => (
             <SelectItem key={variant.days} value={variant.days.toString()}>
-              <span className="flex items-center gap-2">
-                {variant.label}
-                {' '}
-                <span className="text-xs text-muted-foreground">
-                  ${calculateAdjustedPrice(basePrice, variant.days, groupName).toFixed(2)}
-                </span>
-              </span>
+              <span>{variant.label}</span>
             </SelectItem>
           ))}
         </SelectContent>
@@ -71,7 +62,7 @@ export function DurationSelector({
       {selectedVariant && (
         <div className="text-xs text-muted-foreground pt-1">
           <p>
-            Precio: <span className="font-semibold text-foreground">${displayPrice.toFixed(2)}</span>
+            Precio fijo: <span className="font-semibold text-foreground">${basePrice.toFixed(2)}</span>
           </p>
           <p>Duración: {formatDurationLabel(selectedDays)}</p>
         </div>

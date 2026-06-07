@@ -9,11 +9,7 @@ import Footer from '@/components/Footer';
 import CheckoutDialog from '@/components/shop/CheckoutDialog';
 import { CheckoutErrorBoundary } from '@/components/shop/CheckoutErrorBoundary';
 import { toast } from 'sonner';
-
-const formatDurationLabel = (days?: number) => {
-  // Sistema estandarizado: todas las suscripciones son de 30 días
-  return days === 30 ? '1 Mes' : '';
-};
+import { formatDurationLabel } from '@/lib/durationVariants';
 
 const CartPage = () => {
   const { items, total, subtotal, discount, removeItem, clear } = useCart();
@@ -81,7 +77,7 @@ const CartPage = () => {
                         <p className="text-xs text-muted-foreground">Cant: {item.quantity}</p>
                         {!!item.product.duration_days && !item.product.renewal && (
                           <p className="text-[11px] text-primary mt-1">
-                            Duración: {formatDurationLabel(item.product.duration_days)}
+                            Duración: {formatDurationLabel(item.product.duration_days ?? 30)}
                           </p>
                         )}
                         {item.product.renewal && (

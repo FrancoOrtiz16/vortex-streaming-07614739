@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/hooks/useServices';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
+import { PLAN_DURATION_OPTIONS } from '@/lib/durationVariants';
 
 const emptyService: Omit<Service, 'id'> & { id?: string } = {
   name: '',
@@ -13,7 +14,7 @@ const emptyService: Omit<Service, 'id'> & { id?: string } = {
   category: 'streaming',
   image_url: '',
   badge: null,
-  plan_type: 'Premium Mensual',
+  plan_type: '1 Mes',
   is_available: true,
   sort_order: 0,
   group_name: null,
@@ -184,11 +185,16 @@ export function InventorySection() {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo de Plan</label>
-              <input
-                value={editing.plan_type}
+              <select
+                value={editing.plan_type || '1 Mes'}
                 onChange={e => setEditing(prev => prev ? { ...prev, plan_type: e.target.value } : null)}
                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-              />
+              >
+                {PLAN_DURATION_OPTIONS.map(option => (
+                  <option key={option.days} value={option.label}>{option.label}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">Esta duración se usa para calcular la vigencia del servicio; el precio sigue siendo manual.</p>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">URL de Imagen</label>

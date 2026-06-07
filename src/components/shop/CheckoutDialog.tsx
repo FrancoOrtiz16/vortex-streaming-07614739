@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrencyConverter, formatConvertedAmount, shouldUseVES } from '@/hooks/useCurrencyConverter';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
+import { formatDurationLabel } from '@/lib/durationVariants';
 
 const CHECKOUT_SESSION_KEY = 'vortex_checkout_session_state_v1';
 
@@ -199,15 +200,12 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       console.debug('[Checkout] Starting order creation');
       
       // Step 1: Create order
-      const formatDurationLabel = (days?: number) => {
-        // Sistema estandarizado: todas las suscripciones son de 30 días
-        return days === 30 ? '1 Mes' : '';
-      };
+      const formatDurationForOrder = (days?: number) => formatDurationLabel(days ?? 30);
 
       const productNames = items
         .map(i => i.product.renewal
           ? `${i.product.name} (Renovación: ${i.product.unique_service_id || i.product.subscription_id}) x${i.quantity}`
-          : `${i.product.name}${i.product.duration_days ? ` (${formatDurationLabel(i.product.duration_days)})` : ''} x${i.quantity}`
+          : `${i.product.name}${i.product.duration_days ? ` (${formatDurationForOrder(i.product.duration_days)})` : ''} x${i.quantity}`
         )
         .join(', ');
       const { error: orderErr } = await supabase.from('orders').insert({
@@ -292,7 +290,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           .map((item, idx) => {
             const serviceName = item.product.name;
             const durationDays = item.product.duration_days ?? 30;
-            const durationLabel = durationDays === 30 ? '1 mes' : `${durationDays} días`;
+            const durationLabel = formatDurationLabel(durationDays);
             
             return `🎬 Servicio (${idx + 1}/${renewalItems.length}): ${serviceName}\n📧 Correo: ${user.email || 'N/A'}\n🗓️ Tiempo: ${durationLabel}\n💰 Comprobante: ${receiptUrl || 'Pendiente'}`;
           })
