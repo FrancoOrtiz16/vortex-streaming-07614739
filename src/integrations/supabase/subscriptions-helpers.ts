@@ -16,6 +16,7 @@
 
 import { supabase } from './client';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
+import { getWhatsAppUrl } from '@/lib/whatsapp';
 
 async function isUserAdmin(userId: string | null) {
   if (!userId) return false;
@@ -330,37 +331,43 @@ export async function createSubscriptionExpirationNotification(
   serviceName: string,
 ) {
   try {
-    // Fetch phone (client or profile)
-    const phone = await fetchProfileWhatsAppPhone(userId);
+    // Fetch profile data (name and phone)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('display_name, phone, profile_phone, email')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
 
-    // Call Supabase Edge Function to send WhatsApp (requires admin auth)
-    const { data: sessionData } = await supabase.auth.getUser();
-    const accessToken = sessionData?.user?.id ? (await supabase.auth.getSession()).data.session?.access_token : null;
-    if (!accessToken) {
-      return { data: null, error: { message: 'No active admin session token available' } };
+    if (profileError) {
+      console.warn('[Subscriptions] Error fetching profile for wa link', profileError);
+      return { data: null, error: profileError };
     }
 
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://qxmecegqnapcjlchjqld.supabase.co';
-    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4bWVjZWdxbmFwY2psY2hqcWxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNjU0MTAsImV4cCI6MjA4OTg0MTQxMH0.8ygnUHfD4p77GlyrUXJYzVq7zsx6CuaT1rr9fjbZoQU';
-    const url = `${SUPABASE_URL}/functions/v1/notify-expiration`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken || ''}`,
-        apikey: SUPABASE_KEY,
-      },
-      body: JSON.stringify({ user_id: userId, subscription_id: subscriptionId, service_name: serviceName, phone, message: `Hola, tu servicio ${serviceName} está por vencer.` }),
-    });
+    const clientName = profile?.display_name || (profile?.email ? String(profile.email).split('@')[0] : 'Cliente');
+    const phone = profile?.phone ?? profile?.profile_phone ?? null;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      const errorMessage = err?.error || err?.message || (typeof err === 'string' ? err : JSON.stringify(err ?? 'Unknown error'));
-      return { data: null, error: { message: errorMessage } };
+    // Fetch subscription next_renewal to include expiration date in message
+    let nextRenewal: string | null = null;
+    if (subscriptionId) {
+      const { data: sub, error: subError } = await supabase
+        .from('subscriptions')
+        .select('next_renewal')
+        .eq('id', subscriptionId)
+        .maybeSingle();
+      if (!subError && sub) nextRenewal = (sub as any).next_renewal ?? null;
     }
 
-    const result = await res.json().catch(() => null);
-    return { data: result, error: null };
+    const expiryDate = nextRenewal ? new Date(nextRenewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'pronto';
+
+    const message = `Hola ${clientName}, tu suscripción de ${serviceName} vence el ${expiryDate}. Renueva para no perder el acceso. ¡Gracias por preferirnos!`;
+
+    if (!phone) {
+      return { data: null, error: { message: 'No phone available for user' } };
+    }
+
+    const wa_link = getWhatsAppUrl(message, phone);
+    return { data: { wa_link, message, phone }, error: null };
   } catch (err: any) {
     console.error('[Subscriptions] createSubscriptionExpirationNotification error', err);
     const message = err instanceof Error ? err.message : JSON.stringify(err ?? 'Unknown error');

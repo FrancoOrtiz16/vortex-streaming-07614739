@@ -188,12 +188,17 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
         throw result.error;
       }
 
-      toast.success('✅ Notificación creada y fecha de recordatorio actualizada');
+      toast.success('✅ Enlace de WhatsApp generado');
 
-      const whatsappPhone = data.phone || data.profile_phone;
-      if (whatsappPhone) {
-        const message = `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
-        window.open(getWhatsAppUrl(message, whatsappPhone), '_blank');
+      const waLink = result?.data?.wa_link;
+      if (waLink) {
+        window.open(waLink, '_blank');
+      } else {
+        const whatsappPhone = data.phone || data.profile_phone;
+        if (whatsappPhone) {
+          const message = `Hola, tu servicio ${data.service_name} está por vencer. Ingresa aquí para renovarlo y no perder tu acceso.`;
+          window.open(getWhatsAppUrl(message, whatsappPhone), '_blank');
+        }
       }
 
       onChanged();

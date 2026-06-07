@@ -289,22 +289,28 @@ export function SubscriptionsSection() {
           `Hola ${clientName}, te recordamos que tu servicio de ${sub.service_name} vence ${dayLabel} ` +
           `(${expiryDate}). Renueva ahora para no perder el acceso. — Vortex Streaming`;
 
-        const { error } = await createSubscriptionExpirationNotification(
+        const result = await createSubscriptionExpirationNotification(
           sub.user_id,
           sub.id,
           sub.service_name,
         );
 
-        const phone = profile?.phone;
-        if (phone) {
-          whatsappLinks.push(getWhatsAppUrl(message, phone));
+        const waLink = result?.data?.wa_link;
+        if (waLink) {
+          whatsappLinks.push(waLink);
+        } else {
+          const phone = profile?.phone;
+          if (phone) {
+            whatsappLinks.push(getWhatsAppUrl(message, phone));
+          }
         }
 
-        if (error) {
-          const message = error?.message || error?.error || (typeof error === 'string' ? error : JSON.stringify(error));
-          console.warn('[BulkNotify] notify-expiration error for', sub.id, message);
+        if (result.error) {
+          const messageErr = result.error?.message || result.error?.error || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
+          console.warn('[BulkNotify] notify-expiration error for', sub.id, messageErr);
           // Aún contamos como éxito si tenemos al menos canal WhatsApp; si no, fallo.
-          if (phone) success++; else failed++;
+          const phone = profile?.phone;
+          if (phone || result?.data?.wa_link) success++; else failed++;
         } else {
           success++;
         }
