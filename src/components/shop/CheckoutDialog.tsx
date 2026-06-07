@@ -280,7 +280,51 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
       const methodText = selectedMethod ? ` usando ${selectedMethod.method_name}` : '';
       const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
-      const message = `Hola Vortex Streaming, mi nombre es ${displayName}, acabo de comprar ${productNames} por un total de $${total.toFixed(2)}${methodText}.${receiptText}`;
+      
+      // Determine if this is a renewal-only order or a new purchase
+      const hasOnlyRenewals = newOrderItems.length === 0 && renewalItems.length > 0;
+      
+      let message = '';
+      
+      if (hasOnlyRenewals) {
+        // Format renewal notification message
+        const renewalDetails = renewalItems
+          .map((item, idx) => {
+            const serviceName = item.product.name;
+            const durationDays = item.product.duration_days ?? 30;
+            const durationLabel = durationDays === 30 ? '1 mes' : `${durationDays} días`;
+            
+            return `🎬 Servicio (${idx + 1}/${renewalItems.length}): ${serviceName}\n📧 Correo: ${user.email || 'N/A'}\n🗓️ Tiempo: ${durationLabel}\n💰 Comprobante: ${receiptUrl || 'Pendiente'}`;
+          })
+          .join('\n\n');
+        
+        message = `♻️ ¡RENOVACIÓN PENDIENTE! ♻️
+
+Hola Vortex, Mi renovación se ha procesado.
+
+📌 DETALLE DEL SERVICIO:
+${renewalDetails}`;
+      } else {
+        // Format new purchase message
+        const serviceList = newOrderItems
+          .map(item => `${item.product.name} x${item.quantity}`)
+          .join(', ');
+        
+        const monto = isVES 
+          ? `Bs ${totalConvertedAmount.toFixed(2)}` 
+          : `$${total.toFixed(2)}`;
+        
+        const comprobante = receiptUrl ? `\n${receiptUrl}` : '';
+        
+        message = `🛒 *NUEVA COMPRA RECIBIDA*
+
+👤 *Cliente:* ${displayName}
+📺 *Servicio:* ${serviceList}
+💰 *Monto:* ${monto}
+
+⏳ Pendiente por verificar pago.${comprobante}`;
+      }
+      
       const whatsappUrl = getWhatsAppUrl(message);
 
       clear();

@@ -6,11 +6,18 @@ import { useCart } from '@/hooks/useCart';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useOptimizedMotion, useWillChange } from '@/hooks/useOptimizedMotion';
 import { toast } from 'sonner';
+import DurationSelector from './DurationSelector';
+import { calculateAdjustedPrice } from '@/lib/durationVariants';
 
 interface ProductCardProps {
   product: Product;
   variants?: Product[];
   index: number;
+}
+
+interface ProductCardState {
+  selectedDurationDays: number;
+  adjustedPrice: number;
 }
 
 const formatPrice = (value: number) => {
@@ -23,8 +30,12 @@ const formatPrice = (value: number) => {
 const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
   const { addItem } = useCart();
   const [selected, setSelected] = useState<Product>(product);
+  const [durationState, setDurationState] = useState<ProductCardState>({
+    selectedDurationDays: 30,
+    adjustedPrice: product.price,
+  });
   const hasVariants = !!variants && variants.length > 1;
-  const priceText = formatPrice(selected.price);
+  const priceText = formatPrice(durationState.adjustedPrice);
   const scale = (selected.image_scale ?? 100) / 100;
 
   const handleAdd = () => {
@@ -32,19 +43,30 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
       id: selected.id,
       name: selected.name,
       description: selected.description,
-      price: selected.price,
+      price: durationState.adjustedPrice,
       category: selected.category,
       image: selected.image,
       badge: selected.badge || undefined,
-      duration_days: 30,
-      cart_key: `${selected.id}-30`,
+      duration_days: durationState.selectedDurationDays,
+      cart_key: `${selected.id}-${durationState.selectedDurationDays}`,
     });
     toast.success(`${selected.name} añadido al carrito`);
   };
 
+  const handleDurationSelect = (days: number, adjustedPrice: number) => {
+    setDurationState({ selectedDurationDays: days, adjustedPrice });
+  };
+
   const handleVariantChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const found = variants?.find(v => v.id === e.target.value);
-    if (found) setSelected(found);
+    if (found) {
+      setSelected(found);
+      // Reset duration when variant changes
+      setDurationState({
+        selectedDurationDays: 30,
+        adjustedPrice: found.price,
+      });
+    }
   };
 
   const { shouldAnimateOnDevice } = useResponsive();
@@ -115,6 +137,17 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
             <p className="text-[0.625rem] sm:text-xs text-[hsl(var(--foreground)/0.6)] mb-2 sm:mb-4">{selected.plan_type}</p>
           )
         )}
+
+        {/* Duration selector */}
+        <div className="mb-2 sm:mb-4">
+          <DurationSelector
+            groupName={selected.group_name}
+            basePrice={selected.price}
+            onDurationSelect={handleDurationSelect}
+            defaultDays={30}
+            className="text-left"
+          />
+        </div>
 
         {/* Descripción responsiva */}
         <p className="text-[0.6875rem] sm:text-sm md:text-sm text-[hsl(var(--foreground)/0.55)] mb-2 sm:mb-4 line-clamp-2 flex-1">
