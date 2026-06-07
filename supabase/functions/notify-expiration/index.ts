@@ -1,4 +1,7 @@
+// @ts-ignore: Deno runtime file, not part of the app typecheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+declare const Deno: any;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +33,7 @@ async function sendWhatsAppMessage(phoneId: string, token: string, toPhone: stri
   return data;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: any) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -41,23 +44,30 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL')
-    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY')
-    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL') || Deno.env.get('SUPABASE_URL_PUBLIC')
+    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_KEY')
+    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_KEY') || Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_KEY')
 
-    if (!supabaseUrl || !anonKey || !serviceKey) {
-      const missing = [
-        !supabaseUrl ? 'SUPABASE_URL' : null,
-        !anonKey ? 'SUPABASE_PUBLISHABLE_KEY' : null,
-        !serviceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : null,
-      ].filter(Boolean)
+    const missing = [
+      !supabaseUrl ? 'SUPABASE_URL' : null,
+      !anonKey ? 'SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY' : null,
+      !serviceKey ? 'SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY' : null,
+    ].filter(Boolean)
+
+    if (missing.length > 0) {
       return new Response(JSON.stringify({ error: `Server environment not configured for notify-expiration (missing: ${missing.join(', ')})` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // verify caller
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
+    let callerClient
+    try {
+      callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Invalid server configuration for notify-expiration'
+      return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
     const userResponse = await callerClient.auth.getUser()
     const caller = userResponse.data?.user ?? null
     if (!caller) {
@@ -84,12 +94,19 @@ Deno.serve(async (req) => {
     // Determine phone: prefer provided phone, otherwise try to read from profiles table using service role
     let targetPhone = phone || null
     if (!targetPhone) {
-      const adminClient = createClient(supabaseUrl, serviceKey)
-      const { data: profile, error } = await adminClient.from('profiles').select('phone, profile_phone').eq('user_id', user_id).limit(1).single()
-      if (error) {
-        console.warn('[notify-expiration] Error fetching profile phone', error)
-      } else if (profile) {
-        targetPhone = profile.phone ?? profile.profile_phone ?? null
+      let adminClient
+      try {
+        adminClient = createClient(supabaseUrl, serviceKey)
+      } catch (e: unknown) {
+        console.error('[notify-expiration] Invalid admin client config', e)
+      }
+      if (adminClient) {
+        const { data: profile, error } = await adminClient.from('profiles').select('phone, profile_phone').eq('user_id', user_id).limit(1).single()
+        if (error) {
+          console.warn('[notify-expiration] Error fetching profile phone', error)
+        } else if (profile) {
+          targetPhone = profile.phone ?? profile.profile_phone ?? null
+        }
       }
     }
 
@@ -113,7 +130,7 @@ Deno.serve(async (req) => {
       const adminClient = createClient(supabaseUrl, serviceKey)
       await adminClient.from('notifications').insert([{ user_id, subscription_id, message: text }])
     } catch (e) {
-      // ignore if notifications table doesn't exist
+      console.warn('[notify-expiration] Could not insert notification row', e)
     }
 
     return new Response(JSON.stringify({ success: true, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
