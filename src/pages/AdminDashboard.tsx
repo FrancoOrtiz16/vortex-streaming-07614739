@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Package, Plus, Pencil, Trash2,
-  Image as ImageIcon, Save, X, LayoutDashboard
+  Image as ImageIcon, Save, X, LayoutDashboard, Download, Loader2
 } from 'lucide-react';
 import { products as initialProducts, Product } from '@/data/products';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { getAllSubscriptionsAdmin } from '@/integrations/supabase/subscriptions-helpers';
+import { exportSubscriptionsToExcel } from '@/lib/subscriptionExcelExport';
 
 type Tab = 'catalog';
 
@@ -14,6 +17,8 @@ const AdminDashboard = () => {
   const [tab, setTab] = useState<Tab>('catalog');
   const [catalog, setCatalog] = useState<Product[]>(initialProducts);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [exportingExcel, setExportingExcel] = useState(false);
 
   const tabs = [
     { key: 'catalog' as Tab, label: 'Catálogo', icon: Package },
@@ -32,6 +37,60 @@ const AdminDashboard = () => {
     });
     setEditing(null);
     toast.success('Producto guardado');
+  };
+
+  useEffect(() => {
+    const loadSubscriptions = async () => {
+      try {
+        const [{ data: subsData, error: subsError }, profilesRes] = await Promise.all([
+          getAllSubscriptionsAdmin(),
+          supabase.from('profiles').select('id, user_id, display_name, email'),
+        ]);
+
+        if (subsError) {
+          console.error('[AdminDashboard] subscriptions fetch error:', subsError);
+          return;
+        }
+
+        const profiles = profilesRes.data || [];
+        setSubscriptions((subsData || []).map((sub: any) => ({
+          ...sub,
+          profile: profiles.find((p: any) => p.user_id === sub.user_id),
+        })));
+      } catch (error) {
+        console.error('[AdminDashboard] loadSubscriptions error:', error);
+      }
+    };
+
+    loadSubscriptions();
+  }, []);
+
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      await exportSubscriptionsToExcel(
+        subscriptions.map((sub) => ({
+          id: sub.id,
+          client_label: sub.profile?.display_name || sub.profile?.email || sub.user_id || 'Cliente sin nombre',
+          user_id: sub.user_id,
+          service_name: sub.service_name,
+          credential_email: sub.credential_email,
+          credential_password: sub.credential_password,
+          profile_name: sub.profile_name || sub.profile?.display_name || null,
+          next_renewal: sub.next_renewal || null,
+          created_at: sub.created_at,
+          status: sub.status,
+          price: sub.price ?? 0,
+        })),
+        `suscripciones-streaming-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+      toast.success('Reporte exportado a Excel');
+    } catch (error) {
+      console.error('[AdminDashboard] export error:', error);
+      toast.error('No se pudo exportar el reporte a Excel');
+    } finally {
+      setExportingExcel(false);
+    }
   };
 
   return (
@@ -79,22 +138,33 @@ const AdminDashboard = () => {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-semibold text-lg">Productos ({catalog.length})</h2>
-                <button
-                  onClick={() =>
-                    setEditing({
-                      id: '',
-                      name: '',
-                      description: '',
-                      price: 0,
-                      category: 'streaming',
-                      image: '',
-                    })
-                  }
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Nuevo
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    disabled={exportingExcel || subscriptions.length === 0}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    Exportar Excel
+                  </button>
+                  <button
+                    onClick={() =>
+                      setEditing({
+                        id: '',
+                        name: '',
+                        description: '',
+                        price: 0,
+                        category: 'streaming',
+                        image: '',
+                      })
+                    }
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-neon text-primary-foreground text-xs font-semibold"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Nuevo
+                  </button>
+                </div>
               </div>
 
               {editing && (

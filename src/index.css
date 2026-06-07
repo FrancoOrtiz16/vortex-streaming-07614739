@@ -413,4 +413,17 @@
     word-break: break-word;
     overflow-wrap: break-word;
   }
+
+  /* Fuerza la desaparición de cualquier badge o contenedor flotante de Lovable */
+  [id*="lovable"],
+  [class*="lovable"],
+  [data-lovable],
+  [aria-label*="Lovable"],
+  [title*="Lovable"],
+  .lovable-badge,
+  button[title*="Lovable"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
 }

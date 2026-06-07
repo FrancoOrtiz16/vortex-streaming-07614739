@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell } from 'lucide-react';
+import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
 import { getVETDateInputISO, getVETDateString, getTrafficLightStatus, getDaysUntilExpiry } from '@/lib/trafficLightUtils';
+import { exportSubscriptionsToExcel } from '@/lib/subscriptionExcelExport';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
 
 interface Subscription {
@@ -73,6 +74,7 @@ export function SubscriptionsSection() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [services, setServices] = useState<any[]>([]);
   const [notifyingBulk, setNotifyingBulk] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const isMountedRef = useRef(true);
 
   const fetchData = async () => {
@@ -471,6 +473,34 @@ export function SubscriptionsSection() {
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
 
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      await exportSubscriptionsToExcel(
+        filteredSubs.map((sub) => ({
+          id: sub.id,
+          client_label: sub.profile?.display_name || sub.profile?.email || sub.user_id || 'Cliente sin nombre',
+          user_id: sub.user_id,
+          service_name: sub.service_name,
+          credential_email: sub.credential_email,
+          credential_password: sub.credential_password,
+          profile_name: sub.profile_name || sub.profile?.display_name || null,
+          next_renewal: sub.next_renewal || null,
+          created_at: sub.created_at,
+          status: sub.status,
+          price: (sub as any).price ?? 0,
+        })),
+        `suscripciones-streaming-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+      toast.success('Reporte exportado a Excel');
+    } catch (error) {
+      console.error('[Admin] Excel export error:', error);
+      toast.error('No se pudo exportar el reporte a Excel');
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   // Group filtered subs by user
   const groupedByUser = filteredSubs.reduce<Record<string, (Subscription & { profile?: Profile })[]>>((acc, s) => {
     const key = s.profile?.display_name || s.profile?.email || s.user_id?.slice(0, 8) || 'Desconocido';
@@ -504,6 +534,15 @@ export function SubscriptionsSection() {
               <Bell className="w-3.5 h-3.5" />
             )}
             Notificar Vencimientos ({yellowSubsToNotify.length})
+          </button>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={exportingExcel || filteredSubs.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            Exportar a Excel
           </button>
           <button
             onClick={() => setShowAdd(true)}
