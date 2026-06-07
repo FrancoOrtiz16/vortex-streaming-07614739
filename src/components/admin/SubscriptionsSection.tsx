@@ -301,6 +301,8 @@ export function SubscriptionsSection() {
         }
 
         if (error) {
+          const message = error?.message || error?.error || (typeof error === 'string' ? error : JSON.stringify(error));
+          console.warn('[BulkNotify] notify-expiration error for', sub.id, message);
           // Aún contamos como éxito si tenemos al menos canal WhatsApp; si no, fallo.
           if (phone) success++; else failed++;
         } else {

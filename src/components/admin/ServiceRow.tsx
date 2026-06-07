@@ -198,7 +198,8 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
 
       onChanged();
     } catch (err: any) {
-      toast.error(err?.message || 'Error al crear notificación');
+      const message = err?.message || err?.error || (typeof err === 'string' ? err : JSON.stringify(err ?? 'Error al crear notificación'));
+      toast.error(message);
     } finally {
       setBusy(null);
     }

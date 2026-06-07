@@ -41,12 +41,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL')
-    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY')
-    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY')
+    const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL')
+    const anonKey = Deno.env.get('VITE_SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY')
+    const serviceKey = Deno.env.get('VITE_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !anonKey || !serviceKey) {
-      return new Response(JSON.stringify({ error: 'Server environment not configured for notify-expiration' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const missing = [
+        !supabaseUrl ? 'SUPABASE_URL' : null,
+        !anonKey ? 'SUPABASE_PUBLISHABLE_KEY' : null,
+        !serviceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : null,
+      ].filter(Boolean)
+      return new Response(JSON.stringify({ error: `Server environment not configured for notify-expiration (missing: ${missing.join(', ')})` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // verify caller

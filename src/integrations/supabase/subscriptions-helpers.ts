@@ -354,15 +354,17 @@ export async function createSubscriptionExpirationNotification(
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { data: null, error: err || { message: 'Error invoking notify-expiration' } };
+      const err = await res.json().catch(() => null);
+      const errorMessage = err?.error || err?.message || (typeof err === 'string' ? err : JSON.stringify(err ?? 'Unknown error'));
+      return { data: null, error: { message: errorMessage } };
     }
 
     const result = await res.json().catch(() => null);
     return { data: result, error: null };
   } catch (err: any) {
     console.error('[Subscriptions] createSubscriptionExpirationNotification error', err);
-    return { data: null, error: err };
+    const message = err instanceof Error ? err.message : JSON.stringify(err ?? 'Unknown error');
+    return { data: null, error: { message } };
   }
 }
 
