@@ -130,24 +130,47 @@ export function UsersSection() {
     try {
       setDeletingUserId(profile.id);
 
+      // Confirmación simple en UI
+      const confirmed = typeof window !== 'undefined' ? window.confirm(`¿Eliminar usuario ${profile.display_name || profile.email || profile.id}?`) : true;
+      if (!confirmed) {
+        setDeletingUserId(null);
+        return;
+      }
+
+      // Intentar obtener el id del admin que solicita la eliminación
+      let requestedBy: string | null = null;
+      try {
+        // supabase.auth.getUser es opcional según la versión del cliente
+        // usamos optional chaining para no romper si no existe
+        // @ts-ignore
+        const userRes = await supabase.auth?.getUser?.();
+        // @ts-ignore
+        requestedBy = userRes?.data?.user?.id ?? null;
+      } catch (e) {
+        requestedBy = null;
+      }
+
       const { data, error } = await supabase
-        .from('profiles')
-        .delete({ returning: 'representation' })
-        .eq('id', profile.id)
-        .select('id');
+        .from('admin_user_deletions')
+        .insert([
+          {
+            profile_id: profile.id,
+            requested_by: requestedBy,
+            reason: 'Eliminación desde dashboard',
+            cascade_delete: false,
+            status: 'pending',
+          },
+        ])
+        .select('id')
+        .single();
 
       if (error) {
-        throw new Error(error.message || 'Error eliminando usuario');
+        throw new Error(error.message || 'Error creando solicitud de eliminación');
       }
 
-      const deletedRows = Array.isArray(data) ? data.length : data ? 1 : 0;
-      if (deletedRows === 0) {
-        throw new Error('No se eliminó ningún usuario.');
-      }
-
-      toast.success('Usuario eliminado definitivamente.');
+      toast.success('Solicitud de eliminación registrada. Un proceso la procesará próximamente.');
+      // Opcional: ocultar al usuario de la lista mientras se procesa
       setProfiles(prev => prev.filter(p => p.id !== profile.id));
-      await fetchData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
