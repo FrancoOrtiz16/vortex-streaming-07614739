@@ -24,6 +24,20 @@ export function SalesSection() {
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('synced');
   const isMountedRef = useRef(true);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markUpdated = useCallback(() => {
+    setSyncStatus('updated');
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    syncTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setSyncStatus('synced');
+      }
+      syncTimeoutRef.current = null;
+    }, 1200);
+  }, []);
 
   // Fetch initial data
   const fetchSubscriptionsAndPrices = useCallback(async () => {
@@ -42,6 +56,7 @@ export function SalesSection() {
       ]);
 
       if (subsError) throw subsError;
+      if (servicesError) throw servicesError;
 
       if (isMountedRef.current) {
         clearTimeout(timeoutId);
@@ -87,47 +102,57 @@ export function SalesSection() {
   // Supabase Realtime subscription
   useEffect(() => {
     console.debug('[SalesSection] Setting up Realtime channel');
-    
-    const channel = supabase
-      .channel('subscriptions-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'subscriptions' },
-        (payload) => {
-          console.debug('[SalesSection] Realtime event:', payload.eventType, payload.new);
-          
-          if (isMountedRef.current) {
-            setSubscriptions(prev => {
-              if (payload.eventType === 'INSERT') {
-                return [payload.new as Subscription, ...prev];
-              } else if (payload.eventType === 'UPDATE') {
-                return prev.map(sub => 
-                  sub.id === (payload.new as Subscription).id 
-                    ? (payload.new as Subscription)
-                    : sub
-                );
-              } else if (payload.eventType === 'DELETE') {
-                return prev.filter(sub => sub.id !== (payload.old as Subscription).id);
-              }
-              return prev;
-            });
 
-            setSyncStatus('updated');
-            setTimeout(() => {
-              if (isMountedRef.current) setSyncStatus('synced');
-            }, 1000);
-          }
+    const channel = supabase.channel('subscriptions-changes');
+
+    const handleSubscriptionRealtime = (payload: any) => {
+      console.debug('[SalesSection] Realtime subscription event:', payload.eventType, payload.new, payload.old);
+      if (!isMountedRef.current) return;
+
+      setSubscriptions((prev) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
+          return [payload.new as Subscription, ...prev];
         }
-      )
+
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          return prev.map((sub) =>
+            sub.id === (payload.new as Subscription).id ? (payload.new as Subscription) : sub
+          );
+        }
+
+        if (payload.eventType === 'DELETE' && payload.old) {
+          return prev.filter((sub) => sub.id !== (payload.old as Subscription).id);
+        }
+
+        return prev;
+      });
+
+      markUpdated();
+    };
+
+    const handleServicesRealtime = async (payload: any) => {
+      console.debug('[SalesSection] Realtime services event:', payload.eventType, payload.new, payload.old);
+      if (!isMountedRef.current) return;
+      await fetchSubscriptionsAndPrices();
+      markUpdated();
+    };
+
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions' }, handleSubscriptionRealtime)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, handleServicesRealtime)
       .subscribe((status) => {
-        console.debug('[SalesSection] Realtime status:', status);
+        console.debug('[SalesSection] Realtime channel status:', status);
       });
 
     return () => {
       console.debug('[SalesSection] Cleaning up Realtime channel');
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+        syncTimeoutRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchSubscriptionsAndPrices, markUpdated]);
 
   // Calculate metrics
   const now = new Date();
