@@ -13,12 +13,12 @@ export default function PasswordViewer({ password }: PasswordViewerProps) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       <input
         type={showPassword ? 'text' : 'password'}
         value={password}
         readOnly
-        className="bg-transparent border-none outline-none text-sm font-mono"
+        className="min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-mono truncate"
       />
       <button
         type="button"

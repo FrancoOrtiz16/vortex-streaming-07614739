@@ -195,11 +195,11 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
   };
 
   return (
-    <div className={`rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3 shadow-[0_0_15px_rgba(59,130,246,0.05)] transition-all ${highlight ? 'animate-pulse ring-2 ring-emerald-400/30' : ''}`}>
+    <div className={`overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3 shadow-[0_0_15px_rgba(59,130,246,0.05)] transition-all ${highlight ? 'animate-pulse ring-2 ring-emerald-400/30' : ''}`}>
       {/* Header: Cliente + Servicio */}
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
             <User className="w-3 h-3" />
             <span className="truncate">{data.client_label}</span>
           </div>
@@ -226,9 +226,11 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
       </div>
 
       {/* Contraseña */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
+      <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Contraseña</span>
-        <PasswordViewer password={data.credential_password} />
+        <div className="min-w-0">
+          <PasswordViewer password={data.credential_password} />
+        </div>
       </div>
 
       {/* Acciones principales */}
