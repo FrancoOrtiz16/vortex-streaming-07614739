@@ -194,7 +194,6 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       return;
     }
 
-    const whatsappWindow = typeof window !== 'undefined' ? window.open('', '_blank') : null;
     setSubmitting(true);
     try {
       console.debug('[Checkout] Starting order creation');
@@ -276,34 +275,30 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
       // Step 3: Send WhatsApp & clear
       const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Cliente';
-      const methodText = selectedMethod ? ` usando ${selectedMethod.method_name}` : '';
-      const receiptText = receiptUrl ? `\nComprobante: ${receiptUrl}` : '';
-      
-      // Determine if this is a renewal-only order or a new purchase
       const hasOnlyRenewals = newOrderItems.length === 0 && renewalItems.length > 0;
       
       let message = '';
       
       if (hasOnlyRenewals) {
-        // Format renewal notification message
+        // Format renewal notification message without sending any receipt URL
         const renewalDetails = renewalItems
           .map((item, idx) => {
             const serviceName = item.product.name;
             const durationDays = item.product.duration_days ?? 30;
             const durationLabel = formatDurationLabel(durationDays);
             
-            return `🎬 Servicio (${idx + 1}/${renewalItems.length}): ${serviceName}\n📧 Correo: ${user.email || 'N/A'}\n🗓️ Tiempo: ${durationLabel}\n💰 Comprobante: ${receiptUrl || 'Pendiente'}`;
+            return `🎬 Servicio (${idx + 1}/${renewalItems.length}): ${serviceName}\n📧 Correo: ${user.email || 'N/A'}\n🗓️ Tiempo: ${durationLabel}\n📌 Comprobante: Pendiente`;
           })
           .join('\n\n');
         
         message = `♻️ ¡RENOVACIÓN PENDIENTE! ♻️
 
-Hola Vortex, Mi renovación se ha procesado.
+Hola Vortex, mi renovación se ha procesado.
 
 📌 DETALLE DEL SERVICIO:
 ${renewalDetails}`;
       } else {
-        // Format new purchase message
+        // Format new purchase message without a receipt link
         const serviceList = newOrderItems
           .map(item => `${item.product.name} x${item.quantity}`)
           .join(', ');
@@ -312,15 +307,16 @@ ${renewalDetails}`;
           ? `Bs ${totalConvertedAmount.toFixed(2)}` 
           : `$${total.toFixed(2)}`;
         
-        const comprobante = receiptUrl ? `\n${receiptUrl}` : '';
+        const comprobante = receiptUrl
+          ? '\n📌 Comprobante cargado. No se envía enlace en este mensaje.'
+          : '\n📌 Comprobante pendiente. Enviaré el comprobante por este chat.';
         
         message = `🛒 *NUEVA COMPRA RECIBIDA*
 
 👤 *Cliente:* ${displayName}
 📺 *Servicio:* ${serviceList}
 💰 *Monto:* ${monto}
-
-⏳ Pendiente por verificar pago.${comprobante}`;
+${comprobante}`;
       }
       
       const whatsappUrl = getWhatsAppUrl(message);
@@ -329,11 +325,8 @@ ${renewalDetails}`;
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
 
-      if (whatsappWindow) {
-        whatsappWindow.location.href = whatsappUrl;
-        whatsappWindow.focus();
-      } else {
-        window.open(whatsappUrl, '_blank');
+      if (typeof window !== 'undefined') {
+        window.location.href = whatsappUrl;
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';

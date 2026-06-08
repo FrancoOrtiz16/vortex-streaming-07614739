@@ -1,5 +1,5 @@
 import { useState, memo, useEffect } from 'react';
-import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell } from 'lucide-react';
+import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell, Eye } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
@@ -45,6 +45,8 @@ interface Props {
   data: ServiceRowData;
   onChanged: () => void;
   highlight?: boolean;
+  hasReceipt?: boolean;
+  onOpenReceipt?: (subscriptionId: string, userId: string, label: string) => void;
 }
 
 const statusVariant = (status?: string | null) => {
@@ -73,7 +75,7 @@ const statusLabel = (status?: string | null) => {
   }
 };
 
-const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
+const ServiceRow = ({ data, onChanged, highlight = false, hasReceipt = false, onOpenReceipt }: Props) => {
   const EDIT_STATE_KEY = `admin_subscription_edit_${data.id}_v1`;
   const EDIT_FORM_KEY = `admin_subscription_form_${data.id}_v1`;
 
@@ -243,6 +245,18 @@ const ServiceRow = ({ data, onChanged, highlight = false }: Props) => {
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
+        </TableCell>
+
+        <TableCell>
+          <button
+            type="button"
+            onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
+            disabled={!hasReceipt}
+            title={hasReceipt ? 'Ver comprobante' : 'No hay comprobante disponible'}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-300 shadow-sm transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
         </TableCell>
 
         {/* SEMÁFORO - Traffic Light */}

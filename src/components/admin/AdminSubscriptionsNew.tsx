@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Loader2, Plus, Zap, Download } from 'lucide-react';
+import { Search, Loader2, Plus, Zap, Download, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ServiceRow, { type ServiceRowData } from './ServiceRow';
 import MobileServiceCard from './MobileServiceCard';
+import ReceiptImageViewer from './ReceiptImageViewer';
+import { resolveReceiptPublicUrl } from './receiptPreviewUtils';
 import { ManualSubscriptionModal } from './ManualSubscriptionModal';
 import { syncOrderToSubscription } from '@/services/orderService';
 import { exportSubscriptionsToExcel } from '@/lib/subscriptionExcelExport';
@@ -32,6 +34,13 @@ export default function AdminSubscriptionsNew() {
   const [services, setServices] = useState<Array<{ id: string; name: string; price: number; plan_type: string | null }>>([]);
   const [syncing, setSyncing] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptModalLoading, setReceiptModalLoading] = useState(false);
+  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
+  const [receiptModalError, setReceiptModalError] = useState<string | null>(null);
+  const [receiptAvailableBySubscriptionId, setReceiptAvailableBySubscriptionId] = useState<Record<string, boolean>>({});
+  const [receiptAvailableByUserId, setReceiptAvailableByUserId] = useState<Record<string, boolean>>({});
+  const [receiptOwnerLabel, setReceiptOwnerLabel] = useState<string>('');
   const isMountedRef = useRef(true);
   const profileCacheRef = useRef<Map<string, { display_name: string | null; email: string | null; phone: string | null }>>(new Map());
   const highlightTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -193,12 +202,111 @@ export default function AdminSubscriptionsNew() {
         return mapSubscriptionRow(s, prof);
       });
 
-      if (isMountedRef.current) setRows(mapped);
+      if (isMountedRef.current) {
+        setRows(mapped);
+        fetchReceiptAvailability(mapped);
+      }
     } catch (err) {
       console.error('[AdminSubscriptionsNew] fetch error', err);
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
+  };
+
+  const fetchReceiptAvailability = async (rows: ServiceRowData[]) => {
+    try {
+      const subscriptionIds = Array.from(new Set(rows.map((row) => row.id))).filter(Boolean);
+      const userIds = Array.from(new Set(rows.map((row) => row.user_id))).filter(Boolean);
+      if (subscriptionIds.length === 0 && userIds.length === 0) {
+        setReceiptAvailableBySubscriptionId({});
+        setReceiptAvailableByUserId({});
+        return;
+      }
+
+      const filters: string[] = [];
+      if (subscriptionIds.length > 0) {
+        filters.push(`subscription_id.in.(${subscriptionIds.join(',')})`);
+      }
+      if (userIds.length > 0) {
+        filters.push(`user_id.in.(${userIds.join(',')})`);
+      }
+
+      const { data, error } = await supabase
+        .from('payment_history')
+        .select('subscription_id, user_id, receipt_url, created_at')
+        .or(filters.join(','))
+        .neq('receipt_url', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('[AdminSubscriptionsNew] receipt availability load error:', error);
+        return;
+      }
+
+      const subscriptionMap: Record<string, boolean> = {};
+      const userMap: Record<string, boolean> = {};
+
+      (data || []).forEach((item: any) => {
+        if (item.subscription_id) subscriptionMap[item.subscription_id] = true;
+        if (item.user_id) userMap[item.user_id] = true;
+      });
+
+      if (isMountedRef.current) {
+        setReceiptAvailableBySubscriptionId(subscriptionMap);
+        setReceiptAvailableByUserId(userMap);
+      }
+    } catch (err) {
+      console.error('[AdminSubscriptionsNew] fetchReceiptAvailability error:', err);
+    }
+  };
+
+  const openReceiptModal = async (subscriptionId: string, userId: string, label: string) => {
+    setReceiptModalOpen(true);
+    setReceiptModalLoading(true);
+    setSelectedReceiptUrl(null);
+    setReceiptModalError(null);
+    setReceiptOwnerLabel(label);
+
+    try {
+      const filterParts: string[] = [];
+      if (subscriptionId) filterParts.push(`subscription_id.eq.${subscriptionId}`);
+      if (userId) filterParts.push(`user_id.eq.${userId}`);
+      const orFilter = filterParts.length > 1 ? `or(${filterParts.join(',')})` : filterParts[0];
+
+      const { data, error } = await supabase
+        .from('payment_history')
+        .select('receipt_url')
+        .or(orFilter)
+        .neq('receipt_url', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      const rawReceipt = data?.[0]?.receipt_url;
+      const normalizedReceiptUrl = await resolveReceiptPublicUrl(rawReceipt, userId);
+
+      if (!normalizedReceiptUrl) {
+        setReceiptModalError('No se pudo resolver la URL del comprobante.');
+      } else {
+        setSelectedReceiptUrl(normalizedReceiptUrl);
+      }
+    } catch (err: any) {
+      console.error('[AdminSubscriptionsNew] openReceiptModal error:', err);
+      setReceiptModalError(err?.message || 'Error cargando el comprobante');
+    } finally {
+      setReceiptModalLoading(false);
+    }
+  };
+
+  const closeReceiptModal = () => {
+    setReceiptModalOpen(false);
+    setSelectedReceiptUrl(null);
+    setReceiptModalError(null);
+    setReceiptModalLoading(false);
+    setReceiptOwnerLabel('');
   };
 
   useEffect(() => {
@@ -469,20 +577,29 @@ export default function AdminSubscriptionsNew() {
               <TableHead>Estado</TableHead>
               <TableHead>Última</TableHead>
               <TableHead>Próxima</TableHead>
+              <TableHead>Comprobante</TableHead>
               <TableHead>Semáforo</TableHead>
               <TableHead>Contraseña</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((row) => (
-              <ServiceRow
-                key={row.id}
-                data={row}
-                onChanged={fetchAll}
-                highlight={Boolean(highlightedRows[row.id])}
-              />
-            ))}
+            {filtered.map((row) => {
+              const hasReceipt = Boolean(
+                receiptAvailableBySubscriptionId[row.id] ||
+                (row.user_id && receiptAvailableByUserId[row.user_id])
+              );
+              return (
+                <ServiceRow
+                  key={row.id}
+                  data={row}
+                  onChanged={fetchAll}
+                  highlight={Boolean(highlightedRows[row.id])}
+                  hasReceipt={hasReceipt}
+                  onOpenReceipt={openReceiptModal}
+                />
+              );
+            })}
           </TableBody>
         </Table>
         {filtered.length === 0 && (
@@ -500,6 +617,11 @@ export default function AdminSubscriptionsNew() {
             data={row}
             onChanged={fetchAll}
             highlight={Boolean(highlightedRows[row.id])}
+            hasReceipt={Boolean(
+              receiptAvailableBySubscriptionId[row.id] ||
+              (row.user_id && receiptAvailableByUserId[row.user_id])
+            )}
+            onOpenReceipt={openReceiptModal}
           />
         ))}
         {filtered.length === 0 && (
@@ -519,6 +641,60 @@ export default function AdminSubscriptionsNew() {
         }}
         services={services}
       />
+
+      {receiptModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeReceiptModal} />
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-[#030712] shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Previsualizar comprobante</p>
+                <p className="text-xs text-slate-400">{receiptOwnerLabel || 'Comprobante de pago'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeReceiptModal}
+                className="rounded-full p-2 text-slate-300 hover:bg-white/10 transition"
+                aria-label="Cerrar previsualización"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="min-h-[260px] max-h-[calc(100vh-10rem)] overflow-auto p-5">
+              {receiptModalLoading ? (
+                <div className="flex min-h-[240px] items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : receiptModalError ? (
+                <div className="rounded-3xl border border-destructive/20 bg-destructive/10 p-6 text-center text-sm text-destructive">
+                  {receiptModalError}
+                </div>
+              ) : selectedReceiptUrl ? (
+                <div className="space-y-4">
+                  <ReceiptImageViewer
+                    receiptUrl={selectedReceiptUrl}
+                    altText="Comprobante de pago"
+                    className="w-full h-auto max-h-[70vh] object-contain"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={closeReceiptModal}
+                      className="rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-sm text-slate-300">
+                  No se encontró ningún comprobante para esta suscripción.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

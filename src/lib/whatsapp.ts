@@ -7,7 +7,10 @@ const normalizeWhatsAppNumber = (number: string) => {
 
 export const getWhatsAppUrl = (message: string, number: string = WHATSAPP_NUMBER) => {
   const sanitized = normalizeWhatsAppNumber(number);
-  return `https://wa.me/${sanitized}?text=${encodeURIComponent(message)}`;
+  const encoded = encodeURIComponent(message);
+  return sanitized
+    ? `whatsapp://send?phone=${sanitized}&text=${encoded}`
+    : `whatsapp://send?text=${encoded}`;
 };
 
 export const getWhatsAppSupportMessage = () => 'Hola, necesito soporte técnico de Vortex Streaming.';

@@ -1,5 +1,5 @@
 import { useState, memo, useEffect } from 'react';
-import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell, User, Package } from 'lucide-react';
+import { Pencil, Save, X, Loader2, Trash2, CheckCircle2, Bell, User, Package, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
@@ -19,6 +19,8 @@ interface Props {
   data: ServiceRowData;
   onChanged: () => void;
   highlight?: boolean;
+  hasReceipt?: boolean;
+  onOpenReceipt?: (subscriptionId: string, userId: string, label: string) => void;
 }
 
 const statusLabel = (status?: string | null) => {
@@ -47,7 +49,7 @@ const statusColor = (status?: string | null) => {
   }
 };
 
-const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
+const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = false, onOpenReceipt }: Props) => {
   const EDIT_STATE_KEY = `admin_mobile_subscription_edit_${data.id}_v1`;
   const EDIT_FORM_KEY = `admin_mobile_subscription_form_${data.id}_v1`;
 
@@ -231,6 +233,15 @@ const MobileServiceCard = ({ data, onChanged, highlight = false }: Props) => {
 
       {/* Acciones principales */}
       <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
+          disabled={!hasReceipt}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Eye className="w-4 h-4" />
+          {hasReceipt ? 'Ver comprobante' : 'Sin comprobante'}
+        </button>
         {isPending && (
           <button
             type="button"

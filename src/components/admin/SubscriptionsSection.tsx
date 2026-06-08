@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell, Download } from 'lucide-react';
+import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { approvePayment } from '@/services/orderService';
 import { ExpiryBadge } from '@/components/ExpiryBadge';
+import ReceiptImageViewer from '@/components/admin/ReceiptImageViewer';
 import { getVETDateInputISO, getVETDateString, getTrafficLightStatus, getDaysUntilExpiry } from '@/lib/trafficLightUtils';
 import { exportSubscriptionsToExcel } from '@/lib/subscriptionExcelExport';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
@@ -75,6 +76,12 @@ export function SubscriptionsSection() {
   const [services, setServices] = useState<any[]>([]);
   const [notifyingBulk, setNotifyingBulk] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptModalLoading, setReceiptModalLoading] = useState(false);
+  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
+  const [receiptModalError, setReceiptModalError] = useState<string | null>(null);
+  const [receiptPathByUser, setReceiptPathByUser] = useState<Record<string, string>>({});
+  const [receiptAvailableByUser, setReceiptAvailableByUser] = useState<Record<string, boolean>>({});
   const isMountedRef = useRef(true);
 
   const fetchData = async () => {
@@ -137,6 +144,9 @@ export function SubscriptionsSection() {
         setLoading(false);
       }
       console.debug('[Admin] Subscriptions loaded:', subsWithProfiles.length);
+      if (isMountedRef.current) {
+        prefetchReceiptAvailability(subsWithProfiles);
+      }
       console.debug('[Admin] Pending orders loaded:', pendingOrdersList.length);
     } catch (err) {
       console.error('[Admin] fetchData error:', err);
@@ -145,6 +155,80 @@ export function SubscriptionsSection() {
         setLoading(false);
       }
     }
+  };
+
+  const loadUserReceiptPath = async (userId: string) => {
+    if (!userId) return null;
+    if (receiptPathByUser[userId]) return receiptPathByUser[userId];
+
+    try {
+      const { data, error } = await supabase.storage.from('receipts').list(userId);
+      if (error || !data || data.length === 0) {
+        setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: false }));
+        return null;
+      }
+
+      const latestFile = data
+        .filter((file) => !file.name.startsWith('.'))
+        .sort((a, b) => b.name.localeCompare(a.name))[0];
+
+      if (!latestFile) {
+        setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: false }));
+        return null;
+      }
+
+      const path = `${userId}/${latestFile.name}`;
+      setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: true }));
+      setReceiptPathByUser((prev) => ({ ...prev, [userId]: path }));
+      return path;
+    } catch (err) {
+      setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: false }));
+      return null;
+    }
+  };
+
+  const getReceiptPublicUrl = async (userId: string) => {
+    const path = await loadUserReceiptPath(userId);
+    if (!path) return null;
+
+    const urlData = supabase.storage.from('receipts').getPublicUrl(path);
+    if (!urlData?.data?.publicUrl) {
+      throw new Error('No se pudo obtener la URL del comprobante');
+    }
+    return urlData.data.publicUrl;
+  };
+
+  const prefetchReceiptAvailability = async (subscriptionList: (Subscription & { profile?: Profile })[]) => {
+    const userIds = Array.from(new Set(subscriptionList.map((sub) => sub.user_id).filter(Boolean)));
+    await Promise.all(userIds.map((userId) => loadUserReceiptPath(userId)));
+  };
+
+  const openReceiptModal = async (userId: string) => {
+    setReceiptModalOpen(true);
+    setReceiptModalLoading(true);
+    setSelectedReceiptUrl(null);
+    setReceiptModalError(null);
+
+    try {
+      const url = await getReceiptPublicUrl(userId);
+      if (!url) {
+        setReceiptModalError('No se encontró ningún comprobante asociado a esta suscripción.');
+      } else {
+        setSelectedReceiptUrl(url);
+      }
+    } catch (err: any) {
+      console.error('[Admin] openReceiptModal error:', err);
+      setReceiptModalError(err?.message || 'Error cargando el comprobante');
+    } finally {
+      setReceiptModalLoading(false);
+    }
+  };
+
+  const closeReceiptModal = () => {
+    setReceiptModalOpen(false);
+    setSelectedReceiptUrl(null);
+    setReceiptModalError(null);
+    setReceiptModalLoading(false);
   };
 
   useEffect(() => {
@@ -703,6 +787,7 @@ export function SubscriptionsSection() {
                     <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Estado</th>
                     <th className="text-left px-4 py-2 text-muted-foreground font-medium text-xs">Última</th>
                     <th className="text-left px-4 py-2 text-muted-foreground font-medium text-xs">Próxima</th>
+                    <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Comprobante</th>
                     <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Semáforo</th>
                     <th className="text-center px-4 py-2 text-muted-foreground font-medium text-xs">Acciones</th>
                   </tr>
@@ -719,6 +804,21 @@ export function SubscriptionsSection() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{s.next_renewal ? new Date(s.next_renewal).toLocaleDateString() : 'N/A'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => openReceiptModal(s.user_id)}
+                            disabled={!s.user_id || (s.user_id in receiptAvailableByUser && !receiptAvailableByUser[s.user_id])}
+                            title={
+                              !s.user_id || (s.user_id in receiptAvailableByUser && !receiptAvailableByUser[s.user_id])
+                                ? 'No hay comprobante disponible'
+                                : 'Previsualizar comprobante'
+                            }
+                            className="inline-flex items-center justify-center rounded-full p-2 text-sm border border-border transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary/80"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </td>
                         <td className="px-4 py-3 text-center"><ExpiryBadge nextRenewal={s.status === 'active' || s.status === 'confirmed' ? s.next_renewal : null} /></td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
@@ -811,6 +911,79 @@ export function SubscriptionsSection() {
           </div>
         ))
       )}
+        {receiptModalOpen && (
+          <AnimatePresence>
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <button
+                type="button"
+                onClick={closeReceiptModal}
+                className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+                aria-label="Cerrar modal de comprobante"
+              />
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: 12 }}
+                className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-background shadow-2xl"
+              >
+                <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+                  <div>
+                    <p className="text-sm font-semibold">Previsualizar comprobante</p>
+                    <p className="text-xs text-muted-foreground">Revisa el recibo sin exponer enlaces largos.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeReceiptModal}
+                    className="rounded-full p-2 text-muted-foreground hover:bg-secondary transition"
+                    aria-label="Cerrar previsualización"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="max-h-[calc(100vh-8rem)] overflow-auto p-5">
+                  {receiptModalLoading ? (
+                    <div className="flex min-h-[240px] items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : receiptModalError ? (
+                    <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">
+                      <p>{receiptModalError}</p>
+                    </div>
+                  ) : selectedReceiptUrl ? (
+                    <div className="space-y-4">
+                      <div className="rounded-3xl bg-black/5 p-4">
+                        <ReceiptImageViewer
+                          receiptUrl={selectedReceiptUrl}
+                          altText="Comprobante de pago"
+                          className="w-full max-h-[70vh] object-contain"
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={closeReceiptModal}
+                          className="rounded-xl px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition"
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-3xl border border-muted-foreground/20 bg-secondary/80 p-6 text-center text-sm text-muted-foreground">
+                      No se encontró ningún comprobante disponible para esta suscripción.
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        )}
         {subs.length === 0 && (
           <div className="glass rounded-xl p-8 text-center text-muted-foreground text-sm">No hay suscripciones registradas</div>
         )}
