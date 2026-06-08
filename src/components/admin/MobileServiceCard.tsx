@@ -255,7 +255,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
             Aprobar Pago
           </button>
         )}
-        {daysRemaining <= 3 && daysRemaining >= 0 && (
+        {daysRemaining !== null && daysRemaining <= 3 && (
           <button
             type="button"
             onClick={handleNotifyExpiration}

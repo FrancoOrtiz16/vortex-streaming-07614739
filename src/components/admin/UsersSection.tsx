@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Shield, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, Shield, Trash2, Copy, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -125,6 +125,19 @@ export function UsersSection() {
   }, [profiles.length]);
 
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
+
+  const handleCopyEmail = async (id: string, email: string) => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedEmailId(id);
+      // small feedback
+      setTimeout(() => setCopiedEmailId(null), 2000);
+      toast.success('Email copiado al portapapeles');
+    } catch (e) {
+      toast.error('No se pudo copiar el email');
+    }
+  };
 
   const deleteUserFromWeb = async (profile: Profile) => {
     try {
@@ -250,7 +263,26 @@ export function UsersSection() {
                     className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium">{p.display_name || '—'}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{p.email || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="truncate">{p.email || '—'}</span>
+                        {p.email && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyEmail(p.id, p.email)}
+                            className="ml-2 inline-flex items-center justify-center rounded-md p-1.5 bg-transparent hover:bg-white/5 transition"
+                            title="Copiar correo"
+                            aria-label={`Copiar correo ${p.email}`}
+                          >
+                            {copiedEmailId === p.id ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${svcStatus.className}`}>
