@@ -325,8 +325,13 @@ ${comprobante}`;
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
 
+      // Navegar al perfil primero, luego abrir WhatsApp
+      navigate('/profile', { replace: false });
+      
       if (typeof window !== 'undefined') {
-        window.location.href = whatsappUrl;
+        setTimeout(() => {
+          window.location.href = whatsappUrl;
+        }, 100);
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -397,7 +402,7 @@ ${comprobante}`;
                 </p>
                 {receiptPreview ? (
                   <div className="relative">
-                    <img src={receiptPreview} alt="Comprobante" className="w-full h-32 object-cover rounded-lg" />
+                    <img src={receiptPreview} alt="Comprobante" className="w-full h-20 object-cover rounded-lg" />
                     {uploading && (
                       <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
                         <Loader2 className="w-5 h-5 animate-spin text-primary" />
