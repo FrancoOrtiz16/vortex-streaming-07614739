@@ -102,11 +102,11 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
 
         {/* Select de variantes responsivo */}
         {hasVariants ? (
-          <div className="relative mb-2 sm:mb-4">
+          <div className="relative mb-2 sm:mb-4 mx-auto w-full max-w-[260px]">
             <select
               value={selected.id}
               onChange={handleVariantChange}
-              className="w-full appearance-none rounded-xl sm:rounded-2xl border border-primary/20 bg-primary/10 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-[0.6875rem] sm:text-sm font-medium text-white outline-none transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="w-full appearance-none rounded-xl sm:rounded-2xl border border-primary/20 bg-primary/10 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-[0.6875rem] sm:text-sm font-medium text-white outline-none transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 text-center"
             >
               {variants!.map(v => (
                 <option key={v.id} value={v.id} className="bg-[#040617] text-white">
