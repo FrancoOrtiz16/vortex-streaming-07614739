@@ -180,11 +180,24 @@ export async function approvePayment(subscriptionId: string): Promise<OrderActio
 
     // ⚠️ IMPORTANTE: Usar VET timezone para consistencia
     const { getVETStartOfDay, addVETDays } = await import('@/lib/trafficLightUtils');
-    
-    // Calcular fecha de próxima renovación: now (VET) + duration_days
     const durationDays = currentSub.duration_days || 30;
     const nowVET = getVETStartOfDay();
-    const nextRenewDate = addVETDays(nowVET, durationDays);
+
+    // Base para renovaciones acumulativas: usar la fecha de vencimiento actual
+    // si existe; de lo contrario, arrancar desde hoy.
+    let baseExpiryDate = nowVET;
+    if (currentSub.next_renewal) {
+      const parsedExpiry = new Date(currentSub.next_renewal);
+      if (!Number.isNaN(parsedExpiry.getTime())) {
+        const expiryStart = getVETStartOfDay(parsedExpiry);
+        const yearDiff = expiryStart.getFullYear() - nowVET.getFullYear();
+        if (yearDiff <= 50) {
+          baseExpiryDate = expiryStart;
+        }
+      }
+    }
+
+    const nextRenewDate = addVETDays(baseExpiryDate, durationDays);
 
     // Usar el mismo timestamp para both last_renewal y como referencia
     const { data, error } = await supabase

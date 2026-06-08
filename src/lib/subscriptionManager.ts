@@ -122,16 +122,13 @@ export async function renewExistingSubscription(subscriptionId: string) {
       return { data: null, error: { message: 'Suscripción no encontrada o no accesible para el usuario actual' } };
     }
 
-    // En la fase de renovación pendiente, mantener fecha lejana
-    // Solo la acción manual de aprobación debe establecer fecha real
-    const pendingDate = new Date();
-    pendingDate.setFullYear(pendingDate.getFullYear() + 100);
-    
+    // En la fase de renovación pendiente, solo cambiar el estado.
+    // Conservar next_renewal actual para calcular la suma acumulativa
+    // cuando se apruebe el pago.
     const { data, error } = await supabase
       .from('subscriptions')
       .update({ 
         status: 'pending_approval',
-        next_renewal: pendingDate.toISOString(), // Fecha lejana = aún pendiente
       })
       .eq('id', subscriptionId)
       .select('id, status, next_renewal, duration_days')
