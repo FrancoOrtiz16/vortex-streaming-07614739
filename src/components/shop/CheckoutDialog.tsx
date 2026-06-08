@@ -325,8 +325,8 @@ ${comprobante}`;
       onOpenChange(false);
       toast.success('✅ Pedido registrado. Envía tu comprobante por WhatsApp.');
 
-      // Navegar al perfil primero, luego abrir WhatsApp
-      navigate('/profile', { replace: false });
+      // Navegar al panel de cliente después de la compra/renovación
+      navigate('/dashboard', { replace: false });
       
       if (typeof window !== 'undefined') {
         setTimeout(() => {
