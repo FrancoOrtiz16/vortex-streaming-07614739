@@ -13,19 +13,19 @@ export default function PasswordViewer({ password }: PasswordViewerProps) {
   }
 
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
       <input
         type={showPassword ? 'text' : 'password'}
         value={password}
         readOnly
-        className="min-w-0 flex-1 bg-transparent border-none outline-none text-sm font-mono truncate"
+        className="min-w-0 flex-1 bg-transparent border-none outline-none text-xs sm:text-sm font-mono truncate"
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
       >
-        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        {showPassword ? <EyeOff className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> : <Eye className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
       </button>
     </div>
   );

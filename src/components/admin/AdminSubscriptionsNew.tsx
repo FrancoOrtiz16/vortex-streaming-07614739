@@ -479,27 +479,27 @@ export default function AdminSubscriptionsNew() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4 sm:space-y-5 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-2">Admin</p>
-          <h1 className="font-display text-2xl font-bold text-white">Gestión de suscripciones</h1>
-          <p className="text-sm text-slate-400 mt-2">
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-white">Gestión de suscripciones</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-2">
             Sincronización automática de ventas + Creación manual + Semáforo de vencimiento
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 w-full md:w-auto">
           <button
           type='button'
             onClick={handleSyncOrders}
             disabled={syncing}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold disabled:opacity-50 transition"
             title="Sincronizar órdenes completadas con suscripciones"
           >
             {syncing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" />
             ) : (
-              <Zap className="w-4 h-4" />
+              <Zap className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             )}
             {syncing ? 'Sincronizando...' : 'Sincronizar Órdenes'}
           </button>
@@ -507,41 +507,41 @@ export default function AdminSubscriptionsNew() {
             type='button'
             onClick={handleExportExcel}
             disabled={exportingExcel || filtered.length === 0}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50 transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold disabled:opacity-50 transition"
             title="Exportar el listado actual a Excel"
           >
-            {exportingExcel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {exportingExcel ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Download className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             {exportingExcel ? 'Exportando...' : 'Exportar Excel'}
           </button>
           <button
             type='button'
             onClick={() => setShowManualModal(true)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition"
             title="Crear una nueva suscripción manual"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             Nueva Manual
           </button>
         </div>
       </div>
 
       <div className="relative w-full md:max-w-md">
-        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 sm:left-4 top-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onFocus={() => setSearching(true)}
           onBlur={() => setSearching(false)}
           placeholder="Buscar por cliente o servicio..."
-          className="w-full rounded-3xl border border-border bg-secondary/70 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-primary transition"
+          className="w-full rounded-3xl border border-border bg-secondary/70 py-2 sm:py-3 pl-10 sm:pl-12 pr-3 sm:pr-4 text-xs sm:text-sm text-white outline-none focus:border-primary transition"
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all ${
             filter === 'all'
               ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]'
               : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
@@ -552,7 +552,7 @@ export default function AdminSubscriptionsNew() {
         <button
           type="button"
           onClick={() => setFilter('pending')}
-          className={`px-4 py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 sm:gap-2 ${
             filter === 'pending'
               ? 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.35)]'
               : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
@@ -560,7 +560,7 @@ export default function AdminSubscriptionsNew() {
         >
           Confirmaciones Pendientes
           {pendingCount > 0 && (
-            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px]">
+            <span className="inline-flex h-4 sm:h-5 min-w-[18px] sm:min-w-[20px] items-center justify-center rounded-full bg-white/20 px-1 sm:px-1.5 text-[9px] sm:text-[10px]">
               {pendingCount}
             </span>
           )}
@@ -610,7 +610,7 @@ export default function AdminSubscriptionsNew() {
       </div>
 
       {/* Vista Móvil: Cards */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-2.5">
         {filtered.map((row) => (
           <MobileServiceCard
             key={row.id}
@@ -625,7 +625,7 @@ export default function AdminSubscriptionsNew() {
           />
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-sm text-muted-foreground rounded-2xl border border-white/10 bg-black/40">
+          <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground rounded-2xl border border-white/10 bg-black/40">
             No se encontraron suscripciones.
           </div>
         )}

@@ -53,7 +53,7 @@ export default function AdminAccess() {
       <div className="min-h-screen flex w-full">
         <AdminSidebar onSignOut={signOut} />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center border-b border-border px-4 glass">
+          <header className="h-14 flex items-center border-b border-border px-3 sm:px-4 glass">
             <SidebarTrigger className="mr-3" />
             <Shield className="w-4 h-4 text-primary mr-2" />
             <span className="font-display font-bold text-sm neon-text">Vortex Streaming</span>
@@ -61,7 +61,7 @@ export default function AdminAccess() {
               <UserMenu />
             </div>
           </header>
-          <main className="flex-1 p-6 overflow-y-auto">
+            <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto">
             <Routes>
               <Route index element={<Navigate to="subscriptions" replace />} />
               <Route path="users" element={<UsersSection />} />

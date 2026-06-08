@@ -195,39 +195,39 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
   };
 
   return (
-    <div className={`overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3 shadow-[0_0_15px_rgba(59,130,246,0.05)] transition-all ${highlight ? 'animate-pulse ring-2 ring-emerald-400/30' : ''}`}>
+    <div className={`overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-3 sm:p-4 space-y-2.5 sm:space-y-3 shadow-[0_0_15px_rgba(59,130,246,0.05)] transition-all ${highlight ? 'animate-pulse ring-2 ring-emerald-400/30' : ''}`}>
       {/* Header: Cliente + Servicio */}
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-            <User className="w-3 h-3" />
+          <div className="flex min-w-0 items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+            <User className="w-2.5 sm:w-3 h-2.5 sm:h-3 shrink-0" />
             <span className="truncate">{data.client_label}</span>
           </div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <Package className="w-4 h-4 text-primary shrink-0" />
-            <span className="font-bold text-white text-sm truncate">{data.service_name}</span>
+          <div className="flex items-center gap-1 sm:gap-1.5 mt-1">
+            <Package className="w-3 sm:w-4 h-3 sm:h-4 text-primary shrink-0" />
+            <span className="font-bold text-white text-xs sm:text-sm truncate">{data.service_name}</span>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColor(data.status)} shrink-0`}>
+        <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border ${statusColor(data.status)} shrink-0`}>
           {statusLabel(data.status)}
         </span>
       </div>
 
       {/* Semáforo + Próxima renovación */}
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold ${tlColor}`}>
-          <span>{tlInfo.icon}</span>
-          <span>{tlInfo.label}</span>
+      <div className="flex items-center justify-between gap-2 text-[10px] sm:text-xs">
+        <div className={`flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg font-semibold ${tlColor}`}>
+          <span className="text-sm sm:text-base">{tlInfo.icon}</span>
+          <span className="truncate">{tlInfo.label}</span>
           {daysRemaining !== null && <span className="opacity-80">({daysRemaining}d)</span>}
         </div>
-        <span className="text-muted-foreground">
+        <span className="text-muted-foreground whitespace-nowrap">
           {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-ES') : 'Sin fecha'}
         </span>
       </div>
 
       {/* Contraseña */}
-      <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Contraseña</span>
+      <div className="flex min-w-0 items-center justify-between gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/5">
+        <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Contraseña</span>
         <div className="min-w-0">
           <PasswordViewer password={data.credential_password} />
         </div>
@@ -239,9 +239,9 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
           type="button"
           onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
           disabled={!hasReceipt}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Eye className="w-4 h-4" />
+          <Eye className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           {hasReceipt ? 'Ver comprobante' : 'Sin comprobante'}
         </button>
         {isPending && (
@@ -249,9 +249,9 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
             type="button"
             onClick={handleApprove}
             disabled={busy === 'pay'}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50 transition"
+            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold disabled:opacity-50 transition"
           >
-            {busy === 'pay' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {busy === 'pay' ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             Aprobar Pago
           </button>
         )}
@@ -260,28 +260,28 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
             type="button"
             onClick={handleNotifyExpiration}
             disabled={busy === 'notify'}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50 transition"
+            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold disabled:opacity-50 transition"
           >
-            {busy === 'notify' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+            {busy === 'notify' ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Bell className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             Notificar Vencimiento
           </button>
         )}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={() => setEditing((v) => !v)}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 text-sm font-semibold transition"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 text-xs sm:text-sm font-semibold transition"
           >
-            {editing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+            {editing ? <X className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> : <Pencil className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             {editing ? 'Cerrar' : 'Llave'}
           </button>
           <button
             type="button"
             onClick={handleDelete}
             disabled={busy === 'delete'}
-            className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive hover:bg-destructive/25 text-sm font-semibold disabled:opacity-50 transition"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive hover:bg-destructive/25 text-xs sm:text-sm font-semibold disabled:opacity-50 transition"
           >
-            {busy === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            {busy === 'delete' ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Trash2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             Eliminar
           </button>
         </div>
@@ -289,57 +289,57 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
 
       {/* Editor expandible */}
       {editing && (
-        <div className="space-y-2 pt-3 border-t border-white/10">
+        <div className="space-y-2 pt-2.5 sm:pt-3 border-t border-white/10\">
           <input
             type="email"
             placeholder="Email/Usuario"
             value={form.credential_email}
             onChange={(e) => setForm({ ...form, credential_email: e.target.value })}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-background px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
           />
           <input
             type="text"
             placeholder="Contraseña"
             value={form.credential_password}
             onChange={(e) => setForm({ ...form, credential_password: e.target.value })}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-background px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
           />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
             <input
               type="text"
               placeholder="Perfil"
               value={form.profile_name}
               onChange={(e) => setForm({ ...form, profile_name: e.target.value })}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
+              className="rounded-lg border border-border bg-background px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
             />
             <input
               type="text"
               placeholder="ID-Externo"
               value={form.externalId}
               onChange={(e) => setForm({ ...form, externalId: e.target.value })}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
+              className="rounded-lg border border-border bg-background px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
             />
             <input
               type="text"
               placeholder="PIN"
               value={form.profile_pin}
               onChange={(e) => setForm({ ...form, profile_pin: e.target.value })}
-              className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
+              className="sm:col-span-2 rounded-lg border border-border bg-background px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary"
             />
           </div>
           <input
             type="date"
             value={form.next_renewal}
             onChange={(e) => setForm({ ...form, next_renewal: e.target.value })}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
+            className="w-full rounded-lg border border-border bg-background px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-primary"
           />
           <button
             type="button"
             onClick={handleSave}
             disabled={busy === 'save'}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition"
+            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-primary text-primary-foreground text-xs sm:text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition"
           >
-            {busy === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {busy === 'save' ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             Guardar Credenciales
           </button>
         </div>
