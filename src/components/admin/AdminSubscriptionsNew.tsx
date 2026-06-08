@@ -223,20 +223,21 @@ export default function AdminSubscriptionsNew() {
         return;
       }
 
-      const filters: string[] = [];
-      if (subscriptionIds.length > 0) {
-        filters.push(`subscription_id.in.(${subscriptionIds.join(',')})`);
-      }
-      if (userIds.length > 0) {
-        filters.push(`user_id.in.(${userIds.join(',')})`);
-      }
-
-      const { data, error } = await supabase
+      const query = supabase
         .from('payment_history')
         .select('subscription_id, user_id, receipt_url, created_at')
-        .or(filters.join(','))
         .neq('receipt_url', null)
         .order('created_at', { ascending: false });
+
+      const { data, error } = await (async () => {
+        if (subscriptionIds.length > 0 && userIds.length > 0) {
+          return query.or(`subscription_id.in.(${subscriptionIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')}),user_id.in.(${userIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')})`);
+        }
+        if (subscriptionIds.length > 0) {
+          return query.in('subscription_id', subscriptionIds);
+        }
+        return query.in('user_id', userIds);
+      })();
 
       if (error) {
         console.warn('[AdminSubscriptionsNew] receipt availability load error:', error);
@@ -260,26 +261,36 @@ export default function AdminSubscriptionsNew() {
     }
   };
 
-  const openReceiptModal = async (subscriptionId: string, userId: string, label: string) => {
+  const openReceiptModal = async (subscriptionId: string | undefined, userId?: string | undefined, label?: string) => {
     setReceiptModalOpen(true);
     setReceiptModalLoading(true);
     setSelectedReceiptUrl(null);
     setReceiptModalError(null);
-    setReceiptOwnerLabel(label);
+    setReceiptOwnerLabel(label || 'Comprobante de pago');
+
+    // Compatibilidad: si solo se pasó un argumento, interpretarlo como userId
+    if (!userId && subscriptionId) {
+      userId = subscriptionId;
+      subscriptionId = undefined;
+    }
 
     try {
-      const filterParts: string[] = [];
-      if (subscriptionId) filterParts.push(`subscription_id.eq.${subscriptionId}`);
-      if (userId) filterParts.push(`user_id.eq.${userId}`);
-      const orFilter = filterParts.length > 1 ? `or(${filterParts.join(',')})` : filterParts[0];
+      const { data, error } = await (() => {
+        const baseQuery = supabase
+          .from('payment_history')
+          .select('receipt_url')
+          .neq('receipt_url', null)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      const { data, error } = await supabase
-        .from('payment_history')
-        .select('receipt_url')
-        .or(orFilter)
-        .neq('receipt_url', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        if (userId) {
+          return baseQuery.in('user_id', [userId]);
+        }
+        if (subscriptionId) {
+          return baseQuery.in('subscription_id', [subscriptionId]);
+        }
+        return baseQuery;
+      })();
 
       if (error) {
         throw error;

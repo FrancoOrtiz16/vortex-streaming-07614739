@@ -16,7 +16,6 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 
 const CURRENCY_STORAGE_KEY = 'vortex_currency_v1';
-const RATE_STORAGE_KEY = 'vortex_usd_ves_rate_v1';
 // Fallback inicial si aún no hay valor cargado de la BD
 const FALLBACK_RATE = 95;
 
@@ -43,24 +42,25 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return 'USD';
     return parseCurrency(window.localStorage.getItem(CURRENCY_STORAGE_KEY));
   });
-  const [rate, setRate] = useState<number>(() => {
-    if (typeof window === 'undefined') return FALLBACK_RATE;
-    const cached = window.localStorage.getItem(RATE_STORAGE_KEY);
-    const parsed = cached ? parseFloat(cached) : NaN;
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : FALLBACK_RATE;
-  });
+  const [rate, setRate] = useState<number>(FALLBACK_RATE);
   const [loadingRate, setLoadingRate] = useState<boolean>(true);
 
   useEffect(() => {
     let cancelled = false;
 
+    // Limpia cualquier tasa antigua almacenada sin expiración
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('vortex_usd_ves_rate_v1');
+      } catch {
+        // ignore
+      }
+    }
+
     const applyRate = (raw: unknown) => {
       const parsed = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
       if (Number.isFinite(parsed) && parsed > 0) {
         setRate(parsed);
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(RATE_STORAGE_KEY, String(parsed));
-        }
       }
     };
 
@@ -113,9 +113,6 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       const parsed = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue ?? ''));
       if (Number.isFinite(parsed) && parsed > 0) {
         setRate(parsed);
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(RATE_STORAGE_KEY, String(parsed));
-        }
       }
     } catch (err) {
       console.warn('[Currency] Error refrescando tasa', err);

@@ -20,7 +20,7 @@ interface Props {
   onChanged: () => void;
   highlight?: boolean;
   hasReceipt?: boolean;
-  onOpenReceipt?: (subscriptionId: string, userId: string, label: string) => void;
+  onOpenReceipt?: (subscriptionId?: string, userId?: string, label?: string) => void;
 }
 
 const statusLabel = (status?: string | null) => {

@@ -4,6 +4,8 @@ import { supabase, supabaseIsConfigured } from '@/integrations/supabase/client';
 import { fallbackProducts } from '@/data/fallbackProducts';
 import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
+import { useCurrency } from '@/context/CurrencyContext';
 import type { ProductCategory } from '@/data/products';
 import ProductCard from './ProductCard';
 import { AdminPreviewBar } from '../AdminPreviewBar';
@@ -36,6 +38,7 @@ const StandaloneCatalog: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { isAdmin, user } = useAuth();
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const { refreshRate } = useCurrency();
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +112,9 @@ const StandaloneCatalog: React.FC = () => {
       }
 
       try {
+        // Forzar refresco de la tasa al montar el catálogo
+        try { await refreshRate(); } catch (e) { console.warn('[StandaloneCatalog] refreshRate failed', e); }
+
         const fresh = await fetchProducts();
         if (!isMounted) return;
         setProducts(fresh);
