@@ -17,6 +17,7 @@ import ReceiptImageViewer from '@/components/admin/ReceiptImageViewer';
 import { getVETDateInputISO, getVETDateString, getTrafficLightStatus, getDaysUntilExpiry } from '@/lib/trafficLightUtils';
 import { exportSubscriptionsToExcel } from '@/lib/subscriptionExcelExport';
 import { getWhatsAppUrl } from '@/lib/whatsapp';
+import { resolveReceiptPublicUrl } from '@/components/admin/receiptPreviewUtils';
 
 interface Subscription {
   id: string;
@@ -84,7 +85,7 @@ export function SubscriptionsSection() {
   const [receiptModalLoading, setReceiptModalLoading] = useState(false);
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [receiptModalError, setReceiptModalError] = useState<string | null>(null);
-  const [receiptPathByUser, setReceiptPathByUser] = useState<Record<string, string>>({});
+  const [receiptUrlByUser, setReceiptUrlByUser] = useState<Record<string, string>>({});
   const [receiptAvailableByUser, setReceiptAvailableByUser] = useState<Record<string, boolean>>({});
   const isMountedRef = useRef(true);
 
@@ -197,9 +198,31 @@ export function SubscriptionsSection() {
     }
   };
 
-  const loadUserReceiptPath = async (userId: string) => {
+  const loadUserReceiptUrl = async (userId: string) => {
     if (!userId) return null;
-    if (receiptPathByUser[userId]) return receiptPathByUser[userId];
+    if (receiptUrlByUser[userId]) return receiptUrlByUser[userId];
+
+    try {
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('payment_history')
+        .select('receipt_url')
+        .eq('user_id', userId)
+        .neq('receipt_url', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!paymentError && paymentData?.length) {
+        const rawReceipt = paymentData[0].receipt_url;
+        const normalizedReceiptUrl = await resolveReceiptPublicUrl(rawReceipt, userId);
+        if (normalizedReceiptUrl) {
+          setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: true }));
+          setReceiptUrlByUser((prev) => ({ ...prev, [userId]: normalizedReceiptUrl }));
+          return normalizedReceiptUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('[Admin] payment_history receipt lookup failed:', err);
+    }
 
     try {
       const { data, error } = await supabase.storage.from('receipts').list(userId);
@@ -218,9 +241,15 @@ export function SubscriptionsSection() {
       }
 
       const path = `${userId}/${latestFile.name}`;
+      const urlData = supabase.storage.from('receipts').getPublicUrl(path);
+      if (!urlData?.data?.publicUrl) {
+        setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: false }));
+        return null;
+      }
+
       setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: true }));
-      setReceiptPathByUser((prev) => ({ ...prev, [userId]: path }));
-      return path;
+      setReceiptUrlByUser((prev) => ({ ...prev, [userId]: urlData.data.publicUrl }));
+      return urlData.data.publicUrl;
     } catch (err) {
       setReceiptAvailableByUser((prev) => ({ ...prev, [userId]: false }));
       return null;
@@ -228,19 +257,12 @@ export function SubscriptionsSection() {
   };
 
   const getReceiptPublicUrl = async (userId: string) => {
-    const path = await loadUserReceiptPath(userId);
-    if (!path) return null;
-
-    const urlData = supabase.storage.from('receipts').getPublicUrl(path);
-    if (!urlData?.data?.publicUrl) {
-      throw new Error('No se pudo obtener la URL del comprobante');
-    }
-    return urlData.data.publicUrl;
+    return loadUserReceiptUrl(userId);
   };
 
   const prefetchReceiptAvailability = async (subscriptionList: (Subscription & { profile?: Profile })[]) => {
     const userIds = Array.from(new Set(subscriptionList.map((sub) => sub.user_id).filter(Boolean)));
-    await Promise.all(userIds.map((userId) => loadUserReceiptPath(userId)));
+    await Promise.all(userIds.map((userId) => loadUserReceiptUrl(userId)));
   };
 
   const openReceiptModal = async (userId: string) => {
