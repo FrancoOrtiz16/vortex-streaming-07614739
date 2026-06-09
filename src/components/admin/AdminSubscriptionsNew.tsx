@@ -218,39 +218,75 @@ export default function AdminSubscriptionsNew() {
     try {
       const subscriptionIds = Array.from(new Set(rows.map((row) => row.id))).filter(Boolean);
       const userIds = Array.from(new Set(rows.map((row) => row.user_id))).filter(Boolean);
+      
       if (subscriptionIds.length === 0 && userIds.length === 0) {
         setReceiptAvailableBySubscriptionId({});
         setReceiptAvailableByUserId({});
         return;
       }
 
-      const query = supabase
+      // ⭐ NUEVA LÓGICA: Buscar en subscriptions.receipt_url (donde se guardan ahora)
+      const subscriptionsQuery = supabase
+        .from('subscriptions')
+        .select('id, user_id, receipt_url')
+        .neq('receipt_url', null);
+
+      const { data: subscriptionsData, error: subsError } = await (async () => {
+        if (subscriptionIds.length > 0 && userIds.length > 0) {
+          return subscriptionsQuery.or(
+            `id.in.(${subscriptionIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')}),user_id.in.(${userIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')})`
+          );
+        }
+        if (subscriptionIds.length > 0) {
+          return subscriptionsQuery.in('id', subscriptionIds);
+        }
+        return subscriptionsQuery.in('user_id', userIds);
+      })();
+
+      if (subsError) {
+        console.warn('[AdminSubscriptionsNew] subscriptions receipt_url load error:', subsError);
+      }
+
+      // ⭐ FALLBACK: También buscar en payment_history para compatibilidad hacia atrás
+      const paymentHistoryQuery = supabase
         .from('payment_history')
-        .select('subscription_id, user_id, receipt_url, created_at')
+        .select('subscription_id, user_id, receipt_url')
         .neq('receipt_url', null)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await (async () => {
+      const { data: paymentData, error: phError } = await (async () => {
         if (subscriptionIds.length > 0 && userIds.length > 0) {
-          return query.or(`subscription_id.in.(${subscriptionIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')}),user_id.in.(${userIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')})`);
+          return paymentHistoryQuery.or(
+            `subscription_id.in.(${subscriptionIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')}),user_id.in.(${userIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')})`
+          );
         }
         if (subscriptionIds.length > 0) {
-          return query.in('subscription_id', subscriptionIds);
+          return paymentHistoryQuery.in('subscription_id', subscriptionIds);
         }
-        return query.in('user_id', userIds);
+        return paymentHistoryQuery.in('user_id', userIds);
       })();
 
-      if (error) {
-        console.warn('[AdminSubscriptionsNew] receipt availability load error:', error);
-        return;
+      if (phError) {
+        console.warn('[AdminSubscriptionsNew] payment_history receipt load error:', phError);
       }
 
       const subscriptionMap: Record<string, boolean> = {};
       const userMap: Record<string, boolean> = {};
 
-      (data || []).forEach((item: any) => {
-        if (item.subscription_id) subscriptionMap[item.subscription_id] = true;
-        if (item.user_id) userMap[item.user_id] = true;
+      // Procesar subscriptions.receipt_url (PRIORIDAD)
+      (subscriptionsData || []).forEach((item: any) => {
+        if (item.receipt_url) {
+          subscriptionMap[item.id] = true;
+          if (item.user_id) userMap[item.user_id] = true;
+        }
+      });
+
+      // Procesar payment_history.receipt_url (FALLBACK)
+      (paymentData || []).forEach((item: any) => {
+        if (item.receipt_url) {
+          if (item.subscription_id) subscriptionMap[item.subscription_id] = true;
+          if (item.user_id) userMap[item.user_id] = true;
+        }
       });
 
       if (isMountedRef.current) {
@@ -269,36 +305,54 @@ export default function AdminSubscriptionsNew() {
     setReceiptModalError(null);
     setReceiptOwnerLabel(label || 'Comprobante de pago');
 
-    // Compatibilidad: si solo se pasó un argumento, interpretarlo como userId
-    if (!userId && subscriptionId) {
-      userId = subscriptionId;
-      subscriptionId = undefined;
-    }
-
     try {
-      const { data, error } = await (() => {
-        const baseQuery = supabase
-          .from('payment_history')
+      let receiptUrl: string | null = null;
+
+      // ⭐ PASO 1: Buscar en subscriptions.receipt_url (PRIORIDAD)
+      if (subscriptionId) {
+        const { data: subData, error: subError } = await supabase
+          .from('subscriptions')
           .select('receipt_url')
-          .neq('receipt_url', null)
-          .order('created_at', { ascending: false })
-          .limit(1);
+          .eq('id', subscriptionId)
+          .maybeSingle();
 
-        if (userId) {
-          return baseQuery.in('user_id', [userId]);
+        if (!subError && subData?.receipt_url) {
+          receiptUrl = subData.receipt_url;
+          console.debug('[AdminSubscriptionsNew] Receipt found in subscriptions:', subscriptionId);
         }
-        if (subscriptionId) {
-          return baseQuery.in('subscription_id', [subscriptionId]);
-        }
-        return baseQuery;
-      })();
-
-      if (error) {
-        throw error;
       }
 
-      const rawReceipt = data?.[0]?.receipt_url;
-      const normalizedReceiptUrl = await resolveReceiptPublicUrl(rawReceipt, userId);
+      // ⭐ PASO 2: Si no encontró en subscriptions, buscar en payment_history (FALLBACK)
+      if (!receiptUrl) {
+        const { data: phData, error: phError } = await (() => {
+          const baseQuery = supabase
+            .from('payment_history')
+            .select('receipt_url')
+            .neq('receipt_url', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (userId) {
+            return baseQuery.eq('user_id', userId);
+          }
+          if (subscriptionId) {
+            return baseQuery.eq('subscription_id', subscriptionId);
+          }
+          return baseQuery;
+        })();
+
+        if (!phError && phData?.[0]?.receipt_url) {
+          receiptUrl = phData[0].receipt_url;
+          console.debug('[AdminSubscriptionsNew] Receipt found in payment_history');
+        }
+      }
+
+      if (!receiptUrl) {
+        setReceiptModalError('No se encontró comprobante para esta suscripción.');
+        return;
+      }
+
+      const normalizedReceiptUrl = await resolveReceiptPublicUrl(receiptUrl, userId);
 
       if (!normalizedReceiptUrl) {
         setReceiptModalError('No se pudo resolver la URL del comprobante.');
