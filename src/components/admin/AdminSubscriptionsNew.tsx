@@ -249,18 +249,11 @@ export default function AdminSubscriptionsNew() {
 
       // ⭐ FALLBACK: También buscar en payment_history para compatibilidad hacia atrás
       // Búsqueda más robusta: primero por subscription_id, luego por user_id
-      const paymentHistoryQuery = supabase
-        .from('payment_history')
-        .select('subscription_id, user_id, receipt_url')
-        .neq('receipt_url', null)
-        .order('created_at', { ascending: false });
-
       let paymentData: any[] = [];
-      let phError: any = null;
 
       // Intento 1: Buscar por subscription_id (más específico)
       if (subscriptionIds.length > 0) {
-        const { data: phBySubId, error: phSubError } = await supabase
+        const { data: phBySubId } = await supabase
           .from('payment_history')
           .select('subscription_id, user_id, receipt_url')
           .in('subscription_id', subscriptionIds)
@@ -268,25 +261,27 @@ export default function AdminSubscriptionsNew() {
           .order('created_at', { ascending: false });
         
         if (phBySubId && phBySubId.length > 0) {
-          paymentData = phBySubId;
-        } else if (phSubError) {
-          console.warn('[AdminSubscriptionsNew] payment_history by subscription_id error:', phSubError);
+          paymentData = [...paymentData, ...phBySubId];
+          console.debug('[AdminSubscriptionsNew] Found receipts by subscription_id:', phBySubId.length);
         }
       }
 
-      // Intento 2: Si no encontró por subscription_id, buscar por user_id (más general)
-      if (paymentData.length === 0 && userIds.length > 0) {
-        const { data: phByUserId, error: phUserError } = await supabase
+      // Intento 2: También buscar por user_id para capturar comprobantes sin subscription_id asociado
+      // (esto es importante para clientes que subieron comprobantes en pagos anteriores)
+      if (userIds.length > 0) {
+        const { data: phByUserId } = await supabase
           .from('payment_history')
           .select('subscription_id, user_id, receipt_url')
           .in('user_id', userIds)
           .neq('receipt_url', null)
           .order('created_at', { ascending: false });
         
-        if (phByUserId) {
-          paymentData = phByUserId;
-        } else if (phUserError) {
-          console.warn('[AdminSubscriptionsNew] payment_history by user_id error:', phUserError);
+        if (phByUserId && phByUserId.length > 0) {
+          // Evitar duplicados: solo añadir si no está ya en paymentData
+          const existingUserIds = new Set(paymentData.map((p: any) => p.user_id));
+          const newReceipts = phByUserId.filter((r: any) => !existingUserIds.has(r.user_id));
+          paymentData = [...paymentData, ...newReceipts];
+          console.debug('[AdminSubscriptionsNew] Found receipts by user_id:', newReceipts.length);
         }
       }
 
@@ -348,7 +343,10 @@ export default function AdminSubscriptionsNew() {
 
       // ⭐ PASO 2: Si no encontró en subscriptions, buscar en payment_history (FALLBACK)
       if (!receiptUrl) {
-        // Búsqueda robusta: primero por subscription_id, luego por user_id
+        // Búsqueda progresiva en payment_history:
+        // 1. Primero por subscription_id (si existe)
+        // 2. Luego por user_id (para casos donde subscription_id sea NULL)
+        
         if (subscriptionId) {
           const { data: phBySub } = await supabase
             .from('payment_history')
@@ -364,7 +362,7 @@ export default function AdminSubscriptionsNew() {
           }
         }
 
-        // Si aún no encuentra y tiene user_id, buscar por user_id
+        // Si no encontró por subscription_id, buscar por user_id
         if (!receiptUrl && userId) {
           const { data: phByUser } = await supabase
             .from('payment_history')
