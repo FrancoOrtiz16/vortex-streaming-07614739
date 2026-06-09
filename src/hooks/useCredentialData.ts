@@ -46,7 +46,7 @@ export const useCredentialData = (subscriptionId?: string): UseCredentialDataRes
       // Esquema real: credential_email/credential_password/profile_name/profile_pin
       const { data, error: supabaseError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, next_renewal')
+        .select('id, user_id, service_name, credential_email, credential_password, profile_name, profile_pin, status, next_renewal, receipt_url')
         .eq('id', subscriptionId)
         .maybeSingle();
 

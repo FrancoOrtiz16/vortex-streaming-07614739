@@ -166,6 +166,7 @@ export default function AdminSubscriptionsNew() {
       profile_name: subscription.profile_name,
       profile_pin: subscription.profile_pin,
       subscription_code: subscription.subscription_code ?? null,
+      receipt_url: subscription.receipt_url ?? null,
       phone: prof?.phone ?? undefined,
       profile_phone: prof?.phone ?? undefined,
       client_label: getProfileLabel(prof, subscription),
@@ -179,7 +180,7 @@ export default function AdminSubscriptionsNew() {
       const [subsRes, profilesRes] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('id, user_id, service_name, status, next_renewal, last_renewal, credential_email, credential_password, profile_name, profile_pin, subscription_code')
+          .select('id, user_id, service_name, status, next_renewal, last_renewal, credential_email, credential_password, profile_name, profile_pin, subscription_code, receipt_url')
           .order('created_at', { ascending: false }),
         supabase.from('profiles').select('user_id, display_name, email, phone'),
       ]);

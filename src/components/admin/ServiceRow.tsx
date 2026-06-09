@@ -35,6 +35,7 @@ export interface ServiceRowData {
   profile_name: string | null;
   profile_pin: string | null;
   subscription_code?: string | null;
+  receipt_url?: string | null;
   phone?: string | null;
   profile_phone?: string | null;
   client_label: string;

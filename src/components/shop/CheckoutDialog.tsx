@@ -223,40 +223,65 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       // Step 2: Procesar cada item del carrito.
       // - Renovaciones: actualizar la suscripción existente.
       // - Compras nuevas: crear SIEMPRE una fila independiente por unidad (multi-instancia).
+      // ⭐ RULE: Asociar receipt a cada suscripción creada en esta transacción
       const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
       const newOrderItems = items.filter(i => !i.product.renewal);
+      
+      const createdSubscriptionIds: string[] = [];
 
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
-          const { error: insertError } = await createNewSubscriptionInstance({
+          const { data: subData, error: insertError } = await createNewSubscriptionInstance({
             userId: user.id,
             serviceName: item.product.name,
             status: 'pending_approval',
             durationDays: item.product.duration_days ?? 30,
+            receiptUrl: receiptUrl,
           });
           if (insertError) {
             throw new Error(`No se pudo crear la suscripción: ${insertError.message}`);
           }
+          if (subData?.id) {
+            createdSubscriptionIds.push(subData.id);
+          }
         }
       }
 
-      // Create a payment_history entry to record receipt, method and exchange metadata
+      // Create payment_history entry for EACH subscription in this multi-purchase transaction
+      // This ensures audit trail is complete and each subscription can be linked to receipt
       try {
-        const notes = JSON.stringify({
+        const paymentHistoryNotes = JSON.stringify({
           payment_currency: isVES ? 'VES' : 'USD',
           total_usd: total,
           total_ves: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : null,
           exchange_rate: isVES ? safeExchangeRate : null,
+          transaction_type: 'multi_purchase',
+          total_subscriptions: createdSubscriptionIds.length,
         });
-        const { error: phErr } = await supabase.from('payment_history').insert({
-          subscription_id: null,
-          user_id: user.id,
-          amount: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : total,
-          receipt_url: receiptUrl,
-          method: selectedMethod?.method_name || null,
-          notes,
-          status: 'pending_approval',
-        });
+
+        // Create a payment history entry for each subscription
+        // If no subscriptions were created (e.g., renewals only), create a single entry
+        const paymentHistoryEntries = createdSubscriptionIds.length > 0
+          ? createdSubscriptionIds.map(subId => ({
+              subscription_id: subId,
+              user_id: user.id,
+              amount: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : total,
+              receipt_url: receiptUrl,
+              method: selectedMethod?.method_name || null,
+              notes: paymentHistoryNotes,
+              status: 'pending_approval',
+            }))
+          : [{
+              subscription_id: null,
+              user_id: user.id,
+              amount: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : total,
+              receipt_url: receiptUrl,
+              method: selectedMethod?.method_name || null,
+              notes: paymentHistoryNotes,
+              status: 'pending_approval',
+            }];
+
+        const { error: phErr } = await supabase.from('payment_history').insert(paymentHistoryEntries);
         if (phErr) console.warn('[Checkout] payment_history insert warning:', phErr.message);
       } catch (phErr) {
         console.warn('[Checkout] payment_history insert failed:', phErr);

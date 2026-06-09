@@ -247,6 +247,7 @@ export type Database = {
           next_renewal: string
           profile_name: string | null
           profile_pin: string | null
+          receipt_url: string | null
           service_name: string
           status: string
           subscription_code: string | null
@@ -263,6 +264,7 @@ export type Database = {
           next_renewal?: string
           profile_name?: string | null
           profile_pin?: string | null
+          receipt_url?: string | null
           service_name: string
           status?: string
           subscription_code?: string | null
@@ -279,6 +281,7 @@ export type Database = {
           next_renewal?: string
           profile_name?: string | null
           profile_pin?: string | null
+          receipt_url?: string | null
           service_name?: string
           status?: string
           subscription_code?: string | null

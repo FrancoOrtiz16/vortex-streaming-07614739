@@ -26,6 +26,7 @@ export interface NewInstanceInput {
   serviceName: string;
   status?: string;
   durationDays?: number;
+  receiptUrl?: string | null;
 }
 
 export function createVortexCode(serviceName: string) {
@@ -41,7 +42,7 @@ export function createVortexCode(serviceName: string) {
   return `VORTEX-${prefix}-${suffix}`;
 }
 
-export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval', durationDays = 30 }: NewInstanceInput) {
+export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval', durationDays = 30, receiptUrl = null }: NewInstanceInput) {
   if (!userId || !serviceName) {
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
@@ -90,6 +91,7 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       status,
       next_renewal: pendingDate.toISOString(),
       duration_days: durationDays,
+      receipt_url: receiptUrl,
       credential_email: null,
       credential_password: null,
       profile_name: null,
