@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Loader2, Trash2, Search, Bell, Download, Eye } from 'lucide-react';
+import { RefreshCw, Plus, X, CalendarClock, Pencil, Save, Check, Loader2, Trash2, Search, Bell, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getAllSubscriptionsAdmin,
@@ -71,6 +71,10 @@ export function SubscriptionsSection() {
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Inline date editing (table row)
+  const [inlineDateEditingId, setInlineDateEditingId] = useState<string | null>(null);
+  const [inlineDateValue, setInlineDateValue] = useState<string>('');
+  const [inlineSavingId, setInlineSavingId] = useState<string | null>(null);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [services, setServices] = useState<any[]>([]);
@@ -154,6 +158,42 @@ export function SubscriptionsSection() {
         toast.error('Error cargando datos');
         setLoading(false);
       }
+    }
+  };
+
+  const startInlineDateEdit = (sub: Subscription) => {
+    setInlineDateEditingId(sub.id);
+    setInlineDateValue(sub.next_renewal ? getVETDateString(new Date(sub.next_renewal)) : getVETDateString(new Date()));
+  };
+
+  const cancelInlineDateEdit = () => {
+    setInlineDateEditingId(null);
+    setInlineDateValue('');
+  };
+
+  const saveInlineDate = async (subId: string) => {
+    if (!inlineDateValue) {
+      toast.error('Selecciona una fecha válida');
+      return;
+    }
+
+    setInlineSavingId(subId);
+    try {
+      const iso = getVETDateInputISO(inlineDateValue);
+      const { data, error } = await updateSimpleSubscription(subId, { proxima_fecha: iso });
+      if (error) throw error;
+
+      // Update local state to avoid full refetch
+      setSubs((prev) => prev.map((p) => (p.id === subId ? { ...p, next_renewal: iso } : p)));
+
+      toast.success('Fecha de vencimiento actualizada');
+      setInlineDateEditingId(null);
+      setInlineDateValue('');
+    } catch (err: any) {
+      console.error('[Admin] saveInlineDate error:', err);
+      toast.error(`No se pudo guardar la fecha: ${err?.message || err}`);
+    } finally {
+      setInlineSavingId(null);
     }
   };
 
@@ -803,7 +843,36 @@ export function SubscriptionsSection() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{s.next_renewal ? new Date(s.next_renewal).toLocaleDateString() : 'N/A'}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                          {inlineDateEditingId === s.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                value={inlineDateValue}
+                                onChange={(e) => setInlineDateValue(e.target.value)}
+                                className="px-2 py-1 rounded-lg bg-background text-sm border border-border"
+                              />
+                              <button
+                                onClick={() => saveInlineDate(s.id)}
+                                disabled={inlineSavingId === s.id}
+                                className="inline-flex items-center justify-center p-1 rounded-md bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-50"
+                                title="Guardar fecha"
+                              >
+                                {inlineSavingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                              </button>
+                              <button onClick={cancelInlineDateEdit} className="inline-flex items-center justify-center p-1 rounded-md bg-secondary/10 text-muted-foreground hover:bg-secondary/20" title="Cancelar">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 justify-start">
+                              <span>{s.next_renewal ? new Date(s.next_renewal).toLocaleDateString() : 'N/A'}</span>
+                              <button onClick={() => startInlineDateEdit(s)} className="p-1 rounded-md hover:bg-secondary/20" title="Editar fecha manualmente">
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <button
                             type="button"
