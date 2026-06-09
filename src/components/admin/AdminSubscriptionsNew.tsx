@@ -248,26 +248,50 @@ export default function AdminSubscriptionsNew() {
       }
 
       // ⭐ FALLBACK: También buscar en payment_history para compatibilidad hacia atrás
+      // Búsqueda más robusta: primero por subscription_id, luego por user_id
       const paymentHistoryQuery = supabase
         .from('payment_history')
         .select('subscription_id, user_id, receipt_url')
         .neq('receipt_url', null)
         .order('created_at', { ascending: false });
 
-      const { data: paymentData, error: phError } = await (async () => {
-        if (subscriptionIds.length > 0 && userIds.length > 0) {
-          return paymentHistoryQuery.or(
-            `subscription_id.in.(${subscriptionIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')}),user_id.in.(${userIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(',')})`
-          );
-        }
-        if (subscriptionIds.length > 0) {
-          return paymentHistoryQuery.in('subscription_id', subscriptionIds);
-        }
-        return paymentHistoryQuery.in('user_id', userIds);
-      })();
+      let paymentData: any[] = [];
+      let phError: any = null;
 
-      if (phError) {
-        console.warn('[AdminSubscriptionsNew] payment_history receipt load error:', phError);
+      // Intento 1: Buscar por subscription_id (más específico)
+      if (subscriptionIds.length > 0) {
+        const { data: phBySubId, error: phSubError } = await supabase
+          .from('payment_history')
+          .select('subscription_id, user_id, receipt_url')
+          .in('subscription_id', subscriptionIds)
+          .neq('receipt_url', null)
+          .order('created_at', { ascending: false });
+        
+        if (phBySubId && phBySubId.length > 0) {
+          paymentData = phBySubId;
+        } else if (phSubError) {
+          console.warn('[AdminSubscriptionsNew] payment_history by subscription_id error:', phSubError);
+        }
+      }
+
+      // Intento 2: Si no encontró por subscription_id, buscar por user_id (más general)
+      if (paymentData.length === 0 && userIds.length > 0) {
+        const { data: phByUserId, error: phUserError } = await supabase
+          .from('payment_history')
+          .select('subscription_id, user_id, receipt_url')
+          .in('user_id', userIds)
+          .neq('receipt_url', null)
+          .order('created_at', { ascending: false });
+        
+        if (phByUserId) {
+          paymentData = phByUserId;
+        } else if (phUserError) {
+          console.warn('[AdminSubscriptionsNew] payment_history by user_id error:', phUserError);
+        }
+      }
+
+      if (paymentData.length === 0) {
+        console.debug('[AdminSubscriptionsNew] No receipt found in payment_history');
       }
 
       const subscriptionMap: Record<string, boolean> = {};
@@ -324,26 +348,36 @@ export default function AdminSubscriptionsNew() {
 
       // ⭐ PASO 2: Si no encontró en subscriptions, buscar en payment_history (FALLBACK)
       if (!receiptUrl) {
-        const { data: phData, error: phError } = await (() => {
-          const baseQuery = supabase
+        // Búsqueda robusta: primero por subscription_id, luego por user_id
+        if (subscriptionId) {
+          const { data: phBySub } = await supabase
             .from('payment_history')
             .select('receipt_url')
+            .eq('subscription_id', subscriptionId)
             .neq('receipt_url', null)
             .order('created_at', { ascending: false })
             .limit(1);
-
-          if (userId) {
-            return baseQuery.eq('user_id', userId);
+          
+          if (phBySub?.[0]?.receipt_url) {
+            receiptUrl = phBySub[0].receipt_url;
+            console.debug('[AdminSubscriptionsNew] Receipt found in payment_history by subscription_id');
           }
-          if (subscriptionId) {
-            return baseQuery.eq('subscription_id', subscriptionId);
-          }
-          return baseQuery;
-        })();
+        }
 
-        if (!phError && phData?.[0]?.receipt_url) {
-          receiptUrl = phData[0].receipt_url;
-          console.debug('[AdminSubscriptionsNew] Receipt found in payment_history');
+        // Si aún no encuentra y tiene user_id, buscar por user_id
+        if (!receiptUrl && userId) {
+          const { data: phByUser } = await supabase
+            .from('payment_history')
+            .select('receipt_url')
+            .eq('user_id', userId)
+            .neq('receipt_url', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (phByUser?.[0]?.receipt_url) {
+            receiptUrl = phByUser[0].receipt_url;
+            console.debug('[AdminSubscriptionsNew] Receipt found in payment_history by user_id');
+          }
         }
       }
 
