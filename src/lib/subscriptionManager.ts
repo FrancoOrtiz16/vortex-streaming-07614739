@@ -11,10 +11,18 @@ import { fetchProfileWhatsAppPhone } from '@/lib/profilePhone';
 async function isUserAdmin(userId: string | null) {
   if (!userId) return false;
   try {
+    const normalizeRole = (role: unknown) => typeof role === 'string' ? role.trim().toLowerCase() : '';
     const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId);
     if (error) return false;
-    const roles = (data || []).map((r: any) => r.role);
-    return roles.includes('admin');
+    const roles = (data || []).map((r: any) => normalizeRole(r.role)).filter(Boolean);
+    if (roles.includes('admin')) return true;
+
+    const { data: authUserData } = await supabase.auth.getUser();
+    const metaRole = normalizeRole(
+      authUserData?.user?.app_metadata?.app_role ??
+      authUserData?.user?.user_metadata?.app_role
+    );
+    return metaRole === 'admin';
   } catch (err) {
     console.error('[subscriptionManager] isUserAdmin error:', err);
     return false;

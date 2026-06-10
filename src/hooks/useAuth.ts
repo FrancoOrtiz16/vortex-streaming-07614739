@@ -12,6 +12,8 @@ export function useAuth() {
   const [isBanned, setIsBanned] = useState(false);
 
   const refreshProfile = async (userId: string | null) => {
+    const normalizeRole = (role: unknown) => typeof role === 'string' ? role.trim().toLowerCase() : '';
+
     if (!userId) {
       console.debug('[Auth] No userId, clearing admin status');
       setIsAdmin(false);
@@ -28,7 +30,9 @@ export function useAuth() {
       ]);
       const error = profileRes.error || rolesRes.error;
       const data = profileRes.data;
-      const roles = (rolesRes.data || []).map((r: any) => r.role);
+      const roles = (rolesRes.data || [])
+        .map((r: any) => normalizeRole(r.role))
+        .filter(Boolean);
 
       if (error) {
         console.error('[Auth] Profile fetch error:', error);
@@ -38,31 +42,35 @@ export function useAuth() {
         return;
       }
 
+      const userRole = roles.includes('admin') ? 'admin' : (roles[0] ?? null);
+      const { data: authUserData } = await supabase.auth.getUser();
+      const metaRole = normalizeRole(
+        authUserData?.user?.app_metadata?.app_role ??
+        authUserData?.user?.user_metadata?.app_role
+      );
+      const isAdminRole = userRole === 'admin' || metaRole === 'admin';
+
       if (!data) {
         console.warn('[Auth] No profile data found for userId:', userId.slice(0, 8) + '...');
         console.log('[Auth] Creating default profile entry or profile does not exist yet');
-        setIsAdmin(false);
+        setIsAdmin(isAdminRole);
         setIsBanned(false);
         return;
       }
 
-      // Validar role desde user_roles
-      const userRole = roles.includes('admin') ? 'admin' : (roles[0] ?? null);
       const isActive = data?.is_active ?? true;
 
       console.debug('[Auth] Profile loaded:', {
         role: userRole,
+        metaRole,
         is_active: isActive,
-        isAdmin: userRole === 'admin'
+        isAdmin: isAdminRole,
       });
 
-      // Establecer estado de admin si role === 'admin' (case-sensitive)
-      setIsAdmin(userRole === 'admin');
-      
-      // Establecer estado de ban si is_active === false
+      setIsAdmin(isAdminRole);
       setIsBanned(isActive === false);
 
-      if (userRole === 'admin') {
+      if (isAdminRole) {
         console.log('[Auth] ✓ Admin user verified:', userId.slice(0, 8) + '...');
       }
     } catch (err) {
