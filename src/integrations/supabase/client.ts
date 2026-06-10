@@ -4,8 +4,15 @@ import type { Database } from './types';
 // ⚠️ Credenciales fijas del proyecto Lovable Cloud.
 // Las env vars VITE_SUPABASE_* NO se inyectan en el build de producción de Lovable,
 // así que usarlas aquí causa `Invalid supabaseUrl` y bloquea el montaje de React.
-const envSupabaseUrl = String(import.meta.env.VITE_SUPABASE_URL ?? '').trim();
-const envSupabaseKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim();
+const runtimeSupabaseUrl = typeof window !== 'undefined'
+  ? String((window as any).__ENV__?.VITE_SUPABASE_URL ?? (window as any)._env_?.VITE_SUPABASE_URL ?? (window as any).VITE_SUPABASE_URL ?? '').trim()
+  : '';
+const runtimeSupabaseKey = typeof window !== 'undefined'
+  ? String((window as any).__ENV__?.VITE_SUPABASE_PUBLISHABLE_KEY ?? (window as any)._env_?.VITE_SUPABASE_PUBLISHABLE_KEY ?? (window as any).__ENV__?.VITE_SUPABASE_ANON_KEY ?? (window as any)._env_?.VITE_SUPABASE_ANON_KEY ?? (window as any).VITE_SUPABASE_ANON_KEY ?? '').trim()
+  : '';
+
+const envSupabaseUrl = String(import.meta.env.VITE_SUPABASE_URL ?? runtimeSupabaseUrl ?? '').trim();
+const envSupabaseKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY ?? runtimeSupabaseKey ?? '').trim();
 
 const isValidHttpUrl = (value?: string) => {
   if (!value) return false;
@@ -29,6 +36,12 @@ const SUPABASE_PUBLISHABLE_KEY = supabaseIsConfigured ? envSupabaseKey : 'invali
 if (!supabaseIsConfigured) {
   console.error('[Supabase] Configuración incompleta o inválida. Revisa VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
 }
+
+console.debug('[Supabase] Configuración detectada:', {
+  url: Boolean(envSupabaseUrl),
+  key: Boolean(envSupabaseKey),
+  runtimeFallback: Boolean(runtimeSupabaseUrl || runtimeSupabaseKey),
+});
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
