@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Loader2, Plus, Zap, Download, X } from 'lucide-react';
+import { Search, Loader2, Plus, Zap, Download, X, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -38,6 +38,9 @@ export default function AdminSubscriptionsNew() {
   const [receiptModalLoading, setReceiptModalLoading] = useState(false);
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [receiptModalError, setReceiptModalError] = useState<string | null>(null);
+  const [receiptDeleting, setReceiptDeleting] = useState(false);
+  const [selectedReceiptSubscriptionId, setSelectedReceiptSubscriptionId] = useState<string | null>(null);
+  const [selectedReceiptUserId, setSelectedReceiptUserId] = useState<string | null>(null);
   const [receiptAvailableBySubscriptionId, setReceiptAvailableBySubscriptionId] = useState<Record<string, boolean>>({});
   const [receiptAvailableByUserId, setReceiptAvailableByUserId] = useState<Record<string, boolean>>({});
   const [receiptOwnerLabel, setReceiptOwnerLabel] = useState<string>('');
@@ -323,6 +326,8 @@ export default function AdminSubscriptionsNew() {
     setSelectedReceiptUrl(null);
     setReceiptModalError(null);
     setReceiptOwnerLabel(label || 'Comprobante de pago');
+    setSelectedReceiptSubscriptionId(subscriptionId ?? null);
+    setSelectedReceiptUserId(userId ?? null);
 
     try {
       let receiptUrl: string | null = null;
@@ -399,12 +404,76 @@ export default function AdminSubscriptionsNew() {
     }
   };
 
+  const handleDeleteReceipt = async (subscriptionId: string, userId?: string | null) => {
+    if (!subscriptionId) return;
+    const confirmed = window.confirm('¿Deseas eliminar el comprobante asociado a esta suscripción? Esta acción desvinculará el recibo en la base de datos.');
+    if (!confirmed) return;
+
+    setReceiptDeleting(true);
+    try {
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .update({ receipt_url: null })
+        .eq('id', subscriptionId);
+
+      if (subError) throw subError;
+
+      let phError = null;
+      const { error: primaryPhError } = await supabase
+        .from('payment_history')
+        .update({ receipt_url: null })
+        .eq('subscription_id', subscriptionId)
+        .neq('receipt_url', null);
+
+      if (primaryPhError) {
+        console.warn('[AdminSubscriptionsNew] payment_history receipt unlink warning for subscription_id:', primaryPhError);
+        phError = primaryPhError;
+      }
+
+      if (userId) {
+        const { error: fallbackPhError } = await supabase
+          .from('payment_history')
+          .update({ receipt_url: null })
+          .eq('user_id', userId)
+          .is('subscription_id', null)
+          .neq('receipt_url', null);
+
+        if (fallbackPhError) {
+          console.warn('[AdminSubscriptionsNew] payment_history receipt unlink warning for user_id:', fallbackPhError);
+          phError = phError || fallbackPhError;
+        }
+      }
+
+      if (phError) {
+        console.warn('[AdminSubscriptionsNew] payment_history receipt unlink warning:', phError);
+      }
+
+      toast.success('✅ Comprobante desvinculado correctamente');
+      setSelectedReceiptUrl(null);
+      setReceiptModalError('Comprobante eliminado. El icono del ojo se ha desactivado.');
+      setReceiptAvailableBySubscriptionId((prev) => ({ ...prev, [subscriptionId]: false }));
+      if (userId) {
+        setReceiptAvailableByUserId((prev) => ({ ...prev, [userId]: false }));
+      }
+      setSelectedReceiptSubscriptionId(null);
+      setSelectedReceiptUserId(null);
+      fetchAll();
+    } catch (err: any) {
+      console.error('[AdminSubscriptionsNew] handleDeleteReceipt error:', err);
+      toast.error(err?.message || 'Error eliminando el comprobante');
+    } finally {
+      setReceiptDeleting(false);
+    }
+  };
+
   const closeReceiptModal = () => {
     setReceiptModalOpen(false);
     setSelectedReceiptUrl(null);
     setReceiptModalError(null);
     setReceiptModalLoading(false);
     setReceiptOwnerLabel('');
+    setSelectedReceiptSubscriptionId(null);
+    setSelectedReceiptUserId(null);
   };
 
   useEffect(() => {
@@ -695,6 +764,7 @@ export default function AdminSubscriptionsNew() {
                   highlight={Boolean(highlightedRows[row.id])}
                   hasReceipt={hasReceipt}
                   onOpenReceipt={openReceiptModal}
+                  onDeleteReceipt={handleDeleteReceipt}
                 />
               );
             })}
@@ -720,6 +790,7 @@ export default function AdminSubscriptionsNew() {
               (row.user_id && receiptAvailableByUserId[row.user_id])
             )}
             onOpenReceipt={openReceiptModal}
+            onDeleteReceipt={handleDeleteReceipt}
           />
         ))}
         {filtered.length === 0 && (
@@ -749,14 +820,28 @@ export default function AdminSubscriptionsNew() {
                 <p className="text-sm font-semibold text-white">Previsualizar comprobante</p>
                 <p className="text-xs text-slate-400">{receiptOwnerLabel || 'Comprobante de pago'}</p>
               </div>
-              <button
-                type="button"
-                onClick={closeReceiptModal}
-                className="rounded-full p-2 text-slate-300 hover:bg-white/10 transition"
-                aria-label="Cerrar previsualización"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedReceiptSubscriptionId && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteReceipt(selectedReceiptSubscriptionId, selectedReceiptUserId)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/20 transition"
+                    disabled={receiptDeleting}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {receiptDeleting ? 'Eliminando...' : 'Eliminar'
+                    }
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={closeReceiptModal}
+                  className="rounded-full p-2 text-slate-300 hover:bg-white/10 transition"
+                  aria-label="Cerrar previsualización"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <div className="min-h-[260px] max-h-[calc(100vh-10rem)] overflow-auto p-5">
               {receiptModalLoading ? (

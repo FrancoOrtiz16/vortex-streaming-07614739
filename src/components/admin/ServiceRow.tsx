@@ -48,6 +48,7 @@ interface Props {
   highlight?: boolean;
   hasReceipt?: boolean;
   onOpenReceipt?: (subscriptionId?: string, userId?: string, label?: string) => void;
+  onDeleteReceipt?: (subscriptionId?: string, userId?: string) => void;
 }
 
 const statusVariant = (status?: string | null) => {
@@ -249,15 +250,26 @@ const ServiceRow = ({ data, onChanged, highlight = false, hasReceipt = false, on
         </TableCell>
 
         <TableCell>
-          <button
-            type="button"
-            onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
-            disabled={!hasReceipt}
-            title={hasReceipt ? 'Ver comprobante' : 'No hay comprobante disponible'}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-300 shadow-sm transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
+              disabled={!hasReceipt}
+              title={hasReceipt ? 'Ver comprobante' : 'No hay comprobante disponible'}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 text-emerald-300 shadow-sm transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDeleteReceipt?.(data.id, data.user_id)}
+              disabled={!hasReceipt}
+              title={hasReceipt ? 'Eliminar vínculo de comprobante' : 'No hay comprobante disponible'}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-destructive-400/20 bg-destructive-500/10 text-destructive-300 shadow-sm transition hover:bg-destructive-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </TableCell>
 
         {/* SEMÁFORO - Traffic Light */}

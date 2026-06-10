@@ -21,6 +21,19 @@ async function isUserAdmin(userId: string | null) {
   }
 }
 
+export async function getAuthenticatedUserId() {
+  try {
+    const { data: userData, error } = await supabase.auth.getUser();
+    if (error || !userData || !userData.user) {
+      return { userId: null as string | null, error: error || { message: 'Sesión no detectada' } };
+    }
+    return { userId: userData.user.id, error: null };
+  } catch (err) {
+    console.error('[subscriptionManager] getAuthenticatedUserId error:', err);
+    return { userId: null, error: err };
+  }
+}
+
 export interface NewInstanceInput {
   userId: string;
   serviceName: string;

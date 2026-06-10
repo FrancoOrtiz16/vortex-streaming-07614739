@@ -21,6 +21,7 @@ interface Props {
   highlight?: boolean;
   hasReceipt?: boolean;
   onOpenReceipt?: (subscriptionId?: string, userId?: string, label?: string) => void;
+  onDeleteReceipt?: (subscriptionId?: string, userId?: string) => void;
 }
 
 const statusLabel = (status?: string | null) => {
@@ -235,15 +236,26 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
 
       {/* Acciones principales */}
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
-          disabled={!hasReceipt}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Eye className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-          {hasReceipt ? 'Ver comprobante' : 'Sin comprobante'}
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenReceipt?.(data.id, data.user_id, data.client_label)}
+            disabled={!hasReceipt}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Eye className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            {hasReceipt ? 'Ver comprobante' : 'Sin comprobante'}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDeleteReceipt?.(data.id, data.user_id)}
+            disabled={!hasReceipt}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-destructive-400/30 bg-destructive-500/10 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-destructive-300 transition hover:bg-destructive-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            {hasReceipt ? 'Eliminar' : 'No disponible'}
+          </button>
+        </div>
         {isPending && (
           <button
             type="button"

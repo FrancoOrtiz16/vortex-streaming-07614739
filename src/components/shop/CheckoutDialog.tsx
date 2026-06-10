@@ -160,8 +160,17 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     // Upload to storage
     if (!user) return;
     setUploading(true);
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const uploadUserId = authData?.user?.id || user.id;
+    if (authError || !uploadUserId) {
+      toast.error('Error de sesión. Por favor inicia sesión de nuevo.');
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setUploading(false);
+      return;
+    }
     const ext = file.name.split('.').pop();
-    const path = `${user.id}/${Date.now()}.${ext}`;
+    const path = `${uploadUserId}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('receipts').upload(path, file);
     if (error) {
       toast.error('Error subiendo comprobante');
@@ -197,10 +206,23 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
     setSubmitting(true);
     try {
       console.debug('[Checkout] Starting order creation');
-      
+
+      // Asegurar que la sesión de Supabase está actualizada antes de crear la orden.
+      await supabase.auth.refreshSession();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) {
+        throw new Error('Sesión inválida. Por favor inicia sesión nuevamente.');
+      }
+      const authenticatedUserId = authData.user.id;
+      if (!authenticatedUserId) {
+        throw new Error('No se pudo obtener el user_id real. Intenta iniciar sesión de nuevo.');
+      }
+      if (authenticatedUserId !== user.id) {
+        console.warn('[Checkout] user_id de sesión difiere del contexto actual:', authenticatedUserId, user.id);
+      }
+
       // Step 1: Create order
       const formatDurationForOrder = (days?: number) => formatDurationLabel(days ?? 30);
-
       const productNames = items
         .map(i => i.product.renewal
           ? `${i.product.name} (Renovación: ${i.product.unique_service_id || i.product.subscription_id}) x${i.quantity}`
@@ -208,7 +230,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         )
         .join(', ');
       const { error: orderErr } = await supabase.from('orders').insert({
-        user_id: user.id,
+        user_id: authenticatedUserId,
         customer_email: user.email || '',
         product_name: productNames,
         total,
@@ -232,7 +254,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
           const { data: subData, error: insertError } = await createNewSubscriptionInstance({
-            userId: user.id,
+            userId: authenticatedUserId,
             serviceName: item.product.name,
             status: 'pending_approval',
             durationDays: item.product.duration_days ?? 30,
@@ -264,7 +286,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
         const paymentHistoryEntries = createdSubscriptionIds.length > 0
           ? createdSubscriptionIds.map(subId => ({
               subscription_id: subId,
-              user_id: user.id,
+              user_id: authenticatedUserId,
               amount: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : total,
               receipt_url: receiptUrl,
               method: selectedMethod?.method_name || null,
@@ -273,7 +295,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             }))
           : [{
               subscription_id: null,
-              user_id: user.id,
+              user_id: authenticatedUserId,
               amount: isVES ? parseFloat(totalConvertedAmount.toFixed(2)) : total,
               receipt_url: receiptUrl,
               method: selectedMethod?.method_name || null,
