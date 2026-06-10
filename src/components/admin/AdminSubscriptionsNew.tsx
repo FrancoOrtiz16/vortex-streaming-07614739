@@ -411,37 +411,50 @@ export default function AdminSubscriptionsNew() {
 
     setReceiptDeleting(true);
     try {
-      const { error: subError } = await supabase
+      // Intentar actualizar la suscripción y obtener la fila actualizada
+      const { data: subData, error: subError } = await supabase
         .from('subscriptions')
         .update({ receipt_url: null })
-        .eq('id', subscriptionId);
+        .eq('id', subscriptionId)
+        .select('id, receipt_url');
 
       if (subError) throw subError;
+      console.debug('[AdminSubscriptionsNew] subscriptions update result:', subData);
+
+      if (!subData || (Array.isArray(subData) && subData.length === 0)) {
+        toast.error('No se actualizó la suscripción. Verifica que el id exista o permisos RLS.');
+        setReceiptDeleting(false);
+        return;
+      }
 
       let phError = null;
-      const { error: primaryPhError } = await supabase
+      const { data: phPrimaryData, error: primaryPhError } = await supabase
         .from('payment_history')
         .update({ receipt_url: null })
         .eq('subscription_id', subscriptionId)
-        .neq('receipt_url', null);
+        .neq('receipt_url', null)
+        .select('id, subscription_id, receipt_url');
 
       if (primaryPhError) {
         console.warn('[AdminSubscriptionsNew] payment_history receipt unlink warning for subscription_id:', primaryPhError);
         phError = primaryPhError;
       }
+      console.debug('[AdminSubscriptionsNew] payment_history updated by subscription_id:', phPrimaryData);
 
       if (userId) {
-        const { error: fallbackPhError } = await supabase
+        const { data: phFallbackData, error: fallbackPhError } = await supabase
           .from('payment_history')
           .update({ receipt_url: null })
           .eq('user_id', userId)
           .is('subscription_id', null)
-          .neq('receipt_url', null);
+          .neq('receipt_url', null)
+          .select('id, user_id, receipt_url');
 
         if (fallbackPhError) {
           console.warn('[AdminSubscriptionsNew] payment_history receipt unlink warning for user_id:', fallbackPhError);
           phError = phError || fallbackPhError;
         }
+        console.debug('[AdminSubscriptionsNew] payment_history updated by user_id:', phFallbackData);
       }
 
       if (phError) {
@@ -450,7 +463,7 @@ export default function AdminSubscriptionsNew() {
 
       toast.success('✅ Comprobante desvinculado correctamente');
       setSelectedReceiptUrl(null);
-      setReceiptModalError('Comprobante eliminado. El icono del ojo se ha desactivado.');
+      setReceiptModalError(null);
       setReceiptAvailableBySubscriptionId((prev) => ({ ...prev, [subscriptionId]: false }));
       if (userId) {
         setReceiptAvailableByUserId((prev) => ({ ...prev, [userId]: false }));
