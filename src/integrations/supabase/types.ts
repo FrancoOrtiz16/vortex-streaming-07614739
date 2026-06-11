@@ -241,7 +241,7 @@ export type Database = {
           created_at: string
           credential_email: string | null
           credential_password: string | null
-          duration_days: number
+          duration_days: number | null
           id: string
           last_renewal: string
           next_renewal: string
@@ -253,12 +253,13 @@ export type Database = {
           subscription_code: string | null
           updated_at: string
           user_id: string
+          product_type?: string
         }
         Insert: {
           created_at?: string
           credential_email?: string | null
           credential_password?: string | null
-          duration_days?: number
+          duration_days?: number | null
           id?: string
           last_renewal?: string
           next_renewal?: string
@@ -270,12 +271,13 @@ export type Database = {
           subscription_code?: string | null
           updated_at?: string
           user_id: string
+          product_type?: string
         }
         Update: {
           created_at?: string
           credential_email?: string | null
           credential_password?: string | null
-          duration_days?: number
+          duration_days?: number | null
           id?: string
           last_renewal?: string
           next_renewal?: string
@@ -287,6 +289,7 @@ export type Database = {
           subscription_code?: string | null
           updated_at?: string
           user_id?: string
+          product_type?: string
         }
         Relationships: []
       }

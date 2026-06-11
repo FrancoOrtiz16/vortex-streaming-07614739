@@ -24,7 +24,18 @@ interface Props {
   onDeleteReceipt?: (subscriptionId?: string, userId?: string) => void;
 }
 
-const statusLabel = (status?: string | null) => {
+const statusLabel = (status?: string | null, productType?: string) => {
+  // Para gaming_recharge, mostrar estados específicos
+  if (productType === 'gaming_recharge') {
+    switch (status) {
+      case 'pending_delivery': return 'Pendiente por recargar';
+      case 'completed': return 'Entregado / Completado';
+      case 'delivered': return 'Entregado / Completado';
+      default: return status || 'Desconocido';
+    }
+  }
+
+  // Para subscription, mostrar estados estándar
   switch (status) {
     case 'active': return 'Activo';
     case 'confirmed': return 'Confirmado';
@@ -210,7 +221,7 @@ const MobileServiceCard = ({ data, onChanged, highlight = false, hasReceipt = fa
           </div>
         </div>
         <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border ${statusColor(data.status)} shrink-0`}>
-          {statusLabel(data.status)}
+          {statusLabel(data.status, data.product_type)}
         </span>
       </div>
 

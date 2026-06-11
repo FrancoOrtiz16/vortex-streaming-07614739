@@ -245,6 +245,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       // Step 2: Procesar cada item del carrito.
       // - Renovaciones: actualizar la suscripción existente.
       // - Compras nuevas: crear SIEMPRE una fila independiente por unidad (multi-instancia).
+      // - Gaming: no asignar duration_days (null), status 'pending_delivery' en lugar de 'pending_approval'
       // ⭐ RULE: Asociar receipt a cada suscripción creada en esta transacción
       const renewalItems = items.filter(i => i.product.renewal && i.product.subscription_id);
       const newOrderItems = items.filter(i => !i.product.renewal);
@@ -253,12 +254,14 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
       for (const item of newOrderItems) {
         for (let i = 0; i < item.quantity; i++) {
+          const isGamingRecharge = item.product.product_type === 'gaming_recharge';
           const { data: subData, error: insertError } = await createNewSubscriptionInstance({
             userId: authenticatedUserId,
             serviceName: item.product.name,
-            status: 'pending_approval',
-            durationDays: item.product.duration_days ?? 30,
+            status: isGamingRecharge ? 'pending_delivery' : 'pending_approval',
+            durationDays: isGamingRecharge ? undefined : (item.product.duration_days ?? 30),
             receiptUrl: receiptUrl,
+            productType: item.product.product_type || 'subscription',
           });
           if (insertError) {
             throw new Error(`No se pudo crear la suscripción: ${insertError.message}`);

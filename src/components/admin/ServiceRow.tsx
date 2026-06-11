@@ -40,6 +40,7 @@ export interface ServiceRowData {
   profile_phone?: string | null;
   client_label: string;
   order_id?: string | null;
+  product_type?: string;
 }
 
 interface Props {
@@ -51,7 +52,21 @@ interface Props {
   onDeleteReceipt?: (subscriptionId?: string, userId?: string) => void;
 }
 
-const statusVariant = (status?: string | null) => {
+const statusVariant = (status?: string | null, productType?: string) => {
+  // Para gaming_recharge, usar variantes específicas
+  if (productType === 'gaming_recharge') {
+    switch (status) {
+      case 'pending_delivery':
+        return 'secondary' as const;
+      case 'completed':
+      case 'delivered':
+        return 'default' as const;
+      default:
+        return 'outline' as const;
+    }
+  }
+
+  // Para subscription, usar variantes estándar
   switch (status) {
     case 'active':
     case 'confirmed':
@@ -66,7 +81,18 @@ const statusVariant = (status?: string | null) => {
   }
 };
 
-const statusLabel = (status?: string | null) => {
+const statusLabel = (status?: string | null, productType?: string) => {
+  // Para gaming_recharge, mostrar estados específicos
+  if (productType === 'gaming_recharge') {
+    switch (status) {
+      case 'pending_delivery': return 'Pendiente por recargar';
+      case 'completed': return 'Entregado / Completado';
+      case 'delivered': return 'Entregado / Completado';
+      default: return status || 'Desconocido';
+    }
+  }
+
+  // Para subscription, mostrar estados estándar
   switch (status) {
     case 'active': return 'Activo';
     case 'confirmed': return 'Confirmado';
@@ -115,12 +141,24 @@ const ServiceRow = ({ data, onChanged, highlight = false, hasReceipt = false, on
   // Cargar el estado de verificación del cliente
   // Calcular el estado del semáforo
   const isPendingApproval = data.status === 'pending_approval' || data.status === 'procesando_credenciales';
-  const trafficLightStatus = isPendingApproval ? 'yellow' : getTrafficLightStatus(data.next_renewal);
-  const trafficLightColor = isPendingApproval ? 'bg-amber-500/20 text-amber-100' : getTrafficLightColor(trafficLightStatus);
+  const isGamingRecharge = data.product_type === 'gaming_recharge';
+  
+  // Para gaming: mostrar estado específico
+  const trafficLightStatus = isPendingApproval 
+    ? 'yellow' 
+    : (isGamingRecharge ? (data.status === 'pending_delivery' ? 'yellow' : 'green') : getTrafficLightStatus(data.next_renewal));
+  
+  const trafficLightColor = isPendingApproval 
+    ? 'bg-amber-500/20 text-amber-100' 
+    : (isGamingRecharge && data.status === 'pending_delivery' ? 'bg-amber-500/20 text-amber-100' : getTrafficLightColor(trafficLightStatus));
+  
   const trafficLightInfo = isPendingApproval
     ? { icon: '🟡', label: 'Pendiente', tooltip: 'Suscripción aguardando aprobación administrativa' }
-    : getTrafficLightInfo(trafficLightStatus);
-  const daysRemaining = !isPendingApproval && data.next_renewal ? getDaysUntilExpiry(data.next_renewal) : null;
+    : (isGamingRecharge && data.status === 'pending_delivery' 
+      ? { icon: '🟡', label: 'Pendiente', tooltip: 'Recarga pendiente por procesar' }
+      : getTrafficLightInfo(trafficLightStatus));
+  
+  const daysRemaining = !isPendingApproval && !isGamingRecharge && data.next_renewal ? getDaysUntilExpiry(data.next_renewal) : null;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -238,15 +276,15 @@ const ServiceRow = ({ data, onChanged, highlight = false, hasReceipt = false, on
         <TableCell className="font-medium text-white text-sm">{data.client_label}</TableCell>
         <TableCell className="font-bold text-white text-sm">{data.service_name}</TableCell>
         <TableCell>
-          <Badge variant={statusVariant(data.status)} className="text-xs uppercase">
-            {statusLabel(data.status)}
+          <Badge variant={statusVariant(data.status, data.product_type)} className="text-xs uppercase">
+            {statusLabel(data.status, data.product_type)}
           </Badge>
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
-          {data.last_renewal ? new Date(data.last_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
+          {isGamingRecharge ? 'N/A' : (data.last_renewal ? new Date(data.last_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A')}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
-          {data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A'}
+          {isGamingRecharge ? 'N/A' : (data.next_renewal ? new Date(data.next_renewal).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : 'N/A')}
         </TableCell>
 
         <TableCell>
@@ -306,8 +344,8 @@ const ServiceRow = ({ data, onChanged, highlight = false, hasReceipt = false, on
               {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
             </button>
 
-            {/* Botón Aprobar Pago - Solo si está pendiente */}
-            {(data.status === 'pending_approval' || data.status === 'procesando_credenciales') && (
+            {/* Botón Aprobar Pago - Solo si está pendiente (subscription) o pending_delivery (gaming) */}
+            {((data.status === 'pending_approval' || data.status === 'procesando_credenciales' || data.status === 'pending_delivery') && !isGamingRecharge) && (
               <button
                 type="button"
                 onClick={handleApprovePendingPayment}
@@ -324,8 +362,41 @@ const ServiceRow = ({ data, onChanged, highlight = false, hasReceipt = false, on
               </button>
             )}
 
-            {/* Botón Notificar Vencimiento - Solo si quedan 3 días o menos */}
-            {daysRemaining <= 3 && daysRemaining >= 0 && (
+            {/* Botón Marcar como Entregado - Solo si gaming_recharge está pendiente */}
+            {isGamingRecharge && data.status === 'pending_delivery' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setBusy('pay');
+                  try {
+                    const { error } = await supabase
+                      .from('subscriptions')
+                      .update({ status: 'delivered' })
+                      .eq('id', data.id);
+                    if (error) throw error;
+                    toast.success('✅ Recarga marcada como entregada');
+                    onChanged();
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Error al marcar como entregado');
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+                disabled={busy === 'pay'}
+                title="Marcar recarga como entregada"
+                className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 disabled:opacity-50 transition"
+              >
+                {busy === 'pay' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                )}
+                Marcar Entregado
+              </button>
+            )}
+
+            {/* Botón Notificar Vencimiento - Solo si quedan 3 días o menos (no para gaming) */}
+            {!isGamingRecharge && daysRemaining <= 3 && daysRemaining >= 0 && (
               <button
                 type="button"
                 onClick={handleNotifyExpiration}

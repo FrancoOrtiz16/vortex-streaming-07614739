@@ -31,6 +31,7 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
 
   const handleAdd = () => {
     const durationDays = getDurationDaysFromLabel(selected.plan_type);
+    const isGamingRecharge = selected.product_type === 'gaming_recharge';
 
     addItem({
       id: selected.id,
@@ -40,8 +41,9 @@ const ProductCard: FC<ProductCardProps> = ({ product, variants, index }) => {
       category: selected.category,
       image: selected.image,
       badge: selected.badge || undefined,
-      duration_days: durationDays,
+      duration_days: isGamingRecharge ? undefined : durationDays,
       cart_key: `${selected.id}-${durationDays}`,
+      product_type: selected.product_type,
     });
     toast.success(`${selected.name} añadido al carrito`);
   };

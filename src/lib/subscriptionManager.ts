@@ -48,6 +48,7 @@ export interface NewInstanceInput {
   status?: string;
   durationDays?: number;
   receiptUrl?: string | null;
+  productType?: 'subscription' | 'gaming_recharge';
 }
 
 export function createVortexCode(serviceName: string) {
@@ -63,7 +64,7 @@ export function createVortexCode(serviceName: string) {
   return `VORTEX-${prefix}-${suffix}`;
 }
 
-export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval', durationDays = 30, receiptUrl = null }: NewInstanceInput) {
+export async function createNewSubscriptionInstance({ userId, serviceName, status = 'pending_approval', durationDays = 30, receiptUrl = null, productType = 'subscription' }: NewInstanceInput) {
   if (!userId || !serviceName) {
     return { data: null, error: { message: 'userId y serviceName requeridos' } };
   }
@@ -96,13 +97,14 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
     return { data: null, error: { message: 'Error validando sesión/perfil' } };
   }
 
-  // ⚠️ IMPORTANTE: En BD actual, next_renewal NO permite NULL
-  // Por eso, usamos una fecha muy lejana como "marcador de pendiente"
-  // Cuando el admin aprueba, se actualiza a ahora + durationDays
-  
-  // Fecha lejana (100 años en el futuro) = "En espera de aprobación"
-  const pendingDate = new Date();
-  pendingDate.setFullYear(pendingDate.getFullYear() + 100);
+  // ⚠️ Para gaming_recharge: no asignar next_renewal (null)
+  // Para subscription: usar fecha lejana como "marcador de pendiente"
+  let nextRenewalValue: string | null = null;
+  if (productType === 'subscription') {
+    const pendingDate = new Date();
+    pendingDate.setFullYear(pendingDate.getFullYear() + 100);
+    nextRenewalValue = pendingDate.toISOString();
+  }
   
   const { data, error } = await supabase
     .from('subscriptions')
@@ -110,13 +112,14 @@ export async function createNewSubscriptionInstance({ userId, serviceName, statu
       user_id: currentUserId as string,
       service_name: serviceName,
       status,
-      next_renewal: pendingDate.toISOString(),
-      duration_days: durationDays,
+      next_renewal: nextRenewalValue,
+      duration_days: productType === 'gaming_recharge' ? null : durationDays,
       receipt_url: receiptUrl,
       credential_email: null,
       credential_password: null,
       profile_name: null,
       profile_pin: null,
+      product_type: productType,
     }])
     .select('id, user_id, service_name, status, next_renewal, duration_days')
     .maybeSingle();

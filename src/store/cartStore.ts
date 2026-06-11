@@ -13,6 +13,7 @@ export interface CartProduct {
   expires_at?: string;
   duration_days?: number;
   cart_key?: string;
+  product_type?: 'subscription' | 'gaming_recharge';
 }
 
 import { loadCartItemsFromStorage, saveCartItemsToStorage, subscribeCartStorage } from '@/lib/cartPersistence';

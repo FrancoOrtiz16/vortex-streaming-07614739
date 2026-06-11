@@ -16,6 +16,7 @@ export interface Product {
   is_available: boolean;
   group_name: string | null;
   image_scale: number;
+  product_type?: string;
 }
 
 interface ServiceRow {
@@ -31,6 +32,7 @@ interface ServiceRow {
   is_available: boolean;
   group_name: string | null;
   image_scale: number;
+  product_type?: string;
 }
 
 export function useProducts() {
@@ -72,7 +74,7 @@ export function useProducts() {
       try {
         const { data, error: supabaseError } = await supabase
           .from('services')
-          .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available, group_name, image_scale')
+          .select('id, name, description, price, category, image_url, badge, plan_type, sort_order, is_available, group_name, image_scale, product_type')
           .eq('is_available', true)
           .order('sort_order', { ascending: true });
 
@@ -91,6 +93,7 @@ export function useProducts() {
           is_available: item.is_available ?? false,
           group_name: item.group_name ?? null,
           image_scale: item.image_scale ?? 100,
+          product_type: item.product_type ?? 'subscription',
         }));
 
         if (!isMounted) return;

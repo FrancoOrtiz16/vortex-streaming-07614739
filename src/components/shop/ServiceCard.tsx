@@ -14,6 +14,8 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
   const { addItem } = useCart();
 
   const handleAdd = () => {
+    const isGamingRecharge = service.category === 'gaming' && service.category !== 'streaming';
+    
     addItem({
       id: service.id,
       name: service.name,
@@ -22,8 +24,9 @@ const ServiceCard = ({ service, index }: ServiceCardProps) => {
       category: service.category as 'streaming' | 'gaming',
       image: service.image_url,
       badge: service.badge || undefined,
-      duration_days: 30,
-      cart_key: `${service.id}-30`,
+      duration_days: isGamingRecharge ? undefined : 30,
+      cart_key: `${service.id}-${isGamingRecharge ? 'gaming' : 30}`,
+      product_type: isGamingRecharge ? 'gaming_recharge' : 'subscription',
     });
     toast.success(`${service.name} añadido al carrito`);
   };
