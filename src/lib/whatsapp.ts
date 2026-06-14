@@ -1,4 +1,4 @@
-export const WHATSAPP_NUMBER = '04241772004';
+export const WHATSAPP_NUMBER = '04241772003';
 
 const normalizeWhatsAppNumber = (number: string) => {
   const digits = number.replace(/[^0-9]/g, '');
