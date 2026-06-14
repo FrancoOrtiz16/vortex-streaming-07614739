@@ -111,26 +111,35 @@ export function initDevToolsBlocker(isAdmin: boolean) {
     return undefined;
   }
 
-  let lastState = false;
+  const isLovableEditor =
+    window.location.hostname.includes('lovable.app') ||
+    window.location.hostname.includes('localhost') ||
+    window.self !== window.top;
 
-  const check = () => {
-    const open = detectDevToolsOpen();
-    if (open && !lastState) {
-      lastState = true;
-      createBlockerOverlay();
-      try {
-        window.focus();
-      } catch {
-        // ignore
+  if (!isLovableEditor) {
+    let lastState = false;
+
+    const check = () => {
+      const open = detectDevToolsOpen();
+      if (open && !lastState) {
+        lastState = true;
+        createBlockerOverlay();
+        try {
+          window.focus();
+        } catch {
+          // ignore
+        }
       }
-    }
-  };
+    };
 
-  const intervalId = window.setInterval(check, CHECK_INTERVAL_MS);
-  check();
+    const intervalId = window.setInterval(check, CHECK_INTERVAL_MS);
+    check();
 
-  return () => {
-    window.clearInterval(intervalId);
-    removeBlockerOverlay();
-  };
+    return () => {
+      window.clearInterval(intervalId);
+      removeBlockerOverlay();
+    };
+  }
+
+  return undefined;
 }
