@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import EmergencyErrorBoundary from "./components/EmergencyErrorBoundary";
+import UpdateNotificationBanner from "./components/UpdateNotificationBanner";
 import Index from "./pages/Index";
 import BannedGuard from "./components/BannedGuard";
 import { useAuth } from '@/hooks/useAuth';
@@ -136,6 +137,7 @@ const App = () => {
               </BrowserRouter>
             </div>
           </div>
+          <UpdateNotificationBanner />
         </TooltipProvider>
       </QueryClientProvider>
       </CurrencyProvider>
