@@ -4,6 +4,7 @@ import { DollarSign, Clock, TrendingUp, Package, RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { toast } from 'sonner';
+import { KPICardsGrid } from './KPICardsGrid';
 
 interface Subscription {
   id: string;
@@ -225,7 +226,7 @@ export function SalesSection() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <TrendingUp className="w-5 h-5 text-primary" />
-          <h2 className="font-display font-bold text-xl">Métricas de Negocio</h2>
+          <h2 className="font-display font-bold text-xl">Ventas</h2>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <div className={`w-2 h-2 rounded-full ${
@@ -241,43 +242,20 @@ export function SalesSection() {
         </div>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {metrics.map((m, i) => {
-          const Icon = m.icon;
-          return (
-            <motion.div
-              key={m.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="glass rounded-xl p-5 relative overflow-hidden"
-            >
-              {/* Glow effect on update */}
-              {syncStatus === 'updated' && (
-                <motion.div
-                  initial={{ opacity: 0.5 }}
-                  animate={{ opacity: 0 }}
-                  transition={{ duration: 0.6 }}
-                  className="absolute inset-0 bg-primary/20"
-                />
-              )}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-foreground font-medium">{m.label}</span>
-                <Icon className={`w-4 h-4 ${m.color}`} />
-              </div>
-              <p className={`font-display font-bold text-2xl ${m.color}`}>{m.value}</p>
-            </motion.div>
-          );
-        })}
-      </div>
+      {/* KPI Cards */}
+      <KPICardsGrid cards={[
+        { label: 'Ventas del mes', value: `$${monthlyRevenue.toFixed(2)}` },
+        { label: 'Pedidos pendientes', value: pendingCount.toString() },
+        { label: 'Producto top', value: topService },
+        { label: 'Total pedidos', value: subscriptions.length.toString() },
+      ]} />
 
       {/* Chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="glass rounded-xl p-6"
+        transition={{ delay: 0.2 }}
+        className="glass rounded-xl p-6 mb-6"
       >
         <h3 className="font-display font-semibold text-sm mb-4">Tendencia de Ventas — Última Semana</h3>
         <ResponsiveContainer width="100%" height={260}>

@@ -5,6 +5,8 @@ import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminTopbar } from '@/components/admin/AdminTopbar';
+import { AdminTopbarProvider } from '@/components/admin/AdminTopbarContext';
 import UserMenu from '@/components/UserMenu';
 import { UsersSection } from '@/components/admin/UsersSection';
 import { SalesSection } from '@/components/admin/SalesSection';
@@ -49,33 +51,28 @@ export default function AdminAccess() {
 
   // Admin verified → show dashboard
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AdminSidebar onSignOut={signOut} />
-        <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center border-b border-border px-3 sm:px-4 glass">
-            <SidebarTrigger className="mr-3" />
-            <Shield className="w-4 h-4 text-primary mr-2" />
-            <span className="font-display font-bold text-sm neon-text">Vortex Streaming</span>
-            <div className="ml-auto">
-              <UserMenu />
-            </div>
-          </header>
+    <AdminTopbarProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AdminSidebar onSignOut={signOut} />
+          <div className="flex-1 flex flex-col">
+            <AdminTopbar />
             <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto">
-            <Routes>
-              <Route index element={<Navigate to="subscriptions" replace />} />
-              <Route path="users" element={<UsersSection />} />
-              <Route path="inventory" element={<InventorySection />} />
-              <Route path="subscriptions" element={<ErrorBoundary><AdminSubscriptionsNew /></ErrorBoundary>} />
-              <Route path="sales" element={<SalesSection />} />
-              <Route path="products" element={<ProductsSection />} />
-              <Route path="payments" element={<PaymentsSection />} />
-              <Route path="settings" element={<SettingsSection />} />
-            </Routes>
-          </main>
+              <Routes>
+                <Route index element={<Navigate to="subscriptions" replace />} />
+                <Route path="users" element={<UsersSection />} />
+                <Route path="inventory" element={<InventorySection />} />
+                <Route path="subscriptions" element={<ErrorBoundary><AdminSubscriptionsNew /></ErrorBoundary>} />
+                <Route path="sales" element={<SalesSection />} />
+                <Route path="products" element={<ProductsSection />} />
+                <Route path="payments" element={<PaymentsSection />} />
+                <Route path="settings" element={<SettingsSection />} />
+              </Routes>
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </AdminTopbarProvider>
   );
 }
 
