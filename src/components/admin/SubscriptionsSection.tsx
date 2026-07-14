@@ -1107,7 +1107,7 @@ export function SubscriptionsSection() {
                           disabled={deletingReceipt}
                           className="w-full rounded-xl px-4 py-3 bg-destructive/10 border border-destructive/30 text-destructive text-sm font-semibold hover:bg-destructive/20 transition disabled:opacity-50"
                         >
-                          {deletingReceipt ? 'Eliminando...' : '🗑️ Eliminar comprobante'}
+                          {deletingReceipt ? 'Eliminando Comprobante...' : '🗑️ Eliminar comprobante'}
                         </button>
                         <div className="flex justify-end">
                           <button
