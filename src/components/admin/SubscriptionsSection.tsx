@@ -1100,22 +1100,24 @@ export function SubscriptionsSection() {
                           className="w-full max-h-[70vh] object-contain"
                         />
                       </div>
-                      <div className="flex justify-end gap-2">
+                      <div className="space-y-2">
                         <button
                           type="button"
                           onClick={handleDeleteReceipt}
                           disabled={deletingReceipt}
-                          className="rounded-xl px-4 py-2 bg-destructive/10 border border-destructive/30 text-destructive text-sm font-semibold hover:bg-destructive/20 transition disabled:opacity-50"
+                          className="w-full rounded-xl px-4 py-3 bg-destructive/10 border border-destructive/30 text-destructive text-sm font-semibold hover:bg-destructive/20 transition disabled:opacity-50"
                         >
-                          {deletingReceipt ? 'Eliminando...' : 'Eliminar comprobante'}
+                          {deletingReceipt ? 'Eliminando...' : '🗑️ Eliminar comprobante'}
                         </button>
-                        <button
-                          type="button"
-                          onClick={closeReceiptModal}
-                          className="rounded-xl px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition"
-                        >
-                          Cerrar
-                        </button>
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={closeReceiptModal}
+                            className="rounded-xl px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
