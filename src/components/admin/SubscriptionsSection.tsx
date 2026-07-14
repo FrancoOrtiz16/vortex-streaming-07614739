@@ -85,6 +85,8 @@ export function SubscriptionsSection() {
   const [receiptModalLoading, setReceiptModalLoading] = useState(false);
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [receiptModalError, setReceiptModalError] = useState<string | null>(null);
+  const [currentReceiptUserId, setCurrentReceiptUserId] = useState<string | null>(null);
+  const [deletingReceipt, setDeletingReceipt] = useState(false);
   const [receiptUrlByUser, setReceiptUrlByUser] = useState<Record<string, string>>({});
   const [receiptAvailableByUser, setReceiptAvailableByUser] = useState<Record<string, boolean>>({});
   const isMountedRef = useRef(true);
@@ -265,11 +267,53 @@ export function SubscriptionsSection() {
     await Promise.all(userIds.map((userId) => loadUserReceiptUrl(userId)));
   };
 
+  const handleDeleteReceipt = async () => {
+    if (!selectedReceiptUrl || !currentReceiptUserId) return;
+    setDeletingReceipt(true);
+    try {
+      const marker = '/object/public/receipts/';
+      const markerIndex = selectedReceiptUrl.indexOf(marker);
+      if (markerIndex !== -1) {
+        const storagePath = selectedReceiptUrl.slice(markerIndex + marker.length).split('?')[0];
+        const { error: storageError } = await supabase.storage
+          .from('receipts')
+          .remove([storagePath]);
+        if (storageError) {
+          console.warn('[Admin] Error borrando archivo del storage:', storageError);
+        }
+      } else {
+        console.warn('[Admin] No se pudo determinar el path del storage para:', selectedReceiptUrl);
+      }
+
+      await supabase
+        .from('payment_history')
+        .update({ receipt_url: null })
+        .eq('user_id', currentReceiptUserId)
+        .eq('receipt_url', selectedReceiptUrl);
+
+      setReceiptAvailableByUser((prev) => ({ ...prev, [currentReceiptUserId]: false }));
+      setReceiptUrlByUser((prev) => {
+        const next = { ...prev };
+        delete next[currentReceiptUserId];
+        return next;
+      });
+
+      toast.success('Comprobante eliminado correctamente');
+      closeReceiptModal();
+    } catch (err: any) {
+      console.error('[Admin] handleDeleteReceipt error:', err);
+      toast.error(err?.message || 'Error eliminando el comprobante');
+    } finally {
+      setDeletingReceipt(false);
+    }
+  };
+
   const openReceiptModal = async (userId: string) => {
     setReceiptModalOpen(true);
     setReceiptModalLoading(true);
     setSelectedReceiptUrl(null);
     setReceiptModalError(null);
+    setCurrentReceiptUserId(userId);
 
     try {
       const url = await getReceiptPublicUrl(userId);
@@ -291,6 +335,7 @@ export function SubscriptionsSection() {
     setSelectedReceiptUrl(null);
     setReceiptModalError(null);
     setReceiptModalLoading(false);
+    setCurrentReceiptUserId(null);
   };
 
   useEffect(() => {
@@ -1055,7 +1100,15 @@ export function SubscriptionsSection() {
                           className="w-full max-h-[70vh] object-contain"
                         />
                       </div>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDeleteReceipt}
+                          disabled={deletingReceipt}
+                          className="rounded-xl px-4 py-2 bg-destructive/10 border border-destructive/30 text-destructive text-sm font-semibold hover:bg-destructive/20 transition disabled:opacity-50"
+                        >
+                          {deletingReceipt ? 'Eliminando...' : 'Eliminar comprobante'}
+                        </button>
                         <button
                           type="button"
                           onClick={closeReceiptModal}

@@ -106,9 +106,9 @@ export function PaymentsSection() {
               <input
                 value={editing.method_name || ''}
                 onChange={e => setEditing(prev => ({ ...prev, method_name: e.target.value }))}
-                placeholder="Ej: Zelle Principal"
+                placeholder = "Ej: Zelle Principal"
                 className="w-full px-3 py-2 rounded-xl bg-secondary text-sm border border-border focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-              />
+                />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo</label>
